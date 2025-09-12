@@ -1,0 +1,67 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Verified Successfully</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; font-family:
+      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+      sans-serif; } body { background: linear-gradient(135deg, #e8f5e9 0%,
+      #c8e6c9 100%); min-height: 100vh; display: flex; justify-content: center;
+      align-items: center; padding: 20px; } .container { background: white;
+      border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width:
+      100%; max-width: 400px; overflow: hidden; text-align: center; } .header {
+      background: #4caf50; color: white; padding: 30px 20px; } .icon {
+      font-size: 60px; margin-bottom: 15px; } .content { padding: 30px 25px; }
+      h1 { font-size: 24px; margin-bottom: 15px; color: #333; } p { color: #666;
+      line-height: 1.6; margin-bottom: 25px; } .button { display: inline-block;
+      background: #4caf50; color: white; text-decoration: none; padding: 14px
+      28px; border-radius: 8px; font-weight: 600; font-size: 16px; transition:
+      all 0.3s ease; } .button:hover { background: #388e3c; transform:
+      translateY(-2px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3); } .footer
+      { padding: 20px; background: #f9f9f9; color: #888; font-size: 14px; }
+      .checkmark { font-size: 80px; color: #4caf50; margin-bottom: 20px; }
+      .celebrate { animation: celebrate 1s ease; } @keyframes celebrate { 0% {
+      transform: scale(0); opacity: 0; } 50% { transform: scale(1.2); } 100% {
+      transform: scale(1); opacity: 1; } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="icon">✓</div>
+        <h1>Email Verified!</h1>
+      </div>
+      <div class="content">
+        <div class="checkmark celebrate">✓</div>
+        <p>Your email has been successfully verified. You can now return to the
+          app and login to your account.</p>
+        <a href="#" onclick="window.close()" class="button">Close Page</a>
+      </div>
+      <div class="footer">
+        <p>You can now login to your account</p>
+      </div>
+    </div>
+
+    <script>
+      // Try to close the window automatically on mobile devices if
+      (window.history.length > 1) { setTimeout(function() {
+      window.history.back(); }, 5000); } else { setTimeout(function() {
+      window.close(); }, 5000); } // Add confetti effect for celebration
+      setTimeout(function() { const colors = ['#4caf50', '#2e7d32', '#66bb6a',
+      '#81c784']; for (let i = 0; i < 30; i++) { const confetti =
+      document.createElement('div'); confetti.style.position = 'fixed';
+      confetti.style.width = '10px'; confetti.style.height = '10px';
+      confetti.style.background = colors[Math.floor(Math.random() *
+      colors.length)]; confetti.style.borderRadius = '50%'; confetti.style.top =
+      Math.random() * 100 + 'vh'; confetti.style.left = Math.random() * 100 +
+      'vw'; confetti.style.opacity = '0'; confetti.style.zIndex = '9999';
+      document.body.appendChild(confetti); // Animate confetti const animation =
+      confetti.animate([ { opacity: 1, transform: 'translateY(0) rotate(0deg)'
+      }, { opacity: 0, transform: 'translateY(100px) rotate(360deg)' } ], {
+      duration: 1000 + Math.random() * 2000, delay: Math.random() * 500 }); //
+      Remove confetti after animation animation.onfinish = () =>
+      confetti.remove(); } }, 300);
+    </script>
+  </body>
+</html>

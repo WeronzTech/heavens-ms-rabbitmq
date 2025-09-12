@@ -1,0 +1,718 @@
+services:
+  # API Gateway: Single entry point for all client requests.
+  # api-gateway:
+  #   build:
+  #     context: . # Build context is the project root
+  #     dockerfile: Dockerfile # Use the universal Dockerfile
+  #     args:
+  #       SERVICE_NAME: api-gateway # Pass the service name as an argument
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./apps/api-gateway:/app/apps/api-gateway # Mount only this service's code
+  #     - /app/node_modules # Isolate container's node_modules
+  #   environment:
+  #     - NODE_ENV=development
+  #     - CHOKIDAR_USEPOLLING=true
+  #   depends_on:
+  #     - auth-service
+  #     - client-service
+  #     - user-service
+  #   networks:
+  #     - heavens-ms-js-net
+  #   restart: unless-stopped
+
+  # # Auth Service: Manages authentication and authorization.
+  # auth-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       SERVICE_NAME: auth-service
+  #   volumes:
+  #     - ./apps/auth-service:/app/apps/auth-service
+  #     - /app/node_modules
+  #   env_file:
+  #     - ./apps/auth-service/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - CHOKIDAR_USEPOLLING=true
+  #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+  #   networks:
+  #     - heavens-ms-js-net
+  #   depends_on:
+  #     - mongo-auth
+  #     - rabbitmq
+  #   restart: unless-stopped
+
+  # # Client Service: Manages client data.
+  # client-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       SERVICE_NAME: client-service
+  #   volumes:
+  #     - ./apps/client-service:/app/apps/client-service
+  #     - /app/node_modules
+  #   env_file:
+  #     - ./apps/client-service/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - CHOKIDAR_USEPOLLING=true
+  #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+  #   depends_on:
+  #     - mongo-client
+  #     - rabbitmq
+  #   networks:
+  #     - heavens-ms-js-net
+  #   restart: unless-stopped
+
+  # # User Service: Manages user data.
+  # user-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       SERVICE_NAME: user-service
+  #   volumes:
+  #     - ./apps/user-service:/app/apps/user-service
+  #     - /app/node_modules
+  #   env_file:
+  #     - ./apps/user-service/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - CHOKIDAR_USEPOLLING=true
+  #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+  #   depends_on:
+  #     - mongo-user
+  #     - rabbitmq
+  #   networks:
+  #     - heavens-ms-js-net
+  #   restart: unless-stopped
+
+  # --- Infrastructure Services (Unchanged) ---
+
+  maildev:
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+    networks:
+      - heavens-ms-js-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ../DATABASE/rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - heavens-ms-js-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    networks:
+      - heavens-ms-js-net
+    restart: unless-stopped
+
+  # --- Database Services ---
+  # mongo-auth:
+  #   image: mongo
+  #   container_name: mongo-auth
+  #   volumes:
+  #     - mongo-auth-data:/data/db
+  #   networks:
+  #     - heavens-ms-js-net
+
+  # mongo-client:
+  #   image: mongo
+  #   container_name: mongo-client
+  #   volumes:
+  #     - mongo-client-data:/data/db
+  #   networks:
+  #     - heavens-ms-js-net
+
+  # mongo-inventory:
+  #   image: mongo
+  #   container_name: mongo-inventory
+  #   volumes:
+  #     - mongo-inventory-data:/data/db
+  #   networks:
+  #     - heavens-ms-js-net
+
+  # mongo-property:
+  #   image: mongo
+  #   container_name: mongo-property
+  #   volumes:
+  #     - mongo-property-data:/data/db
+  #   networks:
+  #     - heavens-ms-js-net
+
+  # mongo-user:
+  #   image: mongo
+  #   container_name: mongo-user
+  #   volumes:
+  #     - mongo-user-data:/data/db
+  #   networks:
+  #     - heavens-ms-js-net
+
+networks:
+  heavens-ms-js-net:
+    driver: bridge
+
+volumes:
+  # mongo-auth-data:
+  # mongo-client-data:
+  # mongo-inventory-data:
+  # mongo-property-data:
+  # mongo-user-data:
+  rabbitmq-data:
+# # Use version 3.9 for modern Docker features
+
+# services:
+#   # Auth Service: Manages authentication and authorization.
+#   # No port exposed; accessed via API Gateway.
+#   auth-service:
+#     build:
+#       context: ./apps/auth-service
+#       dockerfile: ./Dockerfile
+#     volumes:
+#       - ./apps/auth-service:/app
+#     env_file:
+#       - ./apps/auth-service/.env
+#     environment:
+#       - NODE_ENV=development
+#       - CHOKIDAR_USEPOLLING=true
+#       - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#     networks:
+#       - heavens-ms-js-net
+#     depends_on:
+#       - mongo-auth
+#       - rabbitmq
+#     restart: unless-stopped
+
+#   # Client Service: Manages client data.
+#   # No port exposed; accessed via API Gateway.
+#   client-service:
+#     build:
+#       context: ./apps/client-service
+#       dockerfile: ./Dockerfile
+#     volumes:
+#       - ./apps/client-service:/app
+#     env_file:
+#       - ./apps/client-service/.env
+#     environment:
+#       - NODE_ENV=development
+#       - CHOKIDAR_USEPOLLING=true
+#       - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#     depends_on:
+#       - mongo-client
+#       - rabbitmq
+#     networks:
+#       - heavens-ms-js-net
+#     restart: unless-stopped
+
+#   # Inventory Service: Manages inventory.
+#   # No port exposed; accessed via API Gateway.
+#   # inventory-service:
+#   #   build:
+#   #     context: ./apps/inventory-service
+#   #   volumes:
+#   #     - ./apps/inventory-service:/app
+#   #   env_file:
+#   #     - ./apps/inventory-service/.env
+#   #   environment:
+#   #     - NODE_ENV=development
+#   #     - CHOKIDAR_USEPOLLING=true
+#   #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#   #   depends_on:
+#   #     - mongo-inventory
+#   #     - rabbitmq
+#   #   networks:
+#   #     - heavens-ms-js-net
+#   #   restart: unless-stopped
+
+#   # # Property Service: Manages property data.
+#   # # No port exposed; accessed via API Gateway.
+#   # property-service:
+#   #   build:
+#   #     context: ./apps/property-service
+#   #   volumes:
+#   #     - ./apps/property-service:/app
+#   #   env_file:
+#   #     - ./apps/property-service/.env
+#   #   environment:
+#   #     - NODE_ENV=development
+#   #     - CHOKIDAR_USEPOLLING=true
+#   #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#   #   depends_on:
+#   #     - mongo-property
+#   #     - rabbitmq
+#   #   networks:
+#   #     - heavens-ms-js-net
+#   #   restart: unless-stopped
+
+#   # User Service: Manages user data.
+#   # No port exposed; accessed via API Gateway.
+#   user-service:
+#     build:
+#       context: ./apps/user-service
+#       dockerfile: ./Dockerfile
+#     volumes:
+#       - ./apps/user-service:/app
+#       - /app/node_modules
+#     env_file:
+#       - ./apps/user-service/.env
+#     environment:
+#       - NODE_ENV=development
+#       - CHOKIDAR_USEPOLLING=true
+#       - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#     depends_on:
+#       - mongo-user
+#       - rabbitmq
+#     networks:
+#       - heavens-ms-js-net
+#     restart: unless-stopped
+
+#   # Socket Service: Handles real-time communication.
+#   # No port exposed; accessed via API Gateway.
+#   # socket-service:
+#   #   build:
+#   #     context: ./apps/socket-service
+#   #   volumes:
+#   #     - ./apps/socket-service:/app
+#   #     - /app/node_modules
+#   #   env_file:
+#   #     - ./apps/socket-service/.env
+#   #   environment:
+#   #     - NODE_ENV=development
+#   #     - CHOKIDAR_USEPOLLING=true
+#   #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#   #   depends_on:
+#   #     - rabbitmq
+#   #   networks:
+#   #     - heavens-ms-js-net
+#   #   restart: unless-stopped
+
+#   # # Notification Service: Manages sending notifications.
+#   # # No port exposed; accessed via API Gateway.
+#   # notification-service:
+#   #   build:
+#   #     context: ./apps/notification-service
+#   #   volumes:
+#   #     - ./apps/notification-service:/app
+#   #     - /app/node_modules
+#   #   env_file:
+#   #     - ./apps/notification-service/.env
+#   #   environment:
+#   #     - NODE_ENV=development
+#   #     - CHOKIDAR_USEPOLLING=true
+#   #     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+#   #   depends_on:
+#   #     - rabbitmq
+#   #   networks:
+#   #     - heavens-ms-js-net
+#   #   restart: unless-stopped
+
+#   # API Gateway: Single entry point for all client requests.
+#   api-gateway:
+#     build:
+#       context: ./apps/api-gateway
+#       dockerfile: ./Dockerfile
+#     ports:
+#       - "8080:8080" # Exposed to the host
+#     volumes:
+#       - ./apps/api-gateway:/app
+#       - /app/node_modules
+#     # env_file:
+#     #   - ./apps/api-gateway/.env
+#     environment:
+#       - NODE_ENV=development
+#       - CHOKIDAR_USEPOLLING=true
+#     depends_on:
+#       - auth-service
+#       - client-service
+#       - user-service
+#       # - property-service
+#       # - inventory-service
+#       # - socket-service
+#       # - notification-service
+#     networks:
+#       - heavens-ms-js-net
+#     restart: unless-stopped
+
+#   # MailDev: SMTP server for development email testing.
+#   # Only the web UI port is exposed for debugging.
+#   maildev:
+#     image: maildev/maildev
+#     ports:
+#       - "1080:1080" # MailDev Web UI
+#     networks:
+#       - heavens-ms-js-net
+
+#   # RabbitMQ: Message broker for inter-service communication.
+#   # Only the management UI port is exposed for debugging.
+#   rabbitmq:
+#     image: rabbitmq:3-management
+#     container_name: rabbitmq
+#     environment:
+#       RABBITMQ_DEFAULT_USER: admin
+#       RABBITMQ_DEFAULT_PASS: admin123
+#     ports:
+#       - "15672:15672" # RabbitMQ Management UI
+#     volumes:
+#       - rabbitmq-data:/var/lib/rabbitmq
+#     networks:
+#       - heavens-ms-js-net
+#     healthcheck:
+#       test: ["CMD", "rabbitmq-diagnostics", "ping"]
+#       interval: 5s
+#       timeout: 10s
+#       retries: 5
+#       start_period: 20s
+
+#   # Redis: In-memory data store.
+#   # No port exposed; accessed internally by services.
+#   redis:
+#     image: redis:latest # Using latest for simplicity, pin version if needed
+#     container_name: redis
+#     networks:
+#       - heavens-ms-js-net
+#     restart: unless-stopped
+
+#   # --- Database Services ---
+#   # All MongoDB instances are only accessible within the Docker network.
+#   mongo-auth:
+#     image: mongo
+#     container_name: mongo-auth
+#     volumes:
+#       - mongo-auth-data:/data/db
+#     networks:
+#       - heavens-ms-js-net
+
+#   mongo-client:
+#     image: mongo
+#     container_name: mongo-client
+#     volumes:
+#       - mongo-client-data:/data/db
+#     networks:
+#       - heavens-ms-js-net
+
+#   mongo-inventory:
+#     image: mongo
+#     container_name: mongo-inventory
+#     volumes:
+#       - mongo-inventory-data:/data/db
+#     networks:
+#       - heavens-ms-js-net
+
+#   mongo-property:
+#     image: mongo
+#     container_name: mongo-property
+#     volumes:
+#       - mongo-property-data:/data/db
+#     networks:
+#       - heavens-ms-js-net
+
+#   mongo-user:
+#     image: mongo
+#     container_name: mongo-user
+#     volumes:
+#       - mongo-user-data:/data/db
+#     networks:
+#       - heavens-ms-js-net
+
+# # Define the network for all services to communicate
+# networks:
+#   heavens-ms-js-net:
+#     driver: bridge
+
+# # Define named volumes for persistent data
+# volumes:
+#   mongo-auth-data:
+#   mongo-client-data:
+#   mongo-inventory-data:
+#   mongo-property-data:
+#   mongo-user-data:
+#   rabbitmq-data:
+# # # version: '3.9'
+
+# # services:
+# #   auth-service:
+# #     build:
+# #       context: ./apps/auth-service
+# #     ports:
+# #       - "5000:5000"
+# #     volumes:
+# #       - ./apps/auth-service:/app
+# #     env_file:
+# #       - ./apps/auth-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true # Helps with file watching in Docker
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped # Auto-restart if crashes
+
+# #   client-service:
+# #     build:
+# #       context: ./apps/client-service
+# #     ports:
+# #       - "5001:5001"
+# #     volumes:
+# #       - ./apps/client-service:/app
+# #     env_file:
+# #       - ./apps/client-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true
+# #     depends_on:
+# #       - mongo-client
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   inventory-service:
+# #     build:
+# #       context: ./apps/inventory-service
+# #     ports:
+# #       - "5002:5002"
+# #     volumes:
+# #       - ./apps/inventory-service:/app
+# #     env_file:
+# #       - ./apps/inventory-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true # Helps with file watching in Docker
+# #     depends_on:
+# #       - mongo-inventory
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped # Auto-restart if crashes
+
+# #   property-service:
+# #     build:
+# #       context: ./apps/property-service
+# #     ports:
+# #       - "5004:5004"
+# #     volumes:
+# #       - ./apps/property-service:/app
+# #     env_file:
+# #       - ./apps/property-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true # Helps with file watching in Docker
+# #     depends_on:
+# #       - mongo-property
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped # Auto-restart if crashes
+
+# #   user-service:
+# #     build:
+# #       context: ./apps/user-service
+# #     ports:
+# #       - "5005:5005"
+# #     volumes:
+# #       - ./apps/user-service:/app
+# #       - /app/node_modules
+# #     env_file:
+# #       - ./apps/user-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true
+# #     depends_on:
+# #       - mongo-user
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   socket-service:
+# #     build:
+# #       context: ./apps/socket-service
+# #     ports:
+# #       - "5006:5006"
+# #     volumes:
+# #       - ./apps/socket-service:/app
+# #       - /app/node_modules
+# #     env_file:
+# #       - ./apps/socket-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   notification-service:
+# #     build:
+# #       context: ./apps/notification-service
+# #     ports:
+# #       - "5007:5007"
+# #     volumes:
+# #       - ./apps/notification-service:/app
+# #       - /app/node_modules
+# #     env_file:
+# #       - ./apps/notification-service/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true
+# #     # depends_on:
+# #     #   - mongo-user
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   api-gateway:
+# #     build:
+# #       context: ./apps/api-gateway
+# #     ports:
+# #       - "8080:8080"
+# #     volumes:
+# #       - ./apps/api-gateway:/app
+# #       - /app/node_modules
+# #     env_file:
+# #       - ./apps/api-gateway/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true
+# #     depends_on:
+# #       - auth-service
+# #       - client-service
+# #       - user-service
+# #       - property-service
+# #       - inventory-service
+# #       - socket-service
+# #       - notification-service
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   heavens-frontend:
+# #     build:
+# #       context: ./apps/heavens-frontend
+# #     ports:
+# #       - "5173:5173"
+# #     volumes:
+# #       - ./apps/heavens-frontend:/app
+# #       - /app/node_modules
+# #     env_file:
+# #       - ./apps/heavens-frontend/.env
+# #     environment:
+# #       - NODE_ENV=development
+# #       - CHOKIDAR_USEPOLLING=true
+# #     depends_on:
+# #       - api-gateway
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   maildev:
+# #     image: maildev/maildev
+# #     ports:
+# #       - "1080:1080"
+# #       - "1025:1025"
+# #     networks:
+# #       - heavens-ms-js-net
+
+# #   # MongoDB apps remain the same...
+# #   mongo-auth:
+# #     image: mongo
+# #     container_name: mongo-auth
+# #     ports:
+# #       - "27017:27017"
+# #     volumes:
+# #       - mongo-auth-data:/data/db
+# #     networks:
+# #       - heavens-ms-js-net
+
+# #   mongo-client:
+# #     image: mongo
+# #     container_name: mongo-client
+# #     ports:
+# #       - "27018:27017"
+# #     volumes:
+# #       - mongo-client-data:/data/db
+# #     networks:
+# #       - heavens-ms-js-net
+
+# #   mongo-inventory:
+# #     image: mongo
+# #     container_name: mongo-inventory
+# #     ports:
+# #       - "27019:27017"
+# #     volumes:
+# #       - mongo-inventory-data:/data/db
+# #     networks:
+# #       - heavens-ms-js-net
+
+# #   mongo-property:
+# #     image: mongo
+# #     container_name: mongo-property
+# #     ports:
+# #       - "27020:27017"
+# #     volumes:
+# #       - mongo-property-data:/data/db
+# #     networks:
+# #       - heavens-ms-js-net
+
+# #   mongo-user:
+# #     image: mongo
+# #     container_name: mongo-user
+# #     ports:
+# #       - "27021:27017"
+# #     volumes:
+# #       - mongo-user-data:/data/db
+# #     networks:
+# #       - heavens-ms-js-net
+
+# #   redis:
+# #     image: redis:7.4.4-alpine3.21
+# #     container_name: redis
+# #     ports:
+# #       - "6379:6379"
+# #     networks:
+# #       - heavens-ms-js-net
+# #     restart: unless-stopped
+
+# #   rabbitmq:
+# #     image: rabbitmq:3-management
+# #     container_name: rabbitmq
+# #     environment:
+# #       RABBITMQ_DEFAULT_USER: admin
+# #       RABBITMQ_DEFAULT_PASS: admin123
+# #     ports:
+# #       - "5672:5672"
+# #       - "15672:15672"
+# #     volumes:
+# #       - ../DATABASE/rabbitmq-data:/var/lib/rabbitmq
+# #     networks:
+# #       - heavens-ms-js-net
+# #     healthcheck:
+# #       test: ["CMD", "rabbitmq-diagnostics", "ping"]
+# #       interval: 5s
+# #       timeout: 10s
+# #       retries: 5
+# #       start_period: 20s
+
+# # networks:
+# #   heavens-ms-js-net:
+
+# # volumes:
+# #   mongo-auth-data:
+# #   mongo-client-data:
+# #   mongo-inventory-data:
+# #   mongo-property-data:
+# #   mongo-user-data:

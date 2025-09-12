@@ -1,0 +1,8 @@
+{
+  "watch": ["src"],
+  "ext": "js,json,ts",
+  "ignore": ["src/**/*.test.js"],
+  "verbose": true,
+  "legacyWatch": true,
+  "delay": 1500
+}
