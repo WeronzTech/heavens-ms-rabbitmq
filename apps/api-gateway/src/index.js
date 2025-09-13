@@ -80,6 +80,8 @@ app.get("/", (_, res) => {
 // ----- Start Server ----- //
 app.listen(process.env.API_GATEWAY_PORT, () => {
   console.log(
-    `API Gateway running at http://${HOST || "localhost"}:${process.env.API_GATEWAY_PORT}`
+    `API Gateway running at http://${HOST || "localhost"}:${
+      process.env.API_GATEWAY_PORT
+    }`
   );
 });
