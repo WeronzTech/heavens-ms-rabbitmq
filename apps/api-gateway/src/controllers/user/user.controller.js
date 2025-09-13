@@ -28,9 +28,11 @@ export const registerUser = async (req, res) => {
     personalDetails,
   });
 
-  if (response.status === 200) {
-    return res.status(200).json(response?.data);
-  } else {
-    return res.status(response?.status).json({ message: response.message });
-  }
+  return res.status(response.statusCode).json(response.body);
+
+  // if (response.status === 200) {
+  //   return res.status(200).json(response?.data);
+  // } else {
+  //   return res.status(response?.status).json({ message: response.message });
+  // }
 };
