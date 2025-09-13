@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import User from "../models/user.model.js";
-import { removeFromRoom } from "./property.service.js";
+import { assignRoomToUser, removeFromRoom } from "./property.service.js";
 import {
   checkExistingUsers,
   validateFieldFormats,
@@ -9,9 +9,9 @@ import {
 import { getNextResidentId } from "../utils/getNextResidentId.js";
 import bcrypt from "bcrypt";
 import UserLog from "../models/userLog.model.js";
+import { calculateProfileCompletion } from "../utils/profileCompletion.js";
 
 export const getUserByEmail = async (email) => {
-  console.log(email);
   try {
     if (!email) {
       return {
@@ -305,6 +305,360 @@ export const registerUser = async (data) => {
         message: errorMessage,
         details:
           process.env.NODE_ENV === "development" ? err.message : undefined,
+      },
+    };
+  }
+};
+
+export const getUnapprovedUsers = async (data) => {
+  try {
+    console.log(data?.propertyId);
+    const propertyId = data?.propertyId;
+    // Base filter for all users
+    const filter = {
+      isApproved: false,
+    };
+
+    // If property filter is applied
+    if (propertyId && propertyId !== "null") {
+      // For MessOnly users, we'll need to check kitchen-property relationships
+      // We'll use an $or condition to handle all user types
+      filter.$or = [
+        // Monthly/Daily residents - propertyId in stayDetails
+        {
+          userType: { $in: ["student", "worker", "dailyRent"] },
+          "stayDetails.propertyId": propertyId,
+        },
+        // MessOnly users - kitchen must be accessible to this property
+        {
+          userType: "messOnly",
+          "messDetails.kitchenId": { $exists: true },
+          // Kitchen property check will be done after initial fetch
+        },
+      ];
+    } else {
+      // No property filter - get all unapproved residents
+      filter.userType = { $exists: true };
+    }
+
+    // First fetch all matching users (except MessOnly property validation)
+    // console.log(filter);
+    let residents = await User.find(filter)
+      .select(
+        "name email contact userType stayDetails messDetails propertyId createdAt"
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // If property filter is active, we need to validate MessOnly users
+    if (propertyId && propertyId !== "null") {
+      // Get all kitchen IDs from MessOnly users
+      const kitchenIds = residents
+        .filter((u) => u.userType === "messOnly")
+        .map((u) => u.messDetails?.kitchenId)
+        .filter(Boolean);
+
+      if (kitchenIds.length > 0) {
+        // Call inventory-service to get kitchens accessible to this property
+        const accessibleKitchens = await getAccessibleKitchens(propertyId);
+        const accessibleKitchenIds = accessibleKitchens.map((k) =>
+          k._id.toString()
+        );
+
+        // Filter MessOnly users - only keep those with kitchens accessible to the property
+        residents = residents.filter((user) => {
+          if (user.userType !== "messOnly") return true;
+          return accessibleKitchenIds.includes(
+            user.messDetails?.kitchenId?.toString()
+          );
+        });
+      } else {
+        // No MessOnly users with kitchens - remove all MessOnly users
+        residents = residents.filter((user) => user.userType !== "messOnly");
+      }
+    }
+
+    // Format the response data consistently
+    const formattedResidents = residents.map((resident) => {
+      const baseData = {
+        _id: resident._id,
+        name: resident.name,
+        email: resident.email,
+        contact: resident.contact,
+        userType: resident.userType,
+        createdAt: resident.createdAt,
+      };
+
+      if (resident.userType === "messOnly") {
+        return {
+          ...baseData,
+          kitchenName: resident.messDetails?.kitchenName,
+        };
+      } else {
+        return {
+          ...baseData,
+          roomNumber: resident.stayDetails?.roomNumber,
+          propertyId: resident.stayDetails?.propertyId,
+          propertyName: resident.stayDetails?.propertyName,
+          sharingType: resident.stayDetails?.sharingType,
+        };
+      }
+    });
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        message: "Fetched unapproved residents successfully",
+        data: formattedResidents,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching residents:", error);
+
+    return {
+      status: 500,
+      body: {
+        success: false,
+        message: "Server error while fetching residents",
+        error: error.message,
+      },
+    };
+  }
+};
+
+export const approveUser = async (data) => {
+  const {
+    id,
+    name,
+    email,
+    contact,
+    userType,
+    rentType,
+    propertyId,
+    propertyName,
+    roomId,
+    refundableDeposit,
+    nonRefundableDeposit,
+    joinDate,
+    messDetails,
+    stayDetails,
+    monthlyRent,
+    kitchenId,
+    kitchenName,
+    updatedBy,
+  } = data;
+
+  try {
+    const user = await User.findById(id).lean();
+    // console.log(user);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (user.isApproved) {
+      return res.status(400).json({ error: "User already approved" });
+    }
+
+    // Common updates for all user types
+    const updates = {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(contact && { contact }),
+      ...(userType && { userType }),
+      ...(rentType && { rentType }),
+      isApproved: true,
+      updatedAt: new Date(),
+      profileCompletion: calculateProfileCompletion(user),
+    };
+
+    // Type-specific updates
+    if (user.userType === "messOnly") {
+      // Validate required fields for MessOnly
+      if (!kitchenId) {
+        return res.status(400).json({
+          error: "Kitchen ID is required for MessOnly users",
+        });
+      }
+
+      updates.messDetails = {
+        ...user.messDetails,
+        kitchenId: kitchenId || user.messDetails.kitchenId,
+        kitchenName: kitchenName || user.messDetails?.kitchenName,
+        mealType: messDetails.mealType || user.messDetails?.mealType,
+        rent: messDetails.rent || user.messDetails?.rent,
+        messStartDate:
+          new Date(messDetails.messStartDate) ||
+          new Date(user.messDetails?.messStartDate)() ||
+          new Date(),
+        messEndDate:
+          new Date(messDetails.messEndDate) ||
+          new Date(user.messDetails?.messEndDate) ||
+          new Date(),
+        noOfDays: messDetails.noOfDays || user.messDetails?.noOfDays,
+      };
+
+      updates.financialDetails = {
+        totalAmount:
+          (messDetails.rent || user.messDetails?.rent) *
+          (messDetails.noOfDays || user.messDetails.noOfDays),
+        pendingAmount:
+          (messDetails.rent || user.messDetails?.rent) *
+          (messDetails.noOfDays || user.messDetails.noOfDays),
+        accountBalance: 0,
+      };
+    } else {
+      // For Monthly and Daily residents - room assignment required
+      if (!roomId) {
+        return res
+          .status(400)
+          .json({ error: "Room ID is required for approval" });
+      }
+
+      const roomAssignment = await assignRoomToUser({
+        userId: id,
+        roomId,
+        userType:
+          user.rentType === "monthly" ? "longTermResident" : "dailyRenter",
+      });
+
+      if (user.rentType === "monthly") {
+        updates.stayDetails = {
+          ...user.stayDetails,
+          monthlyRent: monthlyRent || user.stayDetails?.monthlyRent,
+          refundableDeposit:
+            refundableDeposit || user.stayDetails.refundableDeposit,
+          nonRefundableDeposit:
+            nonRefundableDeposit || user.stayDetails.nonRefundableDeposit,
+          roomId,
+          propertyId: propertyId || user.stayDetails?.propertyId,
+          propertyName: propertyName || user.stayDetails?.propertyName,
+          sharingType: roomAssignment.room.sharingType,
+          roomNumber: roomAssignment.room.roomNo,
+          joinDate: joinDate
+            ? new Date(joinDate)
+            : new Date(user.stayDetails?.joinDate) || new Date(),
+        };
+
+        updates.financialDetails = {
+          monthlyRent: monthlyRent || user.stayDetails?.monthlyRent,
+          pendingRent: monthlyRent || user.stayDetails?.monthlyRent,
+          accountBalance: 0,
+          nextDueDate: joinDate || user.stayDetails?.joinDate,
+          paymentDueSince: joinDate || user.stayDetails?.joinDate,
+        };
+      } else if (user.rentType === "daily") {
+        updates.stayDetails = {
+          ...user.stayDetails,
+          dailyRent: stayDetails.rent || user.stayDetails?.dailyRent,
+          roomId,
+          propertyId: propertyId || user.stayDetails?.propertyId,
+          propertyName: propertyName || user.stayDetails?.propertyName,
+          sharingType: roomAssignment.room.sharingType,
+          roomNumber: roomAssignment.room.roomNo,
+          checkInDate:
+            new Date(stayDetails.checkInDate) ||
+            new Date(user.stayDetails?.checkInDate)() ||
+            new Date(),
+          checkOutDate:
+            new Date(stayDetails.checkOutDate) ||
+            new Date(user.stayDetails?.checkOutDate)() ||
+            new Date(),
+          noOfDays: stayDetails.noOfDays || user.stayDetails?.noOfDays,
+        };
+
+        // const days =
+        //   Math.ceil(
+        //     (new Date(updates.stayDetails.checkOutDate) -
+        //       new Date(updates.stayDetails.checkInDate)) /
+        //       (1000 * 60 * 60 * 24)
+        //   ) + 1;
+
+        updates.financialDetails = {
+          totalAmount:
+            (stayDetails.rent || user.stayDetails?.dailyRent) *
+            (stayDetails.noOfDays || user.stayDetails.noOfDays),
+          pendingAmount:
+            (stayDetails.rent || user.stayDetails?.dailyRent) *
+            (stayDetails.noOfDays || user.stayDetails.noOfDays),
+          accountBalance: 0,
+        };
+      }
+    }
+
+    // Generate verification token for all user types
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    updates.emailVerificationToken = verificationToken;
+    updates.emailVerificationExpires = new Date(
+      Date.now() + 24 * 60 * 60 * 1000
+    );
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, lean: true }
+    );
+
+    try {
+      await UserLog.create({
+        userId: updatedUser._id,
+        action: "create",
+        changedByName: updatedBy, // or whoever approves
+        message: `Approved ${updatedUser.userType} (${updatedUser.name}) for ${
+          updatedUser.stayDetails?.propertyName ||
+          updatedUser.messDetails?.kitchenName ||
+          "Unknown Property"
+        } with ${updatedUser.rentType} rent type`,
+        propertyId: updatedUser.stayDetails?.propertyId || null,
+        kitchenId:
+          updatedUser.stayDetails?.kitchenId ||
+          updatedUser.messDetails?.kitchenId ||
+          null,
+        timestamp: new Date(),
+      });
+    } catch (logError) {
+      console.error("Failed to save approval log:", logError);
+    }
+
+    // Post-approval async tasks
+    setImmediate(async () => {
+      try {
+        await Promise.all([
+          user.userType !== "MessOnly" && handleReferralOnApproval(user),
+          emailService.sendApprovalEmail(updatedUser, verificationToken),
+        ]);
+      } catch (err) {
+        console.error("Post-approval async error:", err);
+      }
+    });
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        message: "User approved successfully",
+        data: {
+          userId: updatedUser._id,
+          name: updatedUser.name,
+          userType: updatedUser.userType,
+          rentType: updatedUser.rentType,
+          ...(userType === "messOnly" && {
+            kitchenName: updatedUser.messDetails?.kitchenName,
+          }),
+          ...(userType !== "messOnly" && {
+            roomNumber: updatedUser.stayDetails?.roomNumber,
+          }),
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Approval error:", error);
+    return {
+      status: error.status || 500,
+      body: {
+        success: false,
+        error: error.message || "Server error during approval",
       },
     };
   }

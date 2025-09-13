@@ -33,9 +33,9 @@ app.use(helmet());
 app.use(parseForwardedAuth);
 
 // Routes
+app.use("/api/v2/user", userRoutes);
 app.use("/api/v2/user/internal", internalRoutes);
 app.use("/api/v2/user/userlogs", logRoutes);
-app.use("/api/v2/user", userRoutes);
 app.use("/api/v2/user/reminderNotes", reminderNoteRoutes);
 
 cron.schedule("0 18 * * *", sendRentReminders, {
