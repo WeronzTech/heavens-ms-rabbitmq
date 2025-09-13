@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import { removeFromRoom } from "./property.service.js";
+import {
+  checkExistingUsers,
+  validateFieldFormats,
+  validateRequiredFields,
+} from "../utils/validators.js";
+import { getNextResidentId } from "../utils/getNextResidentId.js";
+import bcrypt from "bcrypt";
+import UserLog from "../models/userLog.model.js";
 
 export const getUserByEmail = async (email) => {
   console.log(email);
@@ -122,7 +130,7 @@ export const registerUser = async (data) => {
       isHeavens,
       personalDetails,
     } = data;
-    console.log(data);
+
     let rentType;
     if (userType === "student" || userType === "worker") {
       rentType = "monthly";
@@ -131,6 +139,8 @@ export const registerUser = async (data) => {
     } else if (userType === "messOnly") {
       rentType = "mess";
     }
+
+    // 1. Required field validation
     const validationError = validateRequiredFields(
       userType,
       rentType,
@@ -142,32 +152,35 @@ export const registerUser = async (data) => {
       messDetails
     );
     if (validationError) {
-      return res.status(400).json(validationError);
+      return { statusCode: 400, body: validationError };
     }
 
-    // 2. Validate field formats
+    // 2. Format validation
     const formatErrors = validateFieldFormats(email, password, contact);
     if (formatErrors.length > 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "Validation errors",
-        errors: formatErrors,
-      });
+      return {
+        statusCode: 400,
+        body: {
+          status: "error",
+          message: "Validation errors",
+          errors: formatErrors,
+        },
+      };
     }
 
-    // 3. Check for existing users (email/contact)
+    // 3. Duplicate check
     const existingUserChecks = await checkExistingUsers(email, contact);
     if (existingUserChecks.error) {
-      return res.status(400).json(existingUserChecks);
+      return { statusCode: 400, body: existingUserChecks };
     }
 
-    // 4. Generate necessary IDs and hash password
+    // 4. Resident ID + hash password
     const [residentId, hashedPassword] = await Promise.all([
       getNextResidentId(),
       bcrypt.hash(password, 10),
     ]);
 
-    // 5. Prepare base user object
+    // 5. Build base user
     const userData = {
       name,
       residentId,
@@ -182,30 +195,19 @@ export const registerUser = async (data) => {
       referralInfo: { referredByLink: referralLink || null },
     };
 
-    // 6. Add type-specific data
+    // 6. Type-specific logic
     if (userType === "messOnly") {
       userData.messDetails = {
         ...messDetails,
         messStartDate: new Date(messDetails.messStartDate),
         messEndDate: new Date(messDetails.messEndDate),
       };
-
-      // Calculate number of days for MessOnly
-      //   const messDays =
-      //     Math.ceil(
-      //       (new Date(messDetails.messEndDate) -
-      //         new Date(messDetails.messStartDate)) /
-      //         (1000 * 60 * 60 * 24)
-      //     ) + 1; // Include both start and end dates
-
       userData.financialDetails = {
         totalAmount: messDetails.rent * messDetails.noOfDays,
         pendingAmount: messDetails.rent * messDetails.noOfDays,
         accountBalance: 0,
       };
     } else if (rentType === "monthly") {
-      // For Monthly Residents (Students/Workers)
-      userData.residentId = residentId;
       userData.stayDetails = {
         ...stayDetails,
         joinDate: stayDetails.joinDate
@@ -220,8 +222,6 @@ export const registerUser = async (data) => {
         paymentDueSince: new Date(stayDetails.joinDate) || new Date(),
       };
     } else if (rentType === "daily") {
-      // For Daily Renters
-      userData.residentId = residentId;
       userData.stayDetails = {
         ...stayDetails,
         checkInDate: stayDetails.checkInDate
@@ -231,16 +231,6 @@ export const registerUser = async (data) => {
           ? new Date(stayDetails.checkOutDate)
           : new Date(),
       };
-
-      // Calculate number of days for DailyRent
-      //   const dailyDays =
-      //     stayDetails.noOfDays ||
-      //     Math.ceil(
-      //       (new Date(stayDetails.checkOutDate) -
-      //         new Date(stayDetails.checkInDate)) /
-      //         (1000 * 60 * 60 * 24)
-      //     ) + 1; // Include both check-in and check-out dates
-
       userData.financialDetails = {
         totalAmount: stayDetails.dailyRent * stayDetails.noOfDays,
         pendingAmount: stayDetails.dailyRent * stayDetails.noOfDays,
@@ -248,49 +238,47 @@ export const registerUser = async (data) => {
       };
     }
 
-    // 7. Create and save user
+    // 7. Save user
     const newUser = new User(userData);
     await newUser.save();
 
-    try {
-      await UserLog.create({
-        userId: newUser._id,
-        action: "create",
-        changedByName: "resident",
-        message: `New ${newUser.userType} (${newUser.name}) registered for ${
-          newUser.stayDetails.propertyName ||
-          newUser.messDetails.kitchenName ||
-          "UnKnown Property"
-        } with ${rentType} rent type`,
-        propertyId: newUser.stayDetails?.propertyId || null,
-        kitchenId: newUser.stayDetails?.kitchenId || null,
-        timestamp: new Date(),
-      });
-    } catch (logError) {
-      console.error("Failed to save registration log:", logError);
-    }
+    await UserLog.create({
+      userId: newUser._id,
+      action: "create",
+      changedByName: "resident",
+      message: `New ${newUser.userType} (${newUser.name}) registered for ${
+        newUser.stayDetails?.propertyName ||
+        newUser.messDetails?.kitchenName ||
+        "Unknown Property"
+      } with ${rentType} rent type`,
+      propertyId: newUser.stayDetails?.propertyId || null,
+      kitchenId: newUser.stayDetails?.kitchenId || null,
+      timestamp: new Date(),
+    });
 
-    // 8. Prepare response
+    // 8. Build response
     const responseData = {
       userId: newUser._id,
       name: newUser.name,
       email: newUser.email,
       userType: newUser.userType,
       rentType: newUser.rentType,
+      ...(userType !== "messOnly"
+        ? {
+            residentId: newUser.residentId,
+            roomNumber: newUser.stayDetails?.roomNumber,
+          }
+        : { kitchenName: newUser.messDetails?.kitchenName }),
     };
 
-    if (userType !== "messOnly") {
-      responseData.residentId = newUser.residentId;
-      responseData.roomNumber = newUser.stayDetails?.roomNumber;
-    } else {
-      responseData.kitchenName = newUser.messDetails?.kitchenName;
-    }
-
-    return res.status(201).json({
-      status: "success",
-      message: "Registration successful. Awaiting approval.",
-      data: responseData,
-    });
+    return {
+      statusCode: 201,
+      body: {
+        status: "success",
+        message: "Registration successful. Awaiting approval.",
+        data: responseData,
+      },
+    };
   } catch (err) {
     console.error("Registration Error:", err);
 
@@ -303,19 +291,21 @@ export const registerUser = async (data) => {
     } else if (err.code === 11000) {
       errorMessage = "Duplicate key error";
       statusCode = 400;
-      if (err.keyPattern.email) {
-        errorMessage = "Email already registered";
-      } else if (err.keyPattern.contact) {
+      if (err.keyPattern?.email) errorMessage = "Email already registered";
+      if (err.keyPattern?.contact)
         errorMessage = "Contact number already registered";
-      } else if (err.keyPattern.residentId) {
+      if (err.keyPattern?.residentId)
         errorMessage = "Resident ID generation error";
-      }
     }
 
-    return res.status(statusCode).json({
-      status: "error",
-      message: errorMessage,
-      details: process.env.NODE_ENV === "development" ? err.message : undefined,
-    });
+    return {
+      statusCode,
+      body: {
+        status: "error",
+        message: errorMessage,
+        details:
+          process.env.NODE_ENV === "development" ? err.message : undefined,
+      },
+    };
   }
 };

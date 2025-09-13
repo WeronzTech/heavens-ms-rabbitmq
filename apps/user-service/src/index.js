@@ -12,6 +12,7 @@ import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import { sendRentReminders } from "./utils/cronAutomation.js";
 import cron from "node-cron";
 import { connect } from "../../../libs/common/rabbitMq.js";
+import "./controllers/user.controller.js";
 // import { connect } from "./utils/rabbitMq.js";
 
 dotenv.config();
