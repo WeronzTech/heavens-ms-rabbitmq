@@ -121,7 +121,7 @@ export const createProperty = async (data) => {
       success: true,
       status: 201,
       message: "Property created",
-      savedProperty,
+       savedProperty,
     };
   } catch (error) {
     console.error("Create Property Error:", error);
@@ -136,6 +136,7 @@ export const createProperty = async (data) => {
 export const updateProperty = async (data) => {
   try {
     const {
+      id,
       state,
       city,
       location,
@@ -176,16 +177,17 @@ export const updateProperty = async (data) => {
     };
 
     const updatedProperty = await Property.findByIdAndUpdate(
-      req.params.id,
+       id,
       propertyData,
       { new: true, runValidators: true }
     );
 
     if (!updatedProperty) {
-      return res.status(404).json({
+      return {
         success: false,
+        status:404,
         message: "Property not found",
-      });
+      }
     }
 
     // Optional logging

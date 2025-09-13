@@ -11,7 +11,7 @@ createResponder(PROPERTY_PATTERN.PROPERTY.CREATE_PROPERTY, async (data) => {
   return await createProperty(data);
 })
 
-createResponder(PROPERTY_PATTERN.PROPERTY.CREATE_PROPERTY, async (data) => {
+createResponder(PROPERTY_PATTERN.PROPERTY.UPDATE_PROPERTY, async (data) => {
   return await updateProperty(data);
 })
 export const getClientProperties = async (req, res) => {
@@ -97,19 +97,6 @@ export const getPropertyById = async (req, res) => {
 
 
 // Delete property
-export const deleteProperty = async (req, res) => {
-  try {
-    const deletedProperty = await Property.findByIdAndDelete(req.params.id);
-    if (!deletedProperty) {
-      return res.status(404).json({ message: "Property not found" });
-    }
-    res.status(200).json({ message: "Property deleted successfully" });
-  } catch (error) {
-    console.error("Delete Property Error:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to delete property", error: error.message });
-  }
-};
+
 
 
