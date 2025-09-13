@@ -11,7 +11,7 @@
     "start:auth-service": "nodemon apps/auth-service/src/index.js",
     "start:client-service": "nodemon apps/client-service/src/index.js",
     "start:user-service": "nodemon apps/user-service/src/index.js",
-    "start:all": "concurrently --names \"API-GATEWAY,USER,AUTH,CLIENT\" \"nodemon apps/api-gateway/src/index.js\" \"nodemon apps/user-service/src/index.js\" \"nodemon apps/auth-service/src/index.js\" \"nodemon apps/client-service/src/index.js\""
+    "start:all": "concurrently --names \"API-GATEWAY,USER,AUTH,CLIENT,PROPERTY\" \"nodemon apps/api-gateway/src/index.js\" \"nodemon apps/user-service/src/index.js\" \"nodemon apps/auth-service/src/index.js\" \"nodemon apps/client-service/src/index.js\" \"nodemon apps/property-service/src/index.js\""
   },
   "keywords": [],
   "author": "",

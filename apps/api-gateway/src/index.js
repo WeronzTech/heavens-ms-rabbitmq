@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth/auth.routes.js";
 import refreshRoutes from "./routes/auth/refresh.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
+import propertyRoutes from "./routes/property/property.routes.js";
 
 dotenv.config();
 const app = express();
@@ -22,6 +23,7 @@ app.use(morgan("combined"));
 app.use("/api/v2/auth", authRoutes);
 app.use("/api/v2/auth/refresh", refreshRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
+app.use("/api/v2/property",propertyRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
