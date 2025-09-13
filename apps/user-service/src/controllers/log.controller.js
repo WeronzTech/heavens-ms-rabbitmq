@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import UserLog from "../models/userLog.modal.js";
+// import UserLog from "../models/userLog.modal.js";
 import {getAccessibleKitchens} from "../services/inventory.service.js";
 
 export const getActivityLogs = async (req, res) => {

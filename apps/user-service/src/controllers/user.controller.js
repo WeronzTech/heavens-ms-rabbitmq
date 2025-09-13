@@ -40,7 +40,7 @@ import {
   deleteFromFirebase,
   uploadToFirebase,
 } from "../utils/imageOperation.js";
-import UserLog from "../models/userLog.modal.js";
+// import UserLog from "../models/userLog.modal.js";
 import {
   renderVerificationError,
   renderVerificationServerError,

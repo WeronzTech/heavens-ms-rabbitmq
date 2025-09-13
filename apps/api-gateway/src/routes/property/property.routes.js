@@ -1,12 +1,12 @@
 import express from "express";
-import { createProperty, deleteProperty, updateProperty } from "../../controllers/property/property.controller.js";
+import { createProperty, deleteProperty, getAllHeavensProperties, getClientPropertiesController, getPropertyById, updateProperty } from "../../controllers/property/property.controller.js";
 
 
 const propertyRoutes = express.Router();
 
-// router.get("/my-properties", authMiddleware, getClientProperties);
-// router.get("/heavens-properties", getAllHeavensProperties);
-// router.get("/:id", getPropertyById);
+propertyRoutes.get("/my-properties",  getClientPropertiesController);
+propertyRoutes.get("/heavens-properties", getAllHeavensProperties);
+propertyRoutes.get("/:id", getPropertyById);
 
 propertyRoutes.post("/register", createProperty);
 

@@ -10,6 +10,7 @@ import roleRoutes from "./routes/auth/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
 import propertyRoutes from "./routes/property/property.routes.js";
 import userRoutes from "./routes/user/user.routes.js";
+import roomRoutes from "./routes/property/room.routes.js";
 
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.use("/api/v2/auth/refresh", refreshRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
 app.use("/api/v2/property",propertyRoutes)
 app.use("/api/v2/user",userRoutes)
+app.use("/api/v2/room", roomRoutes)
 
 
 // ----- Health Check ----- //

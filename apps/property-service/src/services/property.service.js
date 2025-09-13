@@ -219,3 +219,147 @@ export const updateProperty = async (data) => {
     };
   }
 };
+export const deleteProperty = async (data) => {
+  try {
+    const { id } = data; 
+
+    const deletedProperty = await Property.findByIdAndDelete(id);
+
+    if (!deletedProperty) {
+      return {
+        success: false,
+        status: 404,
+        message: "Property not found",
+      };
+    }
+    return {
+      success: true,
+      status: 200,
+      message: "Property deleted successfully",
+      data: deletedProperty,
+    };
+  } catch (error) {
+    console.error("Delete Property Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to delete property",
+      error: error.message,
+    };
+  }
+};
+
+export const getPropertyById = async (data) => {
+  try {
+    const { id } = data;
+
+    if (!id) {
+      return {
+        success: false,
+        status: 400,
+        message: "Property ID is required",
+      };
+    }
+
+    const property = await Property.findById(id);
+
+    if (!property) {
+      return {
+        success: false,
+        status: 404,
+        message: "Property not found",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Property fetched successfully",
+      data: property,
+    };
+  } catch (error) {
+    console.error("Get Property By ID Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to fetch property",
+      error: error.message,
+    };
+  }
+};
+
+export const getAllHeavensProperties = async (data) => {
+  try {
+    const { propertyId } = data; // get propertyId from RPC payload
+
+    let heavensProperties;
+
+    if (propertyId) {
+      const property = await Property.findOne({
+        _id: propertyId,
+        isHeavens: true,
+      });
+
+      if (!property) {
+        return {
+          success: false,
+          status: 404,
+          message: "Property not found",
+          data: null,
+        };
+      }
+
+      heavensProperties = [property]; // wrap in array
+    } else {
+      heavensProperties = await Property.find({ isHeavens: true });
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Heavens properties fetched successfully",
+      data: heavensProperties,
+    };
+  } catch (error) {
+    console.error("Fetch Heavens Properties Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to fetch heavens properties",
+      error: error.message,
+      data: null,
+    };
+  }
+};
+
+export const getClientProperties = async (data) => {
+  try {
+    const { clientId } = data; // clientId comes from RPC payload
+    if (!clientId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Client ID is required",
+        data: null,
+      };
+    }
+
+    const properties = await Property.find({ clientId });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Properties fetched successfully",
+      data: properties,
+    };
+  } catch (error) {
+    console.error("Fetch Client Properties Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to fetch properties",
+      error: error.message,
+      data: null,
+    };
+  }
+};
