@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth/auth.routes.js";
 import refreshRoutes from "./routes/auth/refresh.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
+import userRoutes from "./routes/user/user.routes.js";
 
 dotenv.config();
 const app = express();
@@ -22,6 +23,8 @@ app.use(morgan("combined"));
 app.use("/api/v2/auth", authRoutes);
 app.use("/api/v2/auth/refresh", refreshRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
+
+app.use("/api/v2/user", userRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
@@ -78,6 +81,8 @@ app.get("/", (_, res) => {
 // ----- Start Server ----- //
 app.listen(process.env.API_GATEWAY_PORT, () => {
   console.log(
-    `API Gateway running at http://${HOST || "localhost"}:${process.env.API_GATEWAY_PORT}`
+    `API Gateway running at http://${HOST || "localhost"}:${
+      process.env.API_GATEWAY_PORT
+    }`
   );
 });
