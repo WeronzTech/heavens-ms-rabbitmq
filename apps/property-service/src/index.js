@@ -16,6 +16,7 @@ import { checkUnassignedMaintenance } from "./utils/automation.js";
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import {connect} from "../../../libs/common/rabbitMq.js"
 import "./controllers/property.controller.js"
+import "./controllers/room.controller.js"
 
 dotenv.config();
 

@@ -9,5 +9,11 @@ export const PROPERTY_PATTERN = {
   },
   ROOM: {
     CREATE_ROOM: "create_room",
+    UPDATE_ROOM: "update_room",
+    DELETE_ROOM: "delete_room",
+    GET_ROOMS_BY_PROPERTYID: "get_rooms_by_propertyId",
+    GET_ROOM_OCCUPANTS: "get_room_occupants",
+    GET_AVAILABLE_ROOMS_BY_PROPERTY: "get_available_rooms_by_property",
+    GET_ALL_HEAVENS_ROOMS: "get_all_heavens_rooms",
   }
 };
