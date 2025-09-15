@@ -14,6 +14,11 @@ createResponder(PROPERTY_PATTERN.ROOM.CREATE_ROOM, async (data) => {
   return await addRoom(data);
 });
 
+createResponder(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, async (data) => {
+  console.log("[Property Service] Received RPC request:", data);
+  return await confirmRoomAssignment(data);
+});
+
 createResponder(PROPERTY_PATTERN.ROOM.UPDATE_ROOM, async (data) => {
   return await updateRoom(data);
 });
