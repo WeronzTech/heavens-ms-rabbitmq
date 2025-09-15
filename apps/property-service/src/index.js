@@ -14,8 +14,9 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { checkUnassignedMaintenance } from "./utils/automation.js";
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
-import {connect} from "../../../libs/common/rabbitMq.js"
-import "./controllers/property.controller.js"
+import { connect } from "../../../libs/common/rabbitMq.js";
+import "./controllers/property.controller.js";
+import "./controllers/room.controller.js";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
-connect();
+await connect();
 
 // Middleware
 app.use(express.json());
@@ -76,7 +77,9 @@ const startServer = async () => {
     console.log("Connected to MongoDB");
 
     const server = app.listen(process.env.PROPERTY_PORT, () => {
-      console.log(`Property Service running on port ${process.env.PROPERTY_PORT}`);
+      console.log(
+        `Property Service running on port ${process.env.PROPERTY_PORT}`
+      );
     });
 
     // Graceful shutdown

@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import User from "../models/user.model.js";
-import { assignRoomToUser, removeFromRoom } from "./property.service.js";
 import {
   checkExistingUsers,
   validateFieldFormats,
@@ -10,6 +9,15 @@ import { getNextResidentId } from "../utils/getNextResidentId.js";
 import bcrypt from "bcrypt";
 import UserLog from "../models/userLog.model.js";
 import { calculateProfileCompletion } from "../utils/profileCompletion.js";
+import { assignRoomToUser } from "./internal.service.js";
+import crypto from "crypto";
+import { handleReferralOnApproval } from "../services/referral.service.js";
+import emailService from "../services/email/email.service.js";
+// import {
+//   renderVerificationError,
+//   renderVerificationServerError,
+//   renderVerificationSuccess,
+// } from "../services/email/verificationTemplate.service.js";
 
 export const getUserByEmail = async (email) => {
   try {
@@ -454,11 +462,17 @@ export const approveUser = async (data) => {
     // console.log(user);
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return {
+        status: 404,
+        body: { error: "User not found" },
+      };
     }
 
     if (user.isApproved) {
-      return res.status(400).json({ error: "User already approved" });
+      return {
+        status: 400,
+        body: { error: "User already approved" },
+      };
     }
 
     // Common updates for all user types
@@ -469,17 +483,18 @@ export const approveUser = async (data) => {
       ...(userType && { userType }),
       ...(rentType && { rentType }),
       isApproved: true,
+      isLoginEnabled: true,
       updatedAt: new Date(),
       profileCompletion: calculateProfileCompletion(user),
     };
 
     // Type-specific updates
     if (user.userType === "messOnly") {
-      // Validate required fields for MessOnly
       if (!kitchenId) {
-        return res.status(400).json({
-          error: "Kitchen ID is required for MessOnly users",
-        });
+        return {
+          status: 400,
+          body: { error: "Kitchen ID is required for MessOnly users" },
+        };
       }
 
       updates.messDetails = {
@@ -511,9 +526,10 @@ export const approveUser = async (data) => {
     } else {
       // For Monthly and Daily residents - room assignment required
       if (!roomId) {
-        return res
-          .status(400)
-          .json({ error: "Room ID is required for approval" });
+        return {
+          status: 400,
+          body: { error: "Room ID is required for approval" },
+        };
       }
 
       const roomAssignment = await assignRoomToUser({
@@ -534,8 +550,8 @@ export const approveUser = async (data) => {
           roomId,
           propertyId: propertyId || user.stayDetails?.propertyId,
           propertyName: propertyName || user.stayDetails?.propertyName,
-          sharingType: roomAssignment.room.sharingType,
-          roomNumber: roomAssignment.room.roomNo,
+          sharingType: roomAssignment.body.room.sharingType,
+          roomNumber: roomAssignment.body.room.roomNo,
           joinDate: joinDate
             ? new Date(joinDate)
             : new Date(user.stayDetails?.joinDate) || new Date(),
@@ -555,8 +571,8 @@ export const approveUser = async (data) => {
           roomId,
           propertyId: propertyId || user.stayDetails?.propertyId,
           propertyName: propertyName || user.stayDetails?.propertyName,
-          sharingType: roomAssignment.room.sharingType,
-          roomNumber: roomAssignment.room.roomNo,
+          sharingType: roomAssignment.body.room.sharingType,
+          roomNumber: roomAssignment.body.room.roomNo,
           checkInDate:
             new Date(stayDetails.checkInDate) ||
             new Date(user.stayDetails?.checkInDate)() ||

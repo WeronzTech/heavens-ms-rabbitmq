@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
 export default {
   service: process.env.EMAIL_SERVICE || "Gmail",
   host: process.env.EMAIL_HOST || "smtp.gmail.com",

@@ -1,45 +1,56 @@
-import mongoose from "mongoose";
 import Property from "../models/property.model.js";
 import Room from "../models/room.model.js";
-import {fetchUserData} from "../services/getOccupantsData.service.js";
+import { fetchUserData } from "../services/getOccupantsData.service.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
-import { addRoom } from "../services/room.service.js";
+import { addRoom, confirmRoomAssignment } from "../services/room.service.js";
+import { createResponder } from "../../../../libs/common/rabbitMq.js";
 
 createResponder(PROPERTY_PATTERN.ROOM.CREATE_ROOM, async (data) => {
   return await addRoom(data);
-})
+});
+
+// createResponder(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, async (data) => {
+//   console.log("dataatatat");
+//   return await confirmRoomAssignment(data);
+// });
+
+createResponder(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, async (data) => {
+  console.log("[Property Service] Received RPC request:", data);
+  return await confirmRoomAssignment(data);
+});
+
 export const getRoomsByPropertyId = async (req, res) => {
   try {
-    const {propertyId} = req.params;
+    const { propertyId } = req.params;
 
-    const rooms = await Room.find({propertyId});
+    const rooms = await Room.find({ propertyId });
 
     if (!rooms || rooms.length === 0) {
       return res
         .status(404)
-        .json({message: "No rooms found for this property"});
+        .json({ message: "No rooms found for this property" });
     }
 
-    res.status(200).json({data: rooms});
+    res.status(200).json({ data: rooms });
   } catch (error) {
     console.error("Error fetching rooms:", error);
-    res.status(500).json({message: "Server error while fetching rooms"});
+    res.status(500).json({ message: "Server error while fetching rooms" });
   }
 };
 
 export const getAvailableRoomsByProperty = async (req, res) => {
   try {
-    const {propertyId} = req.query;
+    const { propertyId } = req.query;
 
     if (!propertyId) {
-      return res.status(400).json({message: "propertyId is required"});
+      return res.status(400).json({ message: "propertyId is required" });
     }
 
     const roomFilter = {
       propertyId,
       status: "available",
-      vacantSlot: {$ne: 0},
+      vacantSlot: { $ne: 0 },
     };
 
     const rooms = await Room.find(roomFilter);
@@ -49,7 +60,7 @@ export const getAvailableRoomsByProperty = async (req, res) => {
     );
 
     if (!property) {
-      return res.status(404).json({message: "Property not found"});
+      return res.status(404).json({ message: "Property not found" });
     }
 
     if (!rooms.length) {
@@ -69,18 +80,18 @@ export const getAvailableRoomsByProperty = async (req, res) => {
     console.error("Error fetching rooms and property data:", error);
     res
       .status(500)
-      .json({message: "Server error while fetching rooms and property"});
+      .json({ message: "Server error while fetching rooms and property" });
   }
 };
 
 export const updateRoom = async (req, res) => {
   try {
-    const {id} = req.params;
-    const {roomNo, roomCapacity, status, adminName} = req.body;
+    const { id } = req.params;
+    const { roomNo, roomCapacity, status, adminName } = req.body;
 
     const room = await Room.findById(id);
     if (!room) {
-      return res.status(404).json({message: "Room not found"});
+      return res.status(404).json({ message: "Room not found" });
     }
 
     // Check for duplicate roomNo
@@ -99,7 +110,7 @@ export const updateRoom = async (req, res) => {
     // Fetch property
     const property = await Property.findById(room.propertyId);
     if (!property) {
-      return res.status(404).json({message: "Property not found"});
+      return res.status(404).json({ message: "Property not found" });
     }
 
     // Check if sharingType exists in property's sharingPrices
@@ -150,14 +161,14 @@ export const updateRoom = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating room:", error);
-    res.status(500).json({message: "Server error while updating room"});
+    res.status(500).json({ message: "Server error while updating room" });
   }
 };
 
 // Get all rooms
 export const getAllHeavensRooms = async (req, res) => {
   try {
-    const query = {isHeavens: true};
+    const query = { isHeavens: true };
 
     if (req.query.propertyId && req.query.propertyId !== "null") {
       query.propertyId = req.query.propertyId;
@@ -177,13 +188,13 @@ export const getAllHeavensRooms = async (req, res) => {
 // Delete a room
 export const deleteRoom = async (req, res) => {
   try {
-    const {id} = req.params;
-    const {adminName} = req.query;
+    const { id } = req.params;
+    const { adminName } = req.query;
     console.log(adminName);
     const deletedRoom = await Room.findByIdAndDelete(id);
 
     if (!deletedRoom) {
-      return res.status(404).json({message: "Room not found"});
+      return res.status(404).json({ message: "Room not found" });
     }
 
     const property = await Property.findById(deletedRoom.propertyId);
@@ -201,21 +212,21 @@ export const deleteRoom = async (req, res) => {
       }
     }
 
-    res.status(200).json({message: "Room deleted successfully"});
+    res.status(200).json({ message: "Room deleted successfully" });
   } catch (error) {
     console.error("Error deleting room:", error);
-    res.status(500).json({message: "Server error while deleting room"});
+    res.status(500).json({ message: "Server error while deleting room" });
   }
 };
 
 export const getRoomOccupants = async (req, res) => {
   try {
-    const {roomId} = req.params;
+    const { roomId } = req.params;
     // console.log("roomId:", roomId);
 
     const room = await Room.findById(roomId);
     if (!room) {
-      return res.status(404).json({message: "Room not found"});
+      return res.status(404).json({ message: "Room not found" });
     }
 
     const occupants = [];
@@ -252,6 +263,6 @@ export const getRoomOccupants = async (req, res) => {
     console.error("Error in getRoomOccupants:", error);
     res
       .status(500)
-      .json({message: "Internal server error while fetching occupants"});
+      .json({ message: "Internal server error while fetching occupants" });
   }
 };
