@@ -33,6 +33,7 @@
 // } from "../utils/rejoinUser.utils.js";
 import {
   approveUser,
+  fetchUserData,
   getUnapprovedUsers,
   getUserByEmail,
   registerUser,
@@ -65,6 +66,11 @@ createResponder(USER_PATTERN.USER.UNAPPROVED_USER, async (data) => {
 
 createResponder(USER_PATTERN.USER.APPROVE_USER, async (data) => {
   return await approveUser(data);
+});
+
+createResponder(USER_PATTERN.USER.FETCH_USER_DATA, async (data) => { 
+  console.log(data)
+  return await fetchUserData(data);
 });
 
 // export const approveUser = async (req, res) => {

@@ -1,6 +1,7 @@
 import Property from "../models/property.model.js";
 import Room from "../models/room.model.js";
 import mongoose from "mongoose";
+import { fetchUserData } from "./internal.service.js";
 
 export const addRoom = async (data) => {
   const {
@@ -397,10 +398,10 @@ export const getRoomsByPropertyId = async (data) => {
       const occupants = [];
   
       try {
-        const userData = await fetchUserData(roomId); // must return { occupants: [...] }
-        console.log("Fetched user data:", userData);
+        const userData = await fetchUserData(roomId); // returns { status, body: [ ...users ] }
   
-        for (const user of userData.occupants) {
+        // ✅ iterate directly on userData.body (array)
+        for (const user of userData.body) {
           occupants.push({
             occupantDetails: {
               name: user.name,
@@ -434,7 +435,7 @@ export const getRoomsByPropertyId = async (data) => {
       };
     }
   };
-
+  
   export const getAvailableRoomsByProperty = async (data) => {
     try {
       const { propertyId } = data;

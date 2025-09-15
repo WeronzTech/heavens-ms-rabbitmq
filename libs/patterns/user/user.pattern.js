@@ -4,5 +4,6 @@ export const USER_PATTERN = {
     REGISTER_USER: "register_user",
     UNAPPROVED_USER: "unapproved_user",
     APPROVE_USER: "approve_user",
+    FETCH_USER_DATA: "fetch_user_data",
   },
 };
