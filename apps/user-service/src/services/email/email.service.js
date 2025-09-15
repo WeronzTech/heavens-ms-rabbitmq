@@ -1,6 +1,7 @@
-import {renderTemplate} from "./template.service.js";
+import { renderTemplate } from "./template.service.js";
 import emailConfig from "../../config/email.config.js";
 import nodemailer from "nodemailer";
+console.log(emailConfig);
 
 class EmailService {
   constructor() {

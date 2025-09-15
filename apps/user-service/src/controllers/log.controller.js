@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
-// import UserLog from "../models/userLog.modal.js";
-import {getAccessibleKitchens} from "../services/inventory.service.js";
+import UserLog from "../models/userLog.modal.js";
+import { getAccessibleKitchens } from "../services/inventory.service.js";
 
 export const getActivityLogs = async (req, res) => {
   try {
-    const {propertyId, page = 1, limit = 10, startDate, endDate} = req.query;
+    const { propertyId, page = 1, limit = 10, startDate, endDate } = req.query;
 
     // Build the base filter
     const filter = {};
@@ -16,9 +16,12 @@ export const getActivityLogs = async (req, res) => {
         k._id.toString()
       );
 
-      filter.$or = [{propertyId}, {kitchenId: {$in: accessibleKitchenIds}}];
+      filter.$or = [
+        { propertyId },
+        { kitchenId: { $in: accessibleKitchenIds } },
+      ];
     } else {
-      filter.propertyId = {$exists: true};
+      filter.propertyId = { $exists: true };
     }
 
     // Date filtering - changed from timestamp to createdAt
@@ -37,7 +40,7 @@ export const getActivityLogs = async (req, res) => {
 
     // Get logs with pagination
     const logs = await UserLog.find(filter)
-      .sort({createdAt: -1})
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .select("-__v")

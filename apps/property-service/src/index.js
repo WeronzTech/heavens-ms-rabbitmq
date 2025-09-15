@@ -29,7 +29,7 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
-connect();
+await connect();
 
 // Middleware
 app.use(express.json());
@@ -77,7 +77,9 @@ const startServer = async () => {
     console.log("Connected to MongoDB");
 
     const server = app.listen(process.env.PROPERTY_PORT, () => {
-      console.log(`Property Service running on port ${process.env.PROPERTY_PORT}`);
+      console.log(
+        `Property Service running on port ${process.env.PROPERTY_PORT}`
+      );
     });
 
     // Graceful shutdown

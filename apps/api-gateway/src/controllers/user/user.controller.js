@@ -29,10 +29,59 @@ export const registerUser = async (req, res) => {
   });
 
   return res.status(response.statusCode).json(response.body);
+};
 
-  // if (response.status === 200) {
-  //   return res.status(200).json(response?.data);
-  // } else {
-  //   return res.status(response?.status).json({ message: response.message });
-  // }
+export const getUnapprovedUsers = async (req, res) => {
+  const { propertyId } = req.query;
+  approveUser;
+  const response = await sendRPCRequest(USER_PATTERN.USER.UNAPPROVED_USER, {
+    propertyId,
+  });
+
+  return res.status(response.status).json(response.body);
+};
+
+export const approveUser = async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    email,
+    contact,
+    userType,
+    rentType,
+    propertyId,
+    propertyName,
+    roomId,
+    refundableDeposit,
+    nonRefundableDeposit,
+    joinDate,
+    messDetails,
+    stayDetails,
+    monthlyRent,
+    kitchenId,
+    kitchenName,
+    updatedBy,
+  } = req.body;
+  const response = await sendRPCRequest(USER_PATTERN.USER.APPROVE_USER, {
+    id,
+    name,
+    email,
+    contact,
+    userType,
+    rentType,
+    propertyId,
+    propertyName,
+    roomId,
+    refundableDeposit,
+    nonRefundableDeposit,
+    joinDate,
+    messDetails,
+    stayDetails,
+    monthlyRent,
+    kitchenId,
+    kitchenName,
+    updatedBy,
+  });
+
+  return res.status(response.status).json(response.body);
 };
