@@ -12,7 +12,7 @@ import {
   createResponder,
   sendRPCRequest,
 } from "../../../../libs/common/rabbitMq.js";
-import { tenantLogin, userLogin } from "../services/auth.service.js";
+import { getRoleName, tenantLogin, userLogin } from "../services/auth.service.js";
 import { AUTH_PATTERN } from "../../../../libs/patterns/auth/auth.pattern.js";
 
 createResponder(AUTH_PATTERN.AUTH.TENANT_LOGIN, async (data) => {
@@ -21,6 +21,10 @@ createResponder(AUTH_PATTERN.AUTH.TENANT_LOGIN, async (data) => {
 
 createResponder(AUTH_PATTERN.AUTH.USER_LOGIN, async (data) => {
   return await userLogin(data);
+});
+
+createResponder(AUTH_PATTERN.ROLE.GET_ROLE_NAME, async (data) => {
+  return await getRoleName(data);
 });
 
 const RESET_TOKEN_EXPIRY_HOURS = 1;

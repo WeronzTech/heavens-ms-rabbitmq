@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
 import Property from "../models/property.model.js";
 import Room from "../models/room.model.js";
+import mongoose from "mongoose";
+import { fetchUserData } from "./internal.service.js";
 
 export const addRoom = async (data) => {
   const {

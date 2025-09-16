@@ -1,19 +1,13 @@
 import express from "express";
+import { deleteStaff, getAllStaff, getStaffById, getStaffByPropertyId, staffStatusChange } from "../../controllers/property/staff.controller.js";
+// import { getAllStaff } from "../../controllers/property/staff.controller";
 // import authMiddleware from "../middleware/auth.middileware.js";
-// import {
-//   addStaff,
-//   deleteStaff,
-//   getAllStaff,
-//   getStaffById,
-//   getStaffByPropertyId,
-//   staffStatusChange,
-//   updateStaff,
-// } from "../controllers/staff.controller.js";
+
 // import { upload } from "../utils/imageOperation.js";
 
-const router = express.Router();
+const staffRoutes = express.Router();
 
-// router.post(
+// staffRoutes.post(
 //   "/add",
 //   upload.fields([
 //     {
@@ -32,13 +26,13 @@ const router = express.Router();
 //   addStaff
 // );
 
-// router.get("/getAll", getAllStaff);
+ staffRoutes.get("/getAll", getAllStaff);
 
-// router.get("/:id", getStaffById);
+ staffRoutes.get("/:id", getStaffById);
 
-// router.put("/status/:id", staffStatusChange);
+staffRoutes.put("/status/:id", staffStatusChange);
 
-// router.put(
+// staffRoutes.put(
 //   "/update/:id",
 //   upload.fields([
 //     {
@@ -57,7 +51,7 @@ const router = express.Router();
 //   updateStaff
 // );
 
-// router.delete("/delete/:id", deleteStaff);
-// router.get("/by-property/:propertyId", getStaffByPropertyId);
+staffRoutes.delete("/delete/:id", deleteStaff);
+staffRoutes.get("/by-property/:propertyId", getStaffByPropertyId);
 
-export default router;
+export default staffRoutes;

@@ -22,5 +22,6 @@ export const USER_PATTERN = {
     RESPOND_TO_STATUS_REQUEST: "respond_to_status_request",
     GET_USER_STATUS_REQUESTS: "get_user_status_requests",
     HANDLE_BLOCK_STATUS: "handle_block_status",
+    FETCH_USER_DATA: "fetch_user_data",
   },
 };
