@@ -3,21 +3,23 @@ import Room from "../models/room.model.js";
 import { fetchUserData } from "../services/getOccupantsData.service.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
-import { addRoom, confirmRoomAssignment } from "../services/room.service.js";
+import {
+  addRoom,
+  confirmRoomAssignment,
+  handleRemoveAssignment,
+} from "../services/room.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 
 createResponder(PROPERTY_PATTERN.ROOM.CREATE_ROOM, async (data) => {
   return await addRoom(data);
 });
 
-// createResponder(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, async (data) => {
-//   console.log("dataatatat");
-//   return await confirmRoomAssignment(data);
-// });
-
 createResponder(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, async (data) => {
-  console.log("[Property Service] Received RPC request:", data);
   return await confirmRoomAssignment(data);
+});
+
+createResponder(PROPERTY_PATTERN.ROOM.REMOVE_ASSIGNMENT, async (data) => {
+  return await handleRemoveAssignment(data);
 });
 
 export const getRoomsByPropertyId = async (req, res) => {

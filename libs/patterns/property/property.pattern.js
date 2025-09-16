@@ -10,5 +10,6 @@ export const PROPERTY_PATTERN = {
   ROOM: {
     CREATE_ROOM: "create_room",
     CONFIRM_ASSIGNMENT: "confirm_assignment",
+    REMOVE_ASSIGNMENT: "remove_assignment",
   },
 };

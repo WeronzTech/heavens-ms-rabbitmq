@@ -229,3 +229,57 @@ export const confirmRoomAssignment = async (data) => {
     return { status: 500, body: { error: "Internal server error" } };
   }
 };
+
+export const handleRemoveAssignment = async (data) => {
+  const { userId, roomId } = data;
+  let session; // Declare session here
+
+  try {
+    session = await mongoose.startSession(); // Assign it here
+    session.startTransaction();
+
+    const room = await Room.findById(roomId).session(session);
+    console.log(room);
+    if (!room) {
+      await session.abortTransaction();
+      return {
+        status: 404,
+        body: { error: "Room not found" },
+      };
+    }
+
+    // Remove occupant from room
+    room.occupant -= 1;
+    room.vacantSlot += 1;
+    room.roomOccupants = room.roomOccupants.filter(
+      (occ) => !occ.userId.equals(userId)
+    );
+
+    await room.save({ session });
+
+    await Property.findByIdAndUpdate(
+      room.propertyId,
+      { $inc: { occupiedBeds: -1 } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    return {
+      status: 200,
+      body: { success: true },
+    };
+  } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+    }
+    console.error("Error removing room assignment:", error);
+    return {
+      status: 500,
+      body: { error: "Failed to remove room assignment" },
+    };
+  } finally {
+    if (session) {
+      session.endSession(); // Clean up
+    }
+  }
+};

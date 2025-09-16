@@ -1,11 +1,11 @@
 import User from "../models/user.model.js";
-import {calculateProfileCompletion} from "../utils/profileCompletion.js";
-import {validateContact, validateEmail} from "../utils/validators.js";
-import {handleRoomChange} from "./property.service.js";
+import { calculateProfileCompletion } from "../utils/profileCompletion.js";
+import { validateContact, validateEmail } from "../utils/validators.js";
+import { handleRoomChange } from "./property.service.js";
 
 //For student update the profile
 export const validateUserUpdate = async (user, updateData) => {
-  const {userType, contact: currentContact, email: currentEmail} = user;
+  const { userType, contact: currentContact, email: currentEmail } = user;
 
   // Define required sections for each user type
   const REQUIRED_SECTIONS = {
@@ -29,7 +29,7 @@ export const validateUserUpdate = async (user, updateData) => {
 
   // Student-specific validations
   if (userType === "student" && updateData.parentsDetails) {
-    const {email, contact} = updateData.parentsDetails;
+    const { email, contact } = updateData.parentsDetails;
 
     if (email && !validateEmail(email)) {
       throw new Error("Invalid parent email format");
@@ -46,7 +46,7 @@ export const validateUserUpdate = async (user, updateData) => {
 
       const existingUser = await User.findOne({
         contact,
-        _id: {$ne: user._id},
+        _id: { $ne: user._id },
       });
 
       if (existingUser) {
@@ -59,7 +59,7 @@ export const validateUserUpdate = async (user, updateData) => {
   if (updateData.email && updateData.email !== currentEmail) {
     const existingUser = await User.findOne({
       email: updateData.email,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Email is already registered");
@@ -70,7 +70,7 @@ export const validateUserUpdate = async (user, updateData) => {
   if (updateData.contact && updateData.contact !== currentContact) {
     const existingUser = await User.findOne({
       contact: updateData.contact,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Contact number is already registered");
@@ -193,7 +193,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
   if (cleanedData.contact && cleanedData.contact !== user.contact) {
     const existingUser = await User.findOne({
       contact: cleanedData.contact,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Contact number already in use by another user");
@@ -204,7 +204,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
   if (cleanedData.email && cleanedData.email !== user.email) {
     const existingUser = await User.findOne({
       email: cleanedData.email,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Email already in use by another user");
@@ -222,7 +222,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
 
     const existingUser = await User.findOne({
       contact: parentContact,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error(
@@ -261,6 +261,28 @@ export const validateAdminUpdates = async (user, cleanedData) => {
       }
     }
   }
+};
+
+export const rebuildNestedFields = async (flatObject) => {
+  const result = {};
+
+  for (let key in flatObject) {
+    if (key.includes(".")) {
+      const keys = key.split(".");
+      keys.reduce((acc, k, idx) => {
+        if (idx === keys.length - 1) {
+          acc[k] = flatObject[key];
+        } else {
+          acc[k] = acc[k] || {};
+        }
+        return acc[k];
+      }, result);
+    } else {
+      result[key] = flatObject[key];
+    }
+  }
+
+  return result;
 };
 
 export const processAdminUpdates = async (user, updateData) => {
