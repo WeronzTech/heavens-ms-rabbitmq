@@ -6,6 +6,7 @@ import {
   getAvailableRoomsByProperty,
   getRoomOccupants,
   getRoomsByPropertyId,
+  handleRemoveAssignment,
   updateRoom,
 } from "../services/room.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
@@ -16,6 +17,10 @@ createResponder(PROPERTY_PATTERN.ROOM.CREATE_ROOM, async (data) => {
 
 createResponder(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, async (data) => {
   return await confirmRoomAssignment(data);
+});
+
+createResponder(PROPERTY_PATTERN.ROOM.REMOVE_ASSIGNMENT, async (data) => {
+  return await handleRemoveAssignment(data);
 });
 
 createResponder(PROPERTY_PATTERN.ROOM.UPDATE_ROOM, async (data) => {

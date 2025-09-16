@@ -35,6 +35,42 @@ import {
   shouldArchiveCurrentStay,
 } from "../utils/rejoinUser.utils.js";
 
+export const fetchUserData = async (data) => {
+  try {
+    const { roomId } = data;
+
+    if (!roomId) {
+      return {
+        status: 400,
+        body: { error: "roomId is required" },
+      };
+    }
+
+    // Find users who are occupying the given roomId
+    const occupants = await User.find({ "stayDetails.roomId": roomId }).select(
+      "name paymentStatus contact userType stayDetails"
+    );
+
+    if (!occupants || occupants.length === 0) {
+      return {
+        status: 404,
+        body: { error: "No users found for this room" },
+      };
+    }
+
+    return {
+      status: 200,
+      body: occupants,
+    };
+  } catch (error) {
+    console.error("Error fetching room occupants:", error);
+    return {
+      status: 500,
+      body: { error: "Internal server error" },
+    };
+  }
+};
+
 export const getUserByEmail = async (email) => {
   try {
     if (!email) {
