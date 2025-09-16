@@ -13,6 +13,7 @@ import { connect } from "../../../libs/common/rabbitMq.js";
 import "./controllers/auth.controller.js";
 import "./controllers/roles.controller.js";
 
+
 dotenv.config();
 
 // Validate required environment variables

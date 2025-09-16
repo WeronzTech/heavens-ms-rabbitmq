@@ -218,3 +218,39 @@ export const userLogin = async (loginData) => {
     };
   }
 };
+
+export const getRoleName = async (data) => {
+  try {
+    // console.log(data)
+    
+    const { roleId } = data;
+    // console.log(roleId)
+
+    if (!roleId) {
+      return {
+        status: 400,
+        body: { error: "id is required" },
+      };
+    }
+
+    const role = await Role.findById(roleId).populate("reportTo", "roleName");
+
+    if (!role) {
+      return {
+        status: 404,
+        body: { error: "Role not found" },
+      };
+    }
+
+    return {
+      status: 200,
+      body: role,
+    };
+  } catch (error) {
+    console.error("Error fetching role:", error);
+    return {
+      status: 500,
+      body: { error: "Internal server error" },
+    };
+  }
+};

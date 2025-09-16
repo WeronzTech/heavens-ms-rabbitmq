@@ -17,4 +17,13 @@ export const PROPERTY_PATTERN = {
     GET_ALL_HEAVENS_ROOMS: "get_all_heavens_rooms",
     CONFIRM_ASSIGNMENT: "confirm_assignment",
   },
+  STAFF: {
+    GET_ALL_STAFF : "get_all_staff",
+    GET_STAFF_BY_ID: "get_staff_by_id",
+    DELETE_STAFF: "delete_staff",
+    STAFF_STATUS_CHANGE: "staff_status_change",
+    GET_STAFF_BY_PROPERTYID:"get_staff_by_propertyId",
+
+
+  }
 };
