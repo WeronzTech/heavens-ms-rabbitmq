@@ -23,7 +23,7 @@ const verifyToken = async (req, res, next) => {
 const generateTokens = async (user, deviceId) => {
   const accessToken = jwt.sign(
     {
-      id: user.userId,
+      id: user._id,
       role: user.userType,
       deviceId,
     },
@@ -33,7 +33,7 @@ const generateTokens = async (user, deviceId) => {
 
   const refreshToken = jwt.sign(
     {
-      id: user.userId,
+      id: user._id,
       deviceId,
     },
     process.env.JWT_REFRESH_SECRET,

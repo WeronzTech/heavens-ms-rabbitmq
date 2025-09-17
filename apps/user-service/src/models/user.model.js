@@ -21,13 +21,13 @@ const userSchema = new mongoose.Schema(
     },
 
     // Basic information (common to all)
-    name: {type: String, required: false},
+    name: { type: String, required: false },
     // The 'sparse' option is defined in the userSchema.index() call below
-    residentId: {type: String},
+    residentId: { type: String },
     // The 'sparse' option is defined in the userSchema.index() call below
-    email: {type: String},
-    contact: {type: String, required: true},
-    password: {type: String},
+    email: { type: String },
+    contact: { type: String, required: true },
+    password: { type: String },
 
     // Personal details - For all userType
     personalDetails: {
@@ -72,7 +72,7 @@ const userSchema = new mongoose.Schema(
       roomId: mongoose.Schema.Types.ObjectId,
 
       //For MonthlyRent
-      depositAmountPaid: {type: Number, default: 0},
+      depositAmountPaid: { type: Number, default: 0 },
       nonRefundableDeposit: Number,
       refundableDeposit: Number,
       depositStatus: {
@@ -81,7 +81,7 @@ const userSchema = new mongoose.Schema(
         default: "pending",
       },
       monthlyRent: Number,
-      joinDate: {type: Date, default: Date.now},
+      joinDate: { type: Date, default: Date.now },
 
       //For DailyRent
       dailyRent: Number,
@@ -115,22 +115,22 @@ const userSchema = new mongoose.Schema(
     // Financial details
     financialDetails: {
       // For Monthly-Rent
-      monthlyRent: {type: Number, default: 0},
-      pendingRent: {type: Number, default: 0},
-      accountBalance: {type: Number, default: 0},
-      nextDueDate: {type: Date},
-      paymentDueSince: {type: Date},
+      monthlyRent: { type: Number, default: 0 },
+      pendingRent: { type: Number, default: 0 },
+      accountBalance: { type: Number, default: 0 },
+      nextDueDate: { type: Date },
+      paymentDueSince: { type: Date },
 
       // For Daily-Rent & Mess-Only
-      totalAmount: {type: Number, default: 0},
-      pendingAmount: {type: Number, default: 0},
+      totalAmount: { type: Number, default: 0 },
+      pendingAmount: { type: Number, default: 0 },
 
       fines: [
         {
-          amount: {type: Number, required: true},
-          reason: {type: String, required: true},
-          dateIssued: {type: Date, default: Date.now},
-          paid: {type: Boolean, default: false},
+          amount: { type: Number, required: true },
+          reason: { type: String, required: true },
+          dateIssued: { type: Date, default: Date.now },
+          paid: { type: Boolean, default: false },
         },
       ],
     },
@@ -186,41 +186,41 @@ const userSchema = new mongoose.Schema(
     referralInfo: {
       type: new mongoose.Schema(
         {
-          isReferralProcessed: {type: Boolean, default: false},
+          isReferralProcessed: { type: Boolean, default: false },
           referralLink: String,
           referredByLink: String,
           referralHistory: {
             referredUsers: [String],
             lastUsed: Date,
           },
-          level: {type: Number, default: 1},
-          totalReferrals: {type: Number, default: 0},
-          referralEarnings: {type: Number, default: 0},
-          withdrawnAmount: {type: Number, default: 0},
+          level: { type: Number, default: 1 },
+          totalReferrals: { type: Number, default: 0 },
+          referralEarnings: { type: Number, default: 0 },
+          withdrawnAmount: { type: Number, default: 0 },
         },
-        {_id: false}
+        { _id: false }
       ),
       default: {},
     },
 
     // Reminders and notifications
     rentReminder: {
-      daysLeft: {type: Number, default: null},
-      message: {type: String, default: ""},
+      daysLeft: { type: Number, default: null },
+      message: { type: String, default: "" },
     },
 
     // User permissions and status flags
-    isApproved: {type: Boolean, default: false},
-    isVerified: {type: Boolean, default: false},
-    isLoginEnabled: {type: Boolean, default: false},
-    isBlocked: {type: Boolean, default: false},
+    isApproved: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+    isLoginEnabled: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false },
     isAccessBlockExtendDate: Date,
-    isVacated: {type: Boolean, default: false},
-    isHeavens: {type: Boolean, default: false},
+    isVacated: { type: Boolean, default: false },
+    isHeavens: { type: Boolean, default: false },
     vacatedAt: Date,
 
     // Profile completion
-    profileCompletion: {type: Number, required: true, default: 10},
+    profileCompletion: { type: Number, required: true, default: 10 },
 
     // Authentication tokens
     resetPasswordToken: String,
@@ -264,19 +264,19 @@ const userSchema = new mongoose.Schema(
 );
 
 // Indexes for performance optimization
-userSchema.index({userType: 1, rentType: 1});
-userSchema.index({"stayDetails.propertyId": 1, isHeavens: 1});
-userSchema.index({"stayDetails.roomId": 1});
-userSchema.index({contact: 1});
-userSchema.index({email: 1}, {sparse: true});
-userSchema.index({residentId: 1}, {sparse: true});
-userSchema.index({paymentStatus: 1, "financialDetails.nextDueDate": 1});
-userSchema.index({currentStatus: 1, isVacated: 1});
-userSchema.index({"messDetails.kitchenId": 1}, {sparse: true});
-userSchema.index({"statusRequests.status": 1});
-userSchema.index({"statusRequests.type": 1});
-userSchema.index({"statusRequests.requestedAt": -1});
-userSchema.index({userType: 1, "statusRequests.status": 1});
+userSchema.index({ userType: 1, rentType: 1 });
+userSchema.index({ "stayDetails.propertyId": 1, isHeavens: 1 });
+userSchema.index({ "stayDetails.roomId": 1 });
+userSchema.index({ contact: 1 });
+userSchema.index({ email: 1 }, { sparse: true });
+userSchema.index({ residentId: 1 }, { sparse: true });
+userSchema.index({ paymentStatus: 1, "financialDetails.nextDueDate": 1 });
+userSchema.index({ currentStatus: 1, isVacated: 1 });
+userSchema.index({ "messDetails.kitchenId": 1 }, { sparse: true });
+userSchema.index({ "statusRequests.status": 1 });
+userSchema.index({ "statusRequests.type": 1 });
+userSchema.index({ "statusRequests.requestedAt": -1 });
+userSchema.index({ userType: 1, "statusRequests.status": 1 });
 
 userSchema.pre("save", async function (next) {
   try {
@@ -291,8 +291,8 @@ userSchema.pre("save", async function (next) {
           year: parseInt(year, 10),
           month: parseInt(month, 10),
         },
-        {$inc: {count: 1}},
-        {new: true, upsert: true, setDefaultsOnInsert: true}
+        { $inc: { count: 1 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
       );
 
       if (!counter) {
@@ -364,14 +364,14 @@ userSchema.statics.findByRentType = function (
   rentType,
   additionalFilters = {}
 ) {
-  return this.find({rentType, ...additionalFilters});
+  return this.find({ rentType, ...additionalFilters });
 };
 
 // Static method to get overdue payments
 userSchema.statics.findOverduePayments = function () {
   return this.find({
-    paymentStatus: {$in: ["Pending", "Overdue"]},
-    "financialDetails.nextDueDate": {$lt: new Date()},
+    paymentStatus: { $in: ["Pending", "Overdue"] },
+    "financialDetails.nextDueDate": { $lt: new Date() },
     isVacated: false,
   });
 };

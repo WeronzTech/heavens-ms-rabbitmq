@@ -1,4 +1,4 @@
-import {renderTemplate} from "./template.service.js";
+import { renderTemplate } from "./template.service.js";
 
 export const renderVerificationSuccess = async () => {
   return renderTemplate("email-verification-success", {});

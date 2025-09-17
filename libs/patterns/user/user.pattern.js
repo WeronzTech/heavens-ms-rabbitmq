@@ -24,4 +24,9 @@ export const USER_PATTERN = {
     HANDLE_BLOCK_STATUS: "handle_block_status",
     FETCH_USER_DATA: "fetch_user_data",
   },
+  PASSWORD: {
+    SET_RESET_TOKEN: "set_reset_token",
+    GET_USER_BY_RESET_TOKEN: "get_user_by_reset_token",
+    UPDATE_PASSWORD: "update_password",
+  },
 };

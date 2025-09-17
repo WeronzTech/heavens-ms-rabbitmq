@@ -5,14 +5,12 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import { CLIENT_ORIGIN, HOST, PORT } from "./config/env.js";
 import authRoutes from "./routes/auth/auth.routes.js";
-import refreshRoutes from "./routes/auth/refresh.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
 import propertyRoutes from "./routes/property/property.routes.js";
 import userRoutes from "./routes/user/user.routes.js";
 import roomRoutes from "./routes/property/room.routes.js";
 import staffRoutes from "./routes/property/staff.routes.js";
-
 
 dotenv.config();
 const app = express();
@@ -25,13 +23,11 @@ app.use(helmet());
 app.use(morgan("combined"));
 
 app.use("/api/v2/auth", authRoutes);
-app.use("/api/v2/auth/refresh", refreshRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
-app.use("/api/v2/property",propertyRoutes)
-app.use("/api/v2/user",userRoutes)
-app.use("/api/v2/room", roomRoutes)
-app.use("/api/v2/staff", staffRoutes)
-
+app.use("/api/v2/property", propertyRoutes);
+app.use("/api/v2/user", userRoutes);
+app.use("/api/v2/room", roomRoutes);
+app.use("/api/v2/staff", staffRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

@@ -23,29 +23,43 @@ export const createRole = async (req, res) => {
   }
 };
 
-// // Edit Role
-// export const updateRole = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { roleName, permissions, reportTo } = req.body;
+export const updateRole = async (req, res) => {
+  const { id } = req.params;
+  const { roleName, permissions, reportTo } = req.body;
 
-//     const updatedRole = await Role.findByIdAndUpdate(
-//       id,
-//       { roleName, permissions, reportTo },
-//       { new: true }
-//     );
+  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.UPDATE_ROLE, {
+    id,
+    roleName,
+    permissions,
+    reportTo,
+  });
 
-//     if (!updatedRole) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Role not found" });
-//     }
+  return res.status(response.status).json(response);
+};
 
-//     res.json({ success: true, data: updatedRole });
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
+export const deleteRole = async (req, res) => {
+  const { id } = req.params;
+
+  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.DELETE_ROLE, { id });
+
+  return res.status(response.status).json(response);
+};
+
+export const getRoleById = async (req, res) => {
+  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ALL_ROLES, {});
+
+  return res.status(response.status).json(response);
+};
+
+export const getAllRoles = async (req, res) => {
+  const { id } = req.params;
+
+  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_BY_ID, {
+    id,
+  });
+
+  return res.status(response.status).json(response);
+};
 
 // // Delete Role
 // export const deleteRole = async (req, res) => {
