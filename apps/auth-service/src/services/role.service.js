@@ -15,3 +15,17 @@ export const createRole = async (data) => {
     return { success: false, status: 500, message: "Internal server error" };
   }
 };
+
+export const getRoleByName = async (data) => {
+  try {
+    const { name } = data;
+
+    const role = await Role.findOne({ roleName: name });
+    if (!role) {
+      return { success: false, status: 404, message: "Role not found" };
+    }
+    return { success: true, status: 200, data: role };
+  } catch (err) {
+    return { success: false, status: 500, message: "Internal server error" };
+  }
+};

@@ -3,12 +3,9 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
-
-import clientRoutes from "./routes/client.routes.js";
-import managerRoutes from "./routes/manager.routes.js";
-import internalRoutes from "./routes/internal.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
 import "./controllers/client.controller.js";
+import "./controllers/manager.controller.js";
 
 dotenv.config();
 
@@ -25,11 +22,6 @@ app.use(
   })
 );
 app.use(helmet());
-
-// Routes
-app.use("/api/v2/client", clientRoutes);
-app.use("/api/v2/client/manager", managerRoutes);
-app.use("/api/v2/client/internal", internalRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

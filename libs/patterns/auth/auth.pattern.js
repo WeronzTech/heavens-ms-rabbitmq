@@ -5,5 +5,6 @@ export const AUTH_PATTERN = {
   },
   ROLE: {
     CREATE_ROLE: "create_role",
+    GET_ROLE_BY_NAME: "get_role_by_name",
   },
 };

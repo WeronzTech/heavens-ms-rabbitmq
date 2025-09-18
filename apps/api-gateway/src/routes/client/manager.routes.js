@@ -7,17 +7,17 @@ import {
   resetPasswordManager,
   getAllManagers,
   editManager,
-  getManagerById,
+  //   getManagerById,
   changeManagerStatus,
   deleteManager,
-} from "../controllers/manager.controller.js";
-import { upload } from "../utils/imageOperation.js";
+} from "../../controllers/client/manager.controller.js";
+import { upload } from "../../../../../libs/common/imageOperation.js";
 
 const managerRoutes = express.Router();
 
 managerRoutes.get("/", getAllManagers);
 
-managerRoutes.get("/:id", getManagerById);
+// managerRoutes.get("/:id", getManagerById);
 
 managerRoutes.post(
   "/register",

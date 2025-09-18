@@ -1,9 +1,13 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { AUTH_PATTERN } from "../../../../libs/patterns/auth/auth.pattern.js";
-import { createRole } from "../services/role.service.js";
+import { createRole, getRoleByName } from "../services/role.service.js";
 
 createResponder(AUTH_PATTERN.ROLE.CREATE_ROLE, async (data) => {
-   return await createRole(data)
+  return await createRole(data);
+});
+
+createResponder(AUTH_PATTERN.ROLE.GET_ROLE_BY_NAME, async (data) => {
+  return await getRoleByName(data);
 });
 
 // // Edit Role
