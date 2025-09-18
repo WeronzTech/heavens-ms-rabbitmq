@@ -22,6 +22,8 @@ import {
   updateProfileCompletion,
   vacateUser,
   verifyEmail,
+  setResetToken,
+  getUserByResetToken,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -120,3 +122,18 @@ createResponder(USER_PATTERN.USER.GET_USER_STATUS_REQUESTS, async (data) => {
 createResponder(USER_PATTERN.USER.HANDLE_BLOCK_STATUS, async (data) => {
   return await handleBlockStatus(data);
 });
+
+createResponder(USER_PATTERN.PASSWORD.SET_RESET_TOKEN, async (data) => {
+  return await setResetToken(data);
+});
+
+createResponder(USER_PATTERN.PASSWORD.GET_USER_BY_RESET_TOKEN, async (data) => {
+  return await getUserByResetToken(data);
+});
+
+createResponder(
+  USER_PATTERN.PASSWORD.UPDATE_PASSWORD,
+  async ({ userId, password }) => {
+    return await updatePassword({ userId, password });
+  }
+);

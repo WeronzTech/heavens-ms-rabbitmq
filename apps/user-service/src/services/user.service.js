@@ -12,12 +12,6 @@ import { calculateProfileCompletion } from "../utils/profileCompletion.js";
 import { assignRoomToUser, removeFromRoom } from "./internal.service.js";
 import crypto from "crypto";
 import { handleReferralOnApproval } from "../services/referral.service.js";
-import emailService from "../services/email/email.service.js";
-import {
-  renderVerificationError,
-  renderVerificationServerError,
-  renderVerificationSuccess,
-} from "../services/email/verificationTemplate.service.js";
 import { uploadToFirebase } from "../../../property-service/src/utils/imageOperation.js";
 import {
   cleanUpdateData,
@@ -34,6 +28,12 @@ import {
   calculateEndDate,
   shouldArchiveCurrentStay,
 } from "../utils/rejoinUser.utils.js";
+import emailService from "../../../../libs/email/email.service.js";
+import {
+  renderVerificationError,
+  renderVerificationServerError,
+  renderVerificationSuccess,
+} from "../../../../libs/email/renderTemplate.service.js";
 
 export const fetchUserData = async (data) => {
   try {
@@ -2635,4 +2635,48 @@ export const handleBlockStatus = async (data) => {
       },
     };
   }
+};
+
+export const setResetToken = async ({
+  userId,
+  resetPasswordToken,
+  resetPasswordExpires,
+}) => {
+  await User.updateOne(
+    { _id: userId },
+    { resetPasswordToken, resetPasswordExpires }
+  );
+  return { success: true };
+};
+
+export const getUserByResetToken = async (data) => {
+  const user = await User.findOne({
+    resetPasswordToken: data.token,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return { success: false, status: 400, message: "Invalid or expired token" };
+  }
+
+  return { success: true, status: 200, data: user };
+};
+
+export const updatePassword = async ({ userId, password }) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await User.updateOne(
+    { _id: userId },
+    {
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    }
+  );
+
+  return {
+    success: true,
+    status: 200,
+    message: "Password updated successfully",
+  };
 };

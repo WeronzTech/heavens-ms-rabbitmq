@@ -1,5 +1,5 @@
+import emailConfig from "./config/email.config.js";
 import { renderTemplate } from "./template.service.js";
-import emailConfig from "../../config/email.config.js";
 import nodemailer from "nodemailer";
 console.log(emailConfig);
 
@@ -59,6 +59,21 @@ class EmailService {
       {
         name: student.name,
         loginLink: `${process.env.FRONTEND_URL}/login`,
+      }
+    );
+  }
+
+  async sendPasswordResetEmail(user, resetUrl, expiryHours) {
+    return this.sendEmail(
+      user.email,
+      "Reset Your Password",
+      "passwordReset", // 👈 you’ll create this template
+      {
+        name: user.name,
+        resetUrl,
+        expiryHours,
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        currentYear: new Date().getFullYear(),
       }
     );
   }
