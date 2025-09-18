@@ -12,7 +12,6 @@ import { calculateProfileCompletion } from "../utils/profileCompletion.js";
 import { assignRoomToUser, removeFromRoom } from "./internal.service.js";
 import crypto from "crypto";
 import { handleReferralOnApproval } from "../services/referral.service.js";
-import { uploadToFirebase } from "../../../property-service/src/utils/imageOperation.js";
 import {
   cleanUpdateData,
   getCompletedFields,
@@ -34,6 +33,7 @@ import {
   renderVerificationServerError,
   renderVerificationSuccess,
 } from "../../../../libs/email/renderTemplate.service.js";
+import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 
 export const fetchUserData = async (data) => {
   try {

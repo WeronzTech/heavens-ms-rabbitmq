@@ -3,9 +3,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cron from "node-cron";
 import helmet from "helmet";
-import alertNotificationRoutes from "./routes/alertNotification.route.js";
-import pushNotificationRoutes from "./routes/pushNotification.route.js";
-import notificationRoutes from "./routes/notification.route.js";
 import { dbConnect } from "./config/dbConnect.js";
 import {
   deleteOldNotifications,
@@ -14,10 +11,9 @@ import {
 } from "./utils/automationCronJobs.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
 
-import "./controllers/pushNotification.controller.js"
-import "./controllers/notification.controller.js"
-import "./controllers/alertNotification.controller.js"
-
+import "./controllers/pushNotification.controller.js";
+import "./controllers/notification.controller.js";
+import "./controllers/alertNotification.controller.js";
 
 dotenv.config();
 dbConnect();
@@ -74,10 +70,6 @@ cron.schedule(
   }
 );
 
-app.use("/api/v2/notification", notificationRoutes);
-app.use("/api/v2/notification/alert-notification", alertNotificationRoutes);
-app.use("/api/v2/notification/push-notification", pushNotificationRoutes);
-
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
@@ -98,7 +90,9 @@ const startServer = async () => {
     // console.log('Connected to MongoDB');
 
     app.listen(process.env.NOTIFICATION_PORT, () => {
-      console.log(`Notification Service running on port ${process.env.NOTIFICATION_PORT}`);
+      console.log(
+        `Notification Service running on port ${process.env.NOTIFICATION_PORT}`
+      );
     });
 
     // Graceful shutdown

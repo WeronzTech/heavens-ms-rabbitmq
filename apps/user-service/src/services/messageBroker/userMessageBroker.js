@@ -1,5 +1,5 @@
+import { createResponder } from "../../../../../libs/common/rabbitMq.js";
 import User from "../../models/user.model.js";
-import { createResponder } from "../../utils/rabbitMq.js";
 
 createResponder("get-user", async (data) => {
   const { userId } = data;

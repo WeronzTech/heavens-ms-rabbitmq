@@ -1,15 +1,19 @@
 import Property from "../models/property.model.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import Staff from "../models/staff.model.js";
-import {uploadToFirebase} from "../utils/imageOperation.js";
 import axios from "axios";
 import mongoose from "mongoose";
 
 // import { getAllStaff } from "../services/staff.service.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
-import { deleteStaff, getStaffById, getStaffByPropertyId, staffStatusChange } from "../services/staff.service.js";
-
+import {
+  deleteStaff,
+  getStaffById,
+  getStaffByPropertyId,
+  staffStatusChange,
+} from "../services/staff.service.js";
+import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 
 // createResponder(PROPERTY_PATTERN.STAFF.GET_ALL_STAFF, async (data) => {
 //   return await getAllStaff(data);
@@ -27,9 +31,12 @@ createResponder(PROPERTY_PATTERN.STAFF.STAFF_STATUS_CHANGE, async (data) => {
   return await staffStatusChange(data);
 });
 
-createResponder(PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID, async (data) => {
-  return await getStaffByPropertyId(data);
-});
+createResponder(
+  PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID,
+  async (data) => {
+    return await getStaffByPropertyId(data);
+  }
+);
 
 export const addStaff = async (req, res) => {
   try {
@@ -147,7 +154,6 @@ const getRoleName = async (roleId) => {
   }
 };
 
-
 // Update staff
 export const updateStaff = async (req, res) => {
   try {
@@ -242,4 +248,3 @@ export const updateStaff = async (req, res) => {
     });
   }
 };
-
