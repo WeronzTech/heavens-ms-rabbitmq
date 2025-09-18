@@ -1,7 +1,7 @@
 import multer from "multer";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
-import admin from "../config/firebase.js";
+import admin from "./firebase.js";
 
 // Use the Admin SDK Storage instance
 const bucket = admin.storage().bucket();

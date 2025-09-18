@@ -1,6 +1,85 @@
 export const INVENTORY_PATTERN = {
-    STAFF: {
-        GET_ACCESSIBLE_KITCHEN: "get_accessible_kitchen"
-    }
+  MENU: {
+    CREATE_WEEKLY_MENU: "inventory_create_weekly_menu",
+    GET_WEEKLY_MENU: "inventory_get_weekly_menu",
+    GET_TODAYS_MENU: "inventory_get_todays_menu",
+    UPDATE_WEEKLY_MENU: "inventory_update_weekly_menu",
+    DELETE_WEEKLY_MENU: "inventory_delete_weekly_menu",
+    FETCH_ALL_BOOKING_TIMES: "inventory_fetch_all_booking_times",
+    GET_MENU_BY_PROPERTY: "inventory_get_menu_by_property",
+  },
+  BOOKING: {
+    CREATE_MEAL_BOOKING: "inventory_create_meal_booking",
+    GET_BOOKING_BY_ID: "inventory_get_booking_by_id",
+    GET_BOOKINGS_BY_PROPERTY: "inventory_get_bookings_by_property",
+    GET_USER_BOOKINGS: "inventory_get_user_bookings",
+    UPDATE_BOOKING_STATUS: "inventory_update_booking_status",
+    DELETE_BOOKING: "inventory_delete_booking",
+    CHECK_NEXT_DAY_BOOKING: "inventory_check_next_day_booking",
+  },
+  ADDON_BOOKING: {
+    CREATE: "mess_addon_booking_create",
+    GET_BY_PROPERTY: "mess_addon_booking_get_by_property",
+    GET_FOR_USER: "mess_addon_booking_get_for_user",
+    GET_BY_ID: "mess_addon_booking_get_by_id",
+    UPDATE_STATUS: "mess_addon_booking_update_status",
+  },
+  ADDON: {
+    CREATE: "inventory_addon_create",
+    GET_ALL: "inventory_addon_get_all",
+    GET_BY_ID: "inventory_addon_get_by_id",
+    UPDATE: "inventory_addon_update",
+    UPDATE_AVAILABILITY: "inventory_addon_update_availability",
+    DELETE: "inventory_addon_delete",
+    GET_BY_PROPERTY: "inventory_addon_get_by_property",
+  },
+  KITCHEN: {
+    GET_ALL_KITCHENS: "inventory_get_all_kitchens",
+    GET_KITCHENS_SIMPLE: "inventory_get_kitchens_simple",
+    GET_KITCHEN_BY_ID: "inventory_get_kitchen_by_id",
+    ADD_KITCHEN: "inventory_add_kitchen",
+    EDIT_KITCHEN: "inventory_edit_kitchen",
+    DELETE_KITCHEN: "inventory_delete_kitchen",
+  },
+  RECIPE: {
+    ADD_RECIPE: "inventory_add_recipe",
+    EDIT_RECIPE: "inventory_edit_recipe",
+    GET_ALL_RECIPES: "inventory_get_all_recipes",
+    GET_RECIPE_BY_ID: "inventory_get_recipe_by_id",
+    DELETE_RECIPE: "inventory_delete_recipe",
+    GET_MENU_STOCK_ANALYSIS: "inventory_get_menu_stock_analysis",
+  },
+  LOG: {
+    GET_INVENTORY_LOGS: "inventory_get_inventory_logs",
+  },
+  INVENTORY: {
+    ADD_INVENTORY: "inventory_add_inventory",
+    GET_INVENTORY: "inventory_get_inventory",
+    EDIT_INVENTORY: "inventory_edit_inventory",
+    DELETE_INVENTORY: "inventory_delete_inventory",
+    USE_INVENTORY: "inventory_use_inventory",
+    ADD_DEAD_STOCK: "inventory_add_dead_stock",
+    GET_DEAD_STOCK_LOGS: "inventory_get_dead_stock_logs",
+    UPDATE_STOCK: "inventory_update_stock",
+    GET_LOW_STOCK_ITEMS: "inventory_get_low_stock_items",
+    DOWNLOAD_LOW_STOCK_CSV: "inventory_download_low_stock_csv",
+    GET_INVENTORY_BY_ID: "inventory_get_inventory_by_id",
+    MANUALLY_APPLY_QUEUED: "inventory_manually_apply_queued",
+    DOWNLOAD_DEAD_STOCK_REPORT: "inventory_download_dead_stock_report",
+    DOWNLOAD_WEEKLY_USAGE_REPORT: "inventory_download_weekly_usage_report",
+  },
+  INTERNAL: {
+    GET_ACCESSIBLE_KITCHENS: "inventory_internal_get_accessible_kitchens",
+  },
+  CATEGORY: {
+    ADD_CATEGORY: "inventory_add_category",
+    GET_CATEGORIES_BY_PROPERTY: "inventory_get_categories_by_property",
+    CREATE_RECIPE_CATEGORY: "inventory_create_recipe_category",
+    GET_RECIPE_CATEGORIES_BY_KITCHEN:
+      "inventory_get_recipe_categories_by_kitchen",
+    GET_RECIPE_CATEGORY_BY_ID: "inventory_get_recipe_category_by_id",
+    UPDATE_RECIPE_CATEGORY: "inventory_update_recipe_category",
+    DELETE_RECIPE_CATEGORY: "inventory_delete_recipe_category",
+  },
+};
 
-}
