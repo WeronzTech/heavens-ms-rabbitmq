@@ -46,7 +46,7 @@ export const deleteRole = async (req, res) => {
 };
 
 export const getRoleById = async (req, res) => {
-  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ALL_ROLES, {});
+  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_BY_ID, {});
 
   return res.status(response.status).json(response);
 };
@@ -54,7 +54,7 @@ export const getRoleById = async (req, res) => {
 export const getAllRoles = async (req, res) => {
   const { id } = req.params;
 
-  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_BY_ID, {
+  const response = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_All_ROLES, {
     id,
   });
 

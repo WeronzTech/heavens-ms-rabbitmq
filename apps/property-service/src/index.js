@@ -5,19 +5,13 @@ import cors from "cors";
 import helmet from "helmet";
 import cron from "node-cron";
 
-import propertyRoutes from "./routes/property.routes.js";
-import roomRoutes from "./routes/room.routes.js";
-import maintenanceRoutes from "./routes/maintenance.routes.js";
-import staffRoutes from "./routes/staff.routes.js";
-import logsRoutes from "./routes/propertyLog.routes.js";
-import dashboardRoutes from "./routes/dashboard.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { checkUnassignedMaintenance } from "./utils/automation.js";
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
-import {connect} from "../../../libs/common/rabbitMq.js"
-import "./controllers/property.controller.js"
-import "./controllers/room.controller.js"
-import "./controllers/staff.controller.js"
+import { connect } from "../../../libs/common/rabbitMq.js";
+import "./controllers/property.controller.js";
+import "./controllers/room.controller.js";
+import "./controllers/staff.controller.js";
 
 dotenv.config();
 
@@ -41,14 +35,6 @@ app.use(
 );
 app.use(helmet());
 app.use(parseForwardedAuth);
-
-// Routes
-app.use("/api/v2/property", propertyRoutes);
-app.use("/api/v2/property/room", roomRoutes);
-app.use("/api/v2/property/maintenance", maintenanceRoutes);
-app.use("/api/v2/property/staff", staffRoutes);
-app.use("/api/v2/property/logs", logsRoutes);
-app.use("/api/v2/property/dashboard", dashboardRoutes);
 
 cron.schedule(
   "0 * * * *",
