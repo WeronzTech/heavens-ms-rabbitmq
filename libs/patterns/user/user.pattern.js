@@ -23,5 +23,6 @@ export const USER_PATTERN = {
     GET_USER_STATUS_REQUESTS: "get_user_status_requests",
     HANDLE_BLOCK_STATUS: "handle_block_status",
     FETCH_USER_DATA: "fetch_user_data",
+    
   },
 };

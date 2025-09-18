@@ -1,0 +1,19 @@
+import express from "express";
+// import {
+//   addAlertNotificationController,
+//   deleteAlertNotificationController,
+//   getAlertNotificationsController,
+// } from "../controllers/alertNotification.controller.js";
+// import { upload } from "../utils/imageOperation.js";
+
+const alertNotificationRoutes = express.Router();
+
+// alertNotificationRoutes.post(
+//   "/",
+//   upload.single("alertNotificationImage"),
+//   addAlertNotificationController
+// );
+// alertNotificationRoutes.get("/", getAlertNotificationsController);
+// alertNotificationRoutes.delete("/:id", deleteAlertNotificationController);
+
+export default alertNotificationRoutes;

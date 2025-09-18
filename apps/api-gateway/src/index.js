@@ -12,6 +12,11 @@ import propertyRoutes from "./routes/property/property.routes.js";
 import userRoutes from "./routes/user/user.routes.js";
 import roomRoutes from "./routes/property/room.routes.js";
 import staffRoutes from "./routes/property/staff.routes.js";
+import pushNotificationRoutes from "./routes/notification/pushNotification.routes.js";
+import notificationRoutes from "./routes/notification/notification.routes.js";
+import alertNotificationRoutes from "./routes/notification/alertNotification.routes.js";
+import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
+
 
 
 dotenv.config();
@@ -31,6 +36,10 @@ app.use("/api/v2/property",propertyRoutes)
 app.use("/api/v2/user",userRoutes)
 app.use("/api/v2/room", roomRoutes)
 app.use("/api/v2/staff", staffRoutes)
+app.use("/api/v2/pushNotification",pushNotificationRoutes )
+app.use("/api/v2/notification", notificationRoutes)
+app.use("/api/v2/alertNotification", alertNotificationRoutes)
+app.use("/api/v2/feePayments",feePaymentRoutes)
 
 
 // ----- Health Check ----- //
