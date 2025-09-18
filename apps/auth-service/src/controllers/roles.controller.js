@@ -1,57 +1,37 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { AUTH_PATTERN } from "../../../../libs/patterns/auth/auth.pattern.js";
-import { createRole, getRoleByName } from "../services/role.service.js";
+import {
+  createRole,
+  deleteRole,
+  getAllRoles,
+  getRoleById,
+  getRoleName,
+  updateRole,
+} from "../services/role.service.js";
 
 createResponder(AUTH_PATTERN.ROLE.CREATE_ROLE, async (data) => {
   return await createRole(data);
 });
 
-createResponder(AUTH_PATTERN.ROLE.GET_ROLE_BY_NAME, async (data) => {
-  return await getRoleByName(data);
+createResponder(AUTH_PATTERN.ROLE.GET_ROLE_NAME, async (data) => {
+  return await getRoleName(data);
 });
 
-// // Edit Role
-// export const updateRole = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { roleName, permissions, reportTo } = req.body;
+createResponder(AUTH_PATTERN.ROLE.UPDATE_ROLE, async (data) => {
+  return await updateRole(data);
+});
 
-//     const updatedRole = await Role.findByIdAndUpdate(
-//       id,
-//       { roleName, permissions, reportTo },
-//       { new: true }
-//     );
+createResponder(AUTH_PATTERN.ROLE.UPDATE_ROLE, async (data) => {
+  return await deleteRole(data);
+});
 
-//     if (!updatedRole) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Role not found" });
-//     }
+createResponder(AUTH_PATTERN.ROLE.GET_ALL_ROLES, async () => {
+  return await getAllRoles();
+});
 
-//     res.json({ success: true, data: updatedRole });
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
-
-// // Delete Role
-// export const deleteRole = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const deleted = await Role.findByIdAndDelete(id);
-
-//     if (!deleted) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Role not found" });
-//     }
-
-//     res.json({ success: true, message: "Role deleted successfully" });
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
+createResponder(AUTH_PATTERN.ROLE.GET_ROLE_BY_ID, async (data) => {
+  return await getRoleById(data);
+});
 
 // // Get All Roles
 // export const getAllRoles = async (req, res) => {

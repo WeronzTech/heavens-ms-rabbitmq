@@ -82,3 +82,4 @@ export const INVENTORY_PATTERN = {
     DELETE_RECIPE_CATEGORY: "inventory_delete_recipe_category",
   },
 };
+

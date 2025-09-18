@@ -6,10 +6,11 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { Role } from "../models/role.model.js";
 import { Token } from "../models/token.model.js";
 import { generateTokens } from "../utils/jwt.utils.js";
+import emailService from "../../../../libs/email/email.service.js";
+import crypto from "crypto";
 
 export const tenantLogin = async (data) => {
   const { email, password } = data;
-  console.log("Data", data);
 
   try {
     const clientResponse = await sendRPCRequest(
@@ -202,7 +203,7 @@ export const userLogin = async (loginData) => {
         accessToken,
         refreshToken,
         user: {
-          id: user.userId,
+          id: user._id,
           email: user.email,
           userType: user.userType,
         },
@@ -216,5 +217,201 @@ export const userLogin = async (loginData) => {
       status: 500,
       message: "An internal server error occurred during login.",
     };
+  }
+};
+
+const RESET_TOKEN_EXPIRY_HOURS = 1;
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://yourfrontend.com";
+
+export const forgotPasswordUser = async (data) => {
+  const { email } = data;
+  if (!email) {
+    return { success: false, status: 400, message: "Email is required" };
+  }
+  try {
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_EMAIL,
+      { email }
+    );
+    if (!userResponse.success) {
+      return {
+        success: false,
+        status: userResponse.status || 401,
+        message: userResponse.message || "Email not registered in our system.",
+      };
+    }
+    const user = userResponse.data;
+    if (!user) {
+      return { success: false, status: 404, message: "User not found" };
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const tokenExpiry = Date.now() + RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
+
+    await sendRPCRequest(USER_PATTERN.USER.SET_RESET_TOKEN, {
+      userId: user._id,
+      token: hashedToken,
+      expiry: tokenExpiry,
+    });
+
+    const resetUrl = `${FRONTEND_URL}/resident/reset-password?token=${rawToken}`;
+
+    await emailService.sendPasswordResetEmail(
+      user,
+      resetUrl,
+      RESET_TOKEN_EXPIRY_HOURS
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: "Password reset link sent to your email",
+      data: { resetUrl }, // optionally return reset URL (remove if sensitive)
+    };
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    return { success: false, status: 500, message: "Internal server error" };
+  }
+};
+
+export const resetPassword = async (data) => {
+  const { token, password } = data;
+
+  if (!token || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Token and password are required" });
+  }
+
+  try {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Ask user-service to validate token + get user
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.PASSWORD.GET_USER_BY_RESET_TOKEN,
+      {
+        token: hashedToken,
+      }
+    );
+
+    if (!userResponse.success) {
+      return res
+        .status(userResponse.status)
+        .json({ success: false, message: userResponse.message });
+    }
+
+    const user = userResponse.data;
+
+    // Tell user-service to update password
+    await sendRPCRequest(USER_PATTERN.PASSWORD.UPDATE_PASSWORD, {
+      userId: user._id,
+      password, // raw password, user-service will hash
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Password has been reset successfully" });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const refreshAccessToken = async (data) => {
+  const { refreshToken, deviceId } = data;
+
+  if (!refreshToken || !deviceId) {
+    return {
+      status: 401,
+      error: "Refresh token and device ID are required",
+    };
+  }
+
+  try {
+    // Verify the refresh token first
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const userId = decoded.id;
+
+    // Find the device token document
+    const tokenDoc = await Token.findOne({
+      userId,
+      deviceId,
+    });
+
+    if (!tokenDoc) {
+      return {
+        status: 403,
+        error: "Invalid refresh token - device not found",
+      };
+    }
+
+    // Check if the token matches current or previous tokens
+    let isValidToken = false;
+
+    if (tokenDoc.currentRefreshToken === refreshToken) {
+      isValidToken = true;
+    } else {
+      // Check previous tokens (for token rotation scenarios)
+      isValidToken = tokenDoc.previousRefreshTokens.some(
+        (t) => t.token === refreshToken
+      );
+    }
+
+    if (!isValidToken) {
+      return { status: 403, error: "Invalid refresh token" };
+    }
+
+    // Get fresh student data
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      { userId }
+    );
+    const user = userResponse.body.data;
+
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = await generateTokens(
+      user,
+      deviceId
+    );
+
+    // Update the token document with the new refresh token
+    await Token.updateOne(
+      { userId, deviceId },
+      {
+        $set: {
+          currentRefreshToken: newRefreshToken,
+          lastUsed: new Date(),
+        },
+        $push: {
+          previousRefreshTokens: {
+            $each: [{ token: refreshToken, createdAt: new Date() }],
+            $slice: -5, // Keep last 5 refresh tokens
+          },
+        },
+      }
+    );
+
+    return {
+      status: 200,
+      accessToken,
+      refreshToken: newRefreshToken,
+    };
+  } catch (error) {
+    console.error("Refresh token error:", error);
+
+    if (error.name === "TokenExpiredError") {
+      return { status: 403, error: "Refresh token expired" };
+    }
+    if (error.name === "JsonWebTokenError") {
+      return { status: 403, error: "Invalid refresh token" };
+    }
+
+    return { status: 500, error: "Internal server error" };
   }
 };
