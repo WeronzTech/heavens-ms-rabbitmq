@@ -24,12 +24,21 @@ export const USER_PATTERN = {
     HANDLE_BLOCK_STATUS: "handle_block_status",
     FETCH_USER_DATA: "fetch_user_data",
   },
-  LOG: {
-    GET_ACTIVITY_LOGS: "get_activity_logs",
-  },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",
     GET_USER_BY_RESET_TOKEN: "get_user_by_reset_token",
     UPDATE_PASSWORD: "update_password",
+  },
+  LOG: {
+    GET_ACTIVITY_LOGS: "get_activity_logs",
+  },
+  REMINDER_NOTE: {
+    CREATE_NOTE: "create_note",
+    GET_USER_NOTES: "get_user_notes",
+    GET_ACTIVE_REMINDERS: "get_active_reminders",
+    UPDATE_NOTE: "update_note",
+    COMPLETE_REMINDER: "complete_reminder",
+    SNOOZE_REMINDER: "snooze_reminder",
+    DELETE_NOTE: "delete_note",
   },
 };
