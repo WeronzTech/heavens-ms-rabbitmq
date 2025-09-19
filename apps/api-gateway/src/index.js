@@ -26,6 +26,7 @@ import pushNotificationRoutes from "./routes/notification/pushNotification.route
 import notificationRoutes from "./routes/notification/notification.routes.js";
 import alertNotificationRoutes from "./routes/notification/alertNotification.routes.js";
 import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
+import userLogRoutes from "./routes/user/userLogs.routes.js";
 
 dotenv.config();
 const app = express();
@@ -56,14 +57,15 @@ app.use("/api/v2/inventory/internal", internalRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
-app.use("/api/v2/property",propertyRoutes)
-app.use("/api/v2/user",userRoutes)
-app.use("/api/v2/room", roomRoutes)
-app.use("/api/v2/staff", staffRoutes)
-app.use("/api/v2/pushNotification",pushNotificationRoutes )
-app.use("/api/v2/notification", notificationRoutes)
-app.use("/api/v2/alertNotification", alertNotificationRoutes)
-app.use("/api/v2/feePayments",feePaymentRoutes)
+app.use("/api/v2/property", propertyRoutes);
+app.use("/api/v2/user", userRoutes);
+app.use("/api/v2/user/logs", userLogRoutes);
+app.use("/api/v2/room", roomRoutes);
+app.use("/api/v2/staff", staffRoutes);
+app.use("/api/v2/pushNotification", pushNotificationRoutes);
+app.use("/api/v2/notification", notificationRoutes);
+app.use("/api/v2/alertNotification", alertNotificationRoutes);
+app.use("/api/v2/feePayments", feePaymentRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

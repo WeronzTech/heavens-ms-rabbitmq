@@ -24,7 +24,6 @@ import {
   verifyEmail,
   setResetToken,
   getUserByResetToken,
-  getActivityLogs,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -122,10 +121,6 @@ createResponder(USER_PATTERN.USER.GET_USER_STATUS_REQUESTS, async (data) => {
 
 createResponder(USER_PATTERN.USER.HANDLE_BLOCK_STATUS, async (data) => {
   return await handleBlockStatus(data);
-});
-
-createResponder(USER_PATTERN.USER.GET_ACTIVITY_LOGS, async (data) => {
-  return await getActivityLogs(data);
 });
 
 createResponder(USER_PATTERN.PASSWORD.SET_RESET_TOKEN, async (data) => {

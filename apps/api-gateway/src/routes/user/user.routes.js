@@ -4,7 +4,6 @@ import {
   approveUser,
   createStatusRequest,
   extendUserDays,
-  getActivityLogs,
   getCheckOutedUsersByRentType,
   getHeavensUserById,
   getPendingStatusRequests,
@@ -95,8 +94,5 @@ userRoutes.put(
   respondToStatusRequest
 );
 userRoutes.put("/:id/block-status", handleBlockStatus);
-
-// Activity logs
-userRoutes.get("/logs", getActivityLogs);
 
 export default userRoutes;
