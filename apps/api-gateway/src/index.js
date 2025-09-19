@@ -7,10 +7,25 @@ import { CLIENT_ORIGIN, HOST, PORT } from "./config/env.js";
 import authRoutes from "./routes/auth/auth.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
+import clientRoutes from "./routes/client/client.routes.js";
+import managerRoutes from "./routes/client/manager.routes.js";
+import mealRoutes from "./routes/inventory/messMenu.route.js";
+import messBookingRoutes from "./routes/inventory/mealBooking.route.js";
+import kitchenRoutes from "./routes/inventory/kitchen.routes.js";
+import inventoryLogRoutes from "./routes/inventory/inventoryLog.routes.js";
+import inventoryRoutes from "./routes/inventory/inventory.routes.js";
+import internalRoutes from "./routes/inventory/internal.routes.js";
+import categoryRoutes from "./routes/inventory/category.routes.js";
+import addonBookingRoutes from "./routes/inventory/addonBooking.route.js";
+import addonRoutes from "./routes/inventory/addon.route.js";
 import propertyRoutes from "./routes/property/property.routes.js";
 import userRoutes from "./routes/user/user.routes.js";
 import roomRoutes from "./routes/property/room.routes.js";
 import staffRoutes from "./routes/property/staff.routes.js";
+import pushNotificationRoutes from "./routes/notification/pushNotification.routes.js";
+import notificationRoutes from "./routes/notification/notification.routes.js";
+import alertNotificationRoutes from "./routes/notification/alertNotification.routes.js";
+import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
 
 dotenv.config();
 const app = express();
@@ -30,10 +45,25 @@ app.use(morgan("combined"));
 
 app.use("/api/v2/auth", authRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
-app.use("/api/v2/property", propertyRoutes);
-app.use("/api/v2/user", userRoutes);
-app.use("/api/v2/room", roomRoutes);
-app.use("/api/v2/staff", staffRoutes);
+app.use("/api/v2/client", clientRoutes);
+app.use("/api/v2/client/manager", managerRoutes);
+app.use("/api/v2/inventory/mess", mealRoutes);
+app.use("/api/v2/inventory/mess-booking", messBookingRoutes);
+app.use("/api/v2/inventory/kitchen", kitchenRoutes);
+app.use("/api/v2/inventory/inventorylogs", inventoryLogRoutes);
+app.use("/api/v2/inventory", inventoryRoutes);
+app.use("/api/v2/inventory/internal", internalRoutes);
+app.use("/api/v2/inventory/category", categoryRoutes);
+app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
+app.use("/api/v2/inventory/addon", addonRoutes);
+app.use("/api/v2/property",propertyRoutes)
+app.use("/api/v2/user",userRoutes)
+app.use("/api/v2/room", roomRoutes)
+app.use("/api/v2/staff", staffRoutes)
+app.use("/api/v2/pushNotification",pushNotificationRoutes )
+app.use("/api/v2/notification", notificationRoutes)
+app.use("/api/v2/alertNotification", alertNotificationRoutes)
+app.use("/api/v2/feePayments",feePaymentRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

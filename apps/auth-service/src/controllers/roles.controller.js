@@ -21,7 +21,7 @@ createResponder(AUTH_PATTERN.ROLE.UPDATE_ROLE, async (data) => {
   return await updateRole(data);
 });
 
-createResponder(AUTH_PATTERN.ROLE.UPDATE_ROLE, async (data) => {
+createResponder(AUTH_PATTERN.ROLE.DELETE_ROLE, async (data) => {
   return await deleteRole(data);
 });
 

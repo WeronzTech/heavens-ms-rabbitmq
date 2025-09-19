@@ -1,7 +1,7 @@
-import {Maintenance} from "../models/maintenance.model.js";
-import {ApiError} from "../utils/ApiError.js";
+import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import { Maintenance } from "../models/maintenance.model.js";
+import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
-import {uploadToFirebase} from "../utils/imageOperation.js";
 
 class MaintenanceService {
   /**
@@ -42,7 +42,7 @@ class MaintenanceService {
     const skip = (page - 1) * limit;
 
     const aggregationPipeline = [
-      {$match: matchStage},
+      { $match: matchStage },
       {
         $lookup: {
           from: "staffs",
@@ -68,12 +68,12 @@ class MaintenanceService {
         },
       },
       {
-        $sort: {createdAt: -1},
+        $sort: { createdAt: -1 },
       },
       {
         $facet: {
-          data: [{$skip: skip}, {$limit: limit}],
-          totalCount: [{$count: "count"}],
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "count" }],
         },
       },
     ];
@@ -182,7 +182,7 @@ class MaintenanceService {
     const skip = (page - 1) * limit;
 
     const aggregationPipeline = [
-      {$match: matchStage},
+      { $match: matchStage },
       {
         $lookup: {
           from: "staffs",
@@ -208,12 +208,12 @@ class MaintenanceService {
         },
       },
       {
-        $sort: {createdAt: -1},
+        $sort: { createdAt: -1 },
       },
       {
         $facet: {
-          data: [{$skip: skip}, {$limit: limit}],
-          totalCount: [{$count: "count"}],
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "count" }],
         },
       },
     ];
@@ -246,7 +246,7 @@ class MaintenanceService {
     this.#validateRequiredFields(data);
 
     try {
-      const maintenanceData = {...data};
+      const maintenanceData = { ...data };
       let issueImageUrl = null;
 
       if (files) {
@@ -314,7 +314,7 @@ class MaintenanceService {
 
     // aggregation pipeline
     const [recordWithStaffDetails] = await Maintenance.aggregate([
-      {$match: {_id: new mongoose.Types.ObjectId(maintenanceId)}},
+      { $match: { _id: new mongoose.Types.ObjectId(maintenanceId) } },
       {
         $lookup: {
           from: "staffs", // Must match actual collection name in MongoDB
@@ -379,7 +379,7 @@ class MaintenanceService {
 
     // aggregation pipeline
     const [resolvedRecordWithStaffdetails] = await Maintenance.aggregate([
-      {$match: {_id: new mongoose.Types.ObjectId(maintenanceId)}},
+      { $match: { _id: new mongoose.Types.ObjectId(maintenanceId) } },
       {
         $lookup: {
           from: "staffs", // Must match actual collection name in MongoDB
