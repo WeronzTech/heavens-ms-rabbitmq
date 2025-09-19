@@ -22,3 +22,13 @@ export const getAccessibleKitchens = async ({ propertyId }) => {
     propertyId,
   });
 };
+
+export const updatePropertyCounts = async ({
+  oldPropertyId,
+  newPropertyId,
+}) => {
+  return sendRPCRequest(PROPERTY_PATTERN.INTERNAL.UPDATE_PROPERTY_COUNTS, {
+    oldPropertyId,
+    newPropertyId,
+  });
+};
