@@ -1,7 +1,9 @@
+import mongoose from "mongoose";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { AUTH_PATTERN } from "../../../../libs/patterns/auth/auth.pattern.js";
 import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import Property from "../models/property.model.js";
 
 export const fetchUserData = async (roomId) => {
   return sendRPCRequest(USER_PATTERN.USER.FETCH_USER_DATA, {

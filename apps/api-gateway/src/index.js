@@ -27,6 +27,7 @@ import notificationRoutes from "./routes/notification/notification.routes.js";
 import alertNotificationRoutes from "./routes/notification/alertNotification.routes.js";
 import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
 import propertyLogRoutes from "./routes/property/propertyLog.routes.js";
+import userLogRoutes from "./routes/user/userLogs.routes.js";
 
 dotenv.config();
 const app = express();
@@ -34,7 +35,13 @@ connect();
 
 // ----- Middleware ----- //
 app.use(express.json());
-app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+// app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+app.use(
+  cors({
+    origin: ["http://192.168.1.80:5173", "https://yourfrontend.com"],
+    credentials: true,
+  })
+);
 app.use(helmet());
 app.use(morgan("combined"));
 
@@ -51,14 +58,15 @@ app.use("/api/v2/inventory/internal", internalRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
-app.use("/api/v2/property",propertyRoutes)
-app.use("/api/v2/user",userRoutes)
-app.use("/api/v2/room", roomRoutes)
-app.use("/api/v2/staff", staffRoutes)
-app.use("/api/v2/pushNotification",pushNotificationRoutes )
-app.use("/api/v2/notification", notificationRoutes)
-app.use("/api/v2/alertNotification", alertNotificationRoutes)
-app.use("/api/v2/feePayments",feePaymentRoutes)
+app.use("/api/v2/property", propertyRoutes);
+app.use("/api/v2/user", userRoutes);
+app.use("/api/v2/user/logs", userLogRoutes);
+app.use("/api/v2/room", roomRoutes);
+app.use("/api/v2/staff", staffRoutes);
+app.use("/api/v2/pushNotification", pushNotificationRoutes);
+app.use("/api/v2/notification", notificationRoutes);
+app.use("/api/v2/alertNotification", alertNotificationRoutes);
+app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/logs", propertyLogRoutes)
 
 // ----- Health Check ----- //

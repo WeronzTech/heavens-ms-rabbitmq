@@ -13,6 +13,7 @@ import "./controllers/property.controller.js";
 import "./controllers/room.controller.js";
 import "./controllers/staff.controller.js";
 import "./controllers/log.controller.js"
+import "./controllers/internal.controller.js";
 
 dotenv.config();
 

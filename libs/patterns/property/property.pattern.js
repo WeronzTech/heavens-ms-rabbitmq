@@ -19,7 +19,7 @@ export const PROPERTY_PATTERN = {
     REMOVE_ASSIGNMENT: "remove_assignment",
   },
   STAFF: {
-    GET_ALL_STAFF : "get_all_staff",
+    GET_ALL_STAFF: "get_all_staff",
     GET_STAFF_BY_ID: "get_staff_by_id",
     DELETE_STAFF: "delete_staff",
     STAFF_STATUS_CHANGE: "staff_status_change",
