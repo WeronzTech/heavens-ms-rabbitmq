@@ -26,6 +26,7 @@ import pushNotificationRoutes from "./routes/notification/pushNotification.route
 import notificationRoutes from "./routes/notification/notification.routes.js";
 import alertNotificationRoutes from "./routes/notification/alertNotification.routes.js";
 import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
+import propertyLogRoutes from "./routes/property/propertyLog.routes.js";
 
 dotenv.config();
 const app = express();
@@ -58,6 +59,7 @@ app.use("/api/v2/pushNotification",pushNotificationRoutes )
 app.use("/api/v2/notification", notificationRoutes)
 app.use("/api/v2/alertNotification", alertNotificationRoutes)
 app.use("/api/v2/feePayments",feePaymentRoutes)
+app.use("/api/v2/logs", propertyLogRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

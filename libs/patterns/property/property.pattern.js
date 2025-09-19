@@ -24,7 +24,11 @@ export const PROPERTY_PATTERN = {
     DELETE_STAFF: "delete_staff",
     STAFF_STATUS_CHANGE: "staff_status_change",
     GET_STAFF_BY_PROPERTYID:"get_staff_by_propertyId",
-
-
+    ADD_STAFF: "add_staff",
+    UPDATE_STAFF: "update_staff",
+  },
+  PROPERTY_LOG: {
+    GET_ACTIVITY_LOG : "get_activity_log"
   }
+
 };

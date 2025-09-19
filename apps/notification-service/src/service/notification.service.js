@@ -82,15 +82,15 @@ export const sendNotification = async ({ data }) => {
     }
 
     // Optional: Save notification log
-    // if (isNotificationSent) {
-    //   const newLog = new NotificationLog({
-    //     userId,
-    //     title,
-    //     description,
-    //     image: imageUrl,
-    //   });
-    //   await newLog.save();
-    // }
+    if (isNotificationSent) {
+      const newLog = new NotificationLog({
+        userId,
+        title,
+        description,
+        image: imageUrl,
+      });
+      await newLog.save();
+    }
 
     return {
       status: 201,

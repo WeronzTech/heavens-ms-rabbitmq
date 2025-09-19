@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import {Maintenance} from "../models/maintenance.model.js";
 import Property from "../models/property.model.js";
 import Staff from "../models/staff.model.js";
+import PropertyLog from "../models/propertyLog.model.js";
 
 // export const getLatestMaintenanceData = async (propertyId) => {
 //   const filter = {};
@@ -105,17 +106,17 @@ export const createProperty = async (data) => {
     const savedProperty = await property.save();
     console.log(savedProperty)
 
-    // try {
-    //   await PropertyLog.create({
-    //     propertyId: savedProperty._id,
-    //     action: "create",
-    //     category: "property",
-    //     changedByName: adminName,
-    //     message: `Property "${savedProperty.propertyName}" created at ${Location} by ${adminName}`,
-    //   });
-    // } catch (logError) {
-    //   console.error("Failed to save property creation log:", logError);
-    // }
+    try {
+      await PropertyLog.create({
+        propertyId: savedProperty._id,
+        action: "create",
+        category: "property",
+        changedByName: adminName,
+        message: `Property "${savedProperty.propertyName}" created at ${Location} by ${adminName}`,
+      });
+    } catch (logError) {
+      console.error("Failed to save property creation log:", logError);
+    }
 
     return {
       success: true,
@@ -191,17 +192,17 @@ export const updateProperty = async (data) => {
     }
 
     // Optional logging
-    // try {
-    //   await PropertyLog.create({
-    //     propertyId: updatedProperty._id,
-    //     action: "update",
-    //     category: "property",
-    //     changedByName: adminName,
-    //     message: `Property "${updatedProperty.propertyName}" updated by ${adminName} at ${Location}`,
-    //   });
-    // } catch (logError) {
-    //   console.error("Failed to save property update log:", logError);
-    // }
+    try {
+      await PropertyLog.create({
+        propertyId: updatedProperty._id,
+        action: "update",
+        category: "property",
+        changedByName: adminName,
+        message: `Property "${updatedProperty.propertyName}" updated by ${adminName} at ${Location}`,
+      });
+    } catch (logError) {
+      console.error("Failed to save property update log:", logError);
+    }
 
     return {
       success: true,
