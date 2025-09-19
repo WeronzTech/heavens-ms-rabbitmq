@@ -29,6 +29,9 @@ export const PROPERTY_PATTERN = {
   },
   PROPERTY_LOG: {
     GET_ACTIVITY_LOG : "get_activity_log"
+  },
+  INTERNAL: {
+    UPDATE_PROPERTY_COUNTS: "update_property_counts"
   }
 
 };
