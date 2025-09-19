@@ -527,3 +527,24 @@ export const handleBlockStatus = async (req, res) => {
     return res.status(500).json({ error: "Failed to update block status" });
   }
 };
+
+export const getActivityLogs = async (req, res) => {
+  try {
+    const { propertyId, page = 1, limit = 10, startDate, endDate } = req.query;
+
+    const response = await sendRPCRequest(USER_PATTERN.USER.GET_ACTIVITY_LOGS, {
+      propertyId,
+      page,
+      limit,
+      startDate,
+      endDate,
+    });
+
+    return res
+      .status(response?.status || 500)
+      .json(response?.body || { error: "Invalid RPC response" });
+  } catch (error) {
+    console.error("[API-GATEWAY] getActivityLogsHandler error:", error);
+    return res.status(500).json({ error: "Failed to fetch activity logs" });
+  }
+};

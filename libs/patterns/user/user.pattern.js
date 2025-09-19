@@ -23,6 +23,7 @@ export const USER_PATTERN = {
     GET_USER_STATUS_REQUESTS: "get_user_status_requests",
     HANDLE_BLOCK_STATUS: "handle_block_status",
     FETCH_USER_DATA: "fetch_user_data",
+    GET_ACTIVITY_LOGS: "get_activity_logs",
   },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",

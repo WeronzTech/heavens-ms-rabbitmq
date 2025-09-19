@@ -18,7 +18,13 @@ connect();
 
 // ----- Middleware ----- //
 app.use(express.json());
-app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+// app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+app.use(
+  cors({
+    origin: ["http://192.168.1.80:5173", "https://yourfrontend.com"],
+    credentials: true,
+  })
+);
 app.use(helmet());
 app.use(morgan("combined"));
 
