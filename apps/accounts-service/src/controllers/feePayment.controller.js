@@ -10,7 +10,7 @@ createResponder( ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_FEE_PAYMENTS, async (data) =>
     return await updateFeePayment(data);
   });
 
-  createResponder( ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENT_FEE_PAYMENT, async (data) => {
+  createResponder( ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENT, async (data) => {
     return await getFeePaymentById(data);
   });
   
