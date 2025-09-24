@@ -9,7 +9,11 @@ import { getNextResidentId } from "../utils/getNextResidentId.js";
 import bcrypt from "bcrypt";
 import UserLog from "../models/userLog.model.js";
 import { calculateProfileCompletion } from "../utils/profileCompletion.js";
-import { assignRoomToUser, removeFromRoom } from "./internal.service.js";
+import {
+  assignRoomToUser,
+  getAccessibleKitchens,
+  removeFromRoom,
+} from "./internal.service.js";
 import crypto from "crypto";
 import { handleReferralOnApproval } from "../services/referral.service.js";
 import {
@@ -420,7 +424,7 @@ export const getUnapprovedUsers = async (data) => {
 
       if (kitchenIds.length > 0) {
         // Call inventory-service to get kitchens accessible to this property
-        const accessibleKitchens = await getAccessibleKitchens(propertyId);
+        const accessibleKitchens = await getAccessibleKitchens({ propertyId });
         const accessibleKitchenIds = accessibleKitchens.map((k) =>
           k._id.toString()
         );

@@ -4,15 +4,14 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 
-import userRoutes from "./routes/user.routes.js";
-import internalRoutes from "./routes/internal.routes.js";
-import logRoutes from "./routes/userLog.routes.js";
-import reminderNoteRoutes from "./routes/reminderNote.routes.js";
+
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import { sendRentReminders } from "./utils/cronAutomation.js";
 import cron from "node-cron";
 import { connect } from "../../../libs/common/rabbitMq.js";
 import "./controllers/user.controller.js";
+import "./controllers/reminderNote.controller.js";
+
 // import { connect } from "./utils/rabbitMq.js";
 
 dotenv.config();
@@ -33,10 +32,7 @@ app.use(helmet());
 app.use(parseForwardedAuth);
 
 // Routes
-app.use("/api/v2/user", userRoutes);
-app.use("/api/v2/user/internal", internalRoutes);
-app.use("/api/v2/user/userlogs", logRoutes);
-app.use("/api/v2/user/reminderNotes", reminderNoteRoutes);
+
 
 cron.schedule("0 18 * * *", sendRentReminders, {
   scheduled: true,

@@ -1,7 +1,7 @@
 import User from "../models/user.model.js";
 import { calculateProfileCompletion } from "../utils/profileCompletion.js";
 import { validateContact, validateEmail } from "../utils/validators.js";
-import { handleRoomChange } from "./property.service.js";
+import { assignRoomToUser, updatePropertyCounts } from "./internal.service.js";
 
 //For student update the profile
 export const validateUserUpdate = async (user, updateData) => {
@@ -388,9 +388,6 @@ export const processAdminUpdates = async (user, updateData) => {
 
 // Helper function to handle kitchen changes for MessOnly users
 async function handleKitchenChange(user, newKitchenId) {
-  // Implement kitchen change logic similar to room change
-  // This might include validation, updating related records, etc.
-  // For example:
   const kitchen = await Kitchen.findById(newKitchenId);
   if (!kitchen) {
     throw new Error("Kitchen not found");
@@ -399,3 +396,34 @@ async function handleKitchenChange(user, newKitchenId) {
   user.messDetails.kitchenId = newKitchenId;
   user.messDetails.kitchenName = kitchen.name;
 }
+
+export const handleRoomChange = async (user, newRoomId, newPropertyId) => {
+  try {
+    const currentRoomId = user.stayDetails?.roomId;
+    const currentPropertyId = user.stayDetails?.propertyId;
+
+    // If room is being changed
+    if (newRoomId && currentRoomId?.toString() !== newRoomId.toString()) {
+      const userId = user._id;
+      const roomId = newRoomId;
+      const userType =
+        user.rentType === "monthly" ? "longTermResident" : "dailyRenter";
+
+      console.log("Akllll");
+      console.log(userId, roomId, userType);
+      console.log("Nikhillllllll");
+
+      // Add to new room
+      await assignRoomToUser({ userId, roomId, userType });
+    }
+
+    // If property is being changed (without room change)
+    if (newPropertyId && currentPropertyId !== newPropertyId && !newRoomId) {
+      console.log("hererere reachedddd"); // Update property counts through API
+      await updatePropertyCounts(currentPropertyId, newPropertyId);
+    }
+  } catch (error) {
+    console.error("Room/property update error:", error);
+    throw error;
+  }
+};

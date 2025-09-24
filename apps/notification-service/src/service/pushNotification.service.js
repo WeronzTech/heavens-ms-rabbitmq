@@ -1,8 +1,9 @@
-import axios from "axios";
 import FcmToken from "../models/fcmToken.model.js";
 import PushNotification from "../models/pushNotification.model.js";
 import { sendPushNotificationToUser } from "../utils/sendNotificationHelper.js";
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import { getUserIds } from "./internal.service.js";
+import NotificationLog from "../models/notificationLog.model.js";
 
 export const addPushNotification = async (data) => {
   try {
@@ -147,11 +148,11 @@ export const getPushNotifications = async ({ data }) => {
 
 export const sendPushNotification = async ({ data }) => {
   try {
-    const { id } = data; // ✅ extract id from data
+    const { id } = data;
 
     const notification = await PushNotification.findById(id);
     if (!notification) {
-      return { status: 404, message: "Push notification not found" };
+      return { success: false, status: 404, message: "Push notification not found" };
     }
 
     const {
@@ -171,16 +172,15 @@ export const sendPushNotification = async ({ data }) => {
     if (workerOnly) params.append("workerOnly", "true");
     if (dailyRentOnly) params.append("dailyRentOnly", "true");
 
-    const apiUrl = `${
-      process.env.STUDENT_API_BASE_URL
-    }/user/push-notification?${params.toString()}`;
-
     // Fetch user IDs
-    const { data: userArray } = await axios.get(apiUrl);
-    if (!Array.isArray(userArray) || !userArray.length) {
+    const userResp = await getUserIds(params.toString());
+    const userArray = userResp?.data || userResp; // normalize
+    
+    if (!Array.isArray(userArray) || userArray.length === 0) {
       return {
+        success: true,
         status: 200,
-        data: { message: "No target users returned by student API" },
+        message: "No target users returned by user-service",
       };
     }
 
@@ -190,8 +190,9 @@ export const sendPushNotification = async ({ data }) => {
     const tokenDocs = await FcmToken.find({ userId: { $in: ids } });
     if (!tokenDocs.length) {
       return {
+        success: true,
         status: 200,
-        data: { message: "No FCM tokens found for returned user IDs" },
+        message: "No FCM tokens found for returned user IDs",
       };
     }
 
@@ -200,37 +201,40 @@ export const sendPushNotification = async ({ data }) => {
     const successfulUserIds = new Set();
 
     for (const doc of tokenDocs) {
-      for (const token of doc.token) {
-        const success = await sendPushNotificationToUser(token, message);
-        if (success) {
-          sentCount++;
-          successfulUserIds.add(doc.userId.toString());
+      const tokens = Array.isArray(doc.token) ? doc.token : [doc.token]; // normalize
+      for (const token of tokens) {
+        try {
+          const success = await sendPushNotificationToUser(token, message);
+          if (success) {
+            sentCount++;
+            successfulUserIds.add(doc.userId.toString());
+          }
+        } catch (err) {
+          console.error(`Failed to send push to token ${token}:`, err.message);
         }
       }
     }
 
     // Save logs
-    //   if (successfulUserIds.size > 0) {
-    //     const logEntries = Array.from(successfulUserIds).map((userId) => ({
-    //       userId,
-    //       title,
-    //       description,
-    //       image: imageUrl,
-    //     }));
-    //     await NotificationLog.insertMany(logEntries);
-    //   }
+    if (successfulUserIds.size > 0) {
+      const logEntries = Array.from(successfulUserIds).map((userId) => ({
+        userId,
+        title,
+        description,
+        image: imageUrl,
+      }));
+      await NotificationLog.insertMany(logEntries);
+    }
 
     return {
+      success: true,
       status: 200,
-      data: {
-        message: `Push notification sent successfully to ${sentCount} device${
-          sentCount !== 1 ? "s" : ""
-        }.`,
-      },
+      message: `Push notification sent successfully to ${sentCount} device${sentCount !== 1 ? "s" : ""}.`,
     };
   } catch (error) {
     console.error("RPC Send Push Notification Error:", error);
     return {
+      success: false,
       status: 500,
       message: error.message || "Failed to send push notification",
     };

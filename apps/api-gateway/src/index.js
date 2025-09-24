@@ -29,6 +29,8 @@ import alertNotificationRoutes from "./routes/notification/alertNotification.rou
 import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
 import socketRoutes from "./routes/socket/socket.routes.js";
 import maintenanceRoutes from "./routes/property/maintenance.routes.js";
+import propertyLogRoutes from "./routes/property/propertyLog.routes.js";
+import userLogRoutes from "./routes/user/userLogs.routes.js";
 
 dotenv.config();
 const app = express();
@@ -72,6 +74,7 @@ app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
 app.use("/api/v2/property", propertyRoutes);
 app.use("/api/v2/user", userRoutes);
+app.use("/api/v2/user/logs", userLogRoutes);
 app.use("/api/v2/room", roomRoutes);
 app.use("/api/v2/staff", staffRoutes);
 app.use("/api/v2/pushNotification", pushNotificationRoutes);
@@ -79,6 +82,7 @@ app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
+app.use("/api/v2/logs", propertyLogRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

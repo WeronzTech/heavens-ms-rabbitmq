@@ -1,17 +1,18 @@
 import mongoose from "mongoose";
-import UserLog from "../models/userLog.modal.js";
-import { getAccessibleKitchens } from "../services/inventory.service.js";
+import UserLog from "../models/userLog.model.js";
+import { getAccessibleKitchens } from "./internal.service.js";
 
-export const getActivityLogs = async (req, res) => {
+export const getActivityLogs = async (data) => {
+  console.log(data);
   try {
-    const { propertyId, page = 1, limit = 10, startDate, endDate } = req.query;
+    const { propertyId, page, limit, startDate, endDate } = data;
 
     // Build the base filter
     const filter = {};
 
     // Handle property filtering
     if (propertyId && mongoose.Types.ObjectId.isValid(propertyId)) {
-      const accessibleKitchens = await getAccessibleKitchens(propertyId);
+      const accessibleKitchens = await getAccessibleKitchens({ propertyId });
       const accessibleKitchenIds = accessibleKitchens.map((k) =>
         k._id.toString()
       );
@@ -49,7 +50,7 @@ export const getActivityLogs = async (req, res) => {
     // Get total count
     const total = await UserLog.countDocuments(filter);
 
-    res.status(200).json({
+    return {
       success: true,
       data: logs,
       pagination: {
@@ -58,13 +59,13 @@ export const getActivityLogs = async (req, res) => {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   } catch (error) {
     console.error("Error fetching activity logs:", error);
-    res.status(500).json({
+    return {
       success: false,
       message: "Failed to fetch activity logs",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+    };
   }
 };

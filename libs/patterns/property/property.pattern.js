@@ -23,9 +23,17 @@ export const PROPERTY_PATTERN = {
     GET_STAFF_BY_ID: "get_staff_by_id",
     DELETE_STAFF: "delete_staff",
     STAFF_STATUS_CHANGE: "staff_status_change",
-    GET_STAFF_BY_PROPERTYID: "get_staff_by_propertyId",
+    GET_STAFF_BY_PROPERTYID:"get_staff_by_propertyId",
+    ADD_STAFF: "add_staff",
+    UPDATE_STAFF: "update_staff",
   },
-  MAINTENANCE: {
+  PROPERTY_LOG: {
+    GET_ACTIVITY_LOG : "get_activity_log"
+  },
+  INTERNAL: {
+    UPDATE_PROPERTY_COUNTS: "update_property_counts"
+  },
+    MAINTENANCE: {
     CREATE: "property_maintenance_create",
     GET_BY_PROPERTY: "property_maintenance_get_by_property",
     ASSIGN_STAFF: "property_maintenance_assign_staff",

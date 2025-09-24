@@ -2,6 +2,7 @@ import Property from "../models/property.model.js";
 import Room from "../models/room.model.js";
 import mongoose from "mongoose";
 import { fetchUserData } from "./internal.service.js";
+import PropertyLog from "../models/propertyLog.model.js";
 
 export const addRoom = async (data) => {
   const {
@@ -87,16 +88,17 @@ export const addRoom = async (data) => {
     await session.commitTransaction();
     session.endSession();
 
-    //   try {
-    //     await PropertyLog.create({
-    //       propertyId,
-    //       action: "update",
-    //       category: "property",
-    //       changedByName: adminName,
-    //       message: `Room ${roomNo} (capacity: ${roomCapacity}, sharing type: ${sharingType}) added to property "${propertyName}" by ${adminName}`,
-    //     });
-    //   } catch (logError) {
-    //     console.error("Failed to save property log (addRoom):", logError);
+      try {
+        await PropertyLog.create({
+          propertyId,
+          action: "update",
+          category: "property",
+          changedByName: adminName,
+          message: `Room ${roomNo} (capacity: ${roomCapacity}, sharing type: ${sharingType}) added to property "${propertyName}" by ${adminName}`,
+        });
+      } catch (logError) {
+        console.error("Failed to save property log (addRoom):", logError);
+      }
 
     return {
       status: 200,
@@ -376,20 +378,20 @@ export const deleteRoom = async (data) => {
     }
 
     // ✅ Fetch the property for logging
-    //   const property = await Property.findById(deletedRoom.propertyId);
-    //   if (property) {
-    //     try {
-    //       await PropertyLog.create({
-    //         propertyId: property._id,
-    //         action: "delete",
-    //         category: "property",
-    //         changedByName: adminName,
-    //         message: `Room ${deletedRoom.roomNo} deleted from property "${property.propertyName}" by ${adminName}`,
-    //       });
-    //     } catch (logError) {
-    //       console.error("Failed to save property log (deleteRoom):", logError);
-    //     }
-    //   }
+      const property = await Property.findById(deletedRoom.propertyId);
+      if (property) {
+        try {
+          await PropertyLog.create({
+            propertyId: property._id,
+            action: "delete",
+            category: "property",
+            changedByName: adminName,
+            message: `Room ${deletedRoom.roomNo} deleted from property "${property.propertyName}" by ${adminName}`,
+          });
+        } catch (logError) {
+          console.error("Failed to save property log (deleteRoom):", logError);
+        }
+      }
 
     return {
       status: 200,

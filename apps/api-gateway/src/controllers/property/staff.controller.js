@@ -152,3 +152,94 @@ export const getStaffByPropertyId = async (req, res) => {
     });
   }
 };
+
+export const addStaff = async (req, res) => {
+  try {
+    const {
+      name,
+      gender,
+      dob,
+      contactNumber,
+      address,
+      email,
+      role,
+      salary,
+      joinDate,
+      status,
+      propertyId,
+      createdBy,
+      kitchenId,
+    } = req.body;
+
+    // ✅ Pass file buffers directly to RPC
+    const files = {
+      photo: req.files?.photo?.[0] || null,
+      aadharFrontImage: req.files?.aadharFrontImage?.[0] || null,
+      aadharBackImage: req.files?.aadharBackImage?.[0] || null,
+    };
+
+    const adminName = req.headers["x-user-username"];
+
+    const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.ADD_STAFF, {
+      name,
+      gender,
+      dob,
+      contactNumber,
+      address,
+      email,
+      role,
+      salary,
+      joinDate,
+      status,
+      propertyId,
+      createdBy,
+      kitchenId,
+      adminName,
+      files, // send files as-is
+    });
+
+    console.log("📨 Staff Add RPC Response:", response);
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("❌ Error in addStaff controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while adding staff",
+    });
+  }
+};
+
+// 🎯 Update staff via RPC
+export const updateStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ Attach update body
+    const updateData = { ...req.body };
+
+    // ✅ Pass file buffers directly to RPC
+    const files = {
+      photo: req.files?.photo?.[0] || null,
+      aadharFrontImage: req.files?.aadharFrontImage?.[0] || null,
+      aadharBackImage: req.files?.aadharBackImage?.[0] || null,
+    };
+
+    const adminName = req.headers["x-user-username"];
+
+    const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.UPDATE_STAFF, {
+      staffId: id,
+      updateData,
+      adminName,
+      files, // send files as-is
+    });
+
+    console.log("✏️ Staff Update RPC Response:", response);
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("❌ Error in updateStaff controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while updating staff",
+    });
+  }
+};
