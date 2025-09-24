@@ -12,6 +12,6 @@ export const AUTH_PATTERN = {
     UPDATE_ROLE: "update_role",
     DELETE_ROLE: "delete_role",
     GET_ROLE_BY_ID: "get_role_by_id",
-    GET_All_ROLES: "get_all_roles",
+    GET_ALL_ROLES: "get_all_roles",
   },
 };

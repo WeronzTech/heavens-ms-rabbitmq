@@ -5,10 +5,10 @@ import {
   validateObjectId,
   validateRequired,
 } from "../utils/helpers.js";
-// import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
-// import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
-// import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 
 const parseAndValidateData = (data, isUpdate = false) => {
   if (data.price) data.price = parseFloat(data.price);
@@ -182,23 +182,36 @@ export const deleteAddon = async ({ addonId }) => {
   }
 };
 
-// export const getAddonByPropertyId = async ({ userId }) => {
-//     try {
-//         const userResponse = await sendRPCRequest(USER_PATTERN.GET_USER_BY_ID, { userId });
-//         if (!userResponse.success) {
-//             return { success: false, status: 404, message: "User not found" };
-//         }
-//         const user = userResponse.data;
+export const getAddonByPropertyId = async ({ userId }) => {
+  try {
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      { userId }
+    );
+    if (!userResponse.success) {
+      return { success: false, status: 404, message: "User not found" };
+    }
+    const user = userResponse.data;
 
-//         const propertyResponse = await sendRPCRequest(PROPERTY_PATTERN.GET_PROPERTY_BY_ID, { propertyId: user?.stayDetails?.propertyId });
-//         if (!propertyResponse.success) {
-//             return { success: false, status: 404, message: "Property not found" };
-//         }
-//         const property = propertyResponse.data;
+    const propertyResponse = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      { propertyId: user?.stayDetails?.propertyId }
+    );
+    if (!propertyResponse.success) {
+      return { success: false, status: 404, message: "Property not found" };
+    }
+    const property = propertyResponse.data;
 
-//         const addons = await Addon.find({ kitchenId: property.kitchenId }).populate({ path: "itemId", model: "Recipe", select: "name veg" });
-//         return { success: true, status: 200, message: "Addons retrieved successfully", data: addons };
-//     } catch (error) {
-//         return { success: false, status: 500, message: error.message };
-//     }
-// };
+    const addons = await Addon.find({ kitchenId: property.kitchenId }).populate(
+      { path: "itemId", model: "Recipe", select: "name veg" }
+    );
+    return {
+      success: true,
+      status: 200,
+      message: "Addons retrieved successfully",
+      data: addons,
+    };
+  } catch (error) {
+    return { success: false, status: 500, message: error.message };
+  }
+};

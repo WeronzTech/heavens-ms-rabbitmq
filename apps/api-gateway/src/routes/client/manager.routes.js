@@ -10,6 +10,7 @@ import {
   //   getManagerById,
   changeManagerStatus,
   deleteManager,
+  getManagerById,
 } from "../../controllers/client/manager.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 
@@ -17,7 +18,7 @@ const managerRoutes = express.Router();
 
 managerRoutes.get("/", getAllManagers);
 
-// managerRoutes.get("/:id", getManagerById);
+managerRoutes.get("/:id", getManagerById);
 
 managerRoutes.post(
   "/register",

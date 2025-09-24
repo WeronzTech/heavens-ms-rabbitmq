@@ -19,12 +19,21 @@ export const PROPERTY_PATTERN = {
     REMOVE_ASSIGNMENT: "remove_assignment",
   },
   STAFF: {
-    GET_ALL_STAFF : "get_all_staff",
+    GET_ALL_STAFF: "get_all_staff",
     GET_STAFF_BY_ID: "get_staff_by_id",
     DELETE_STAFF: "delete_staff",
     STAFF_STATUS_CHANGE: "staff_status_change",
-    GET_STAFF_BY_PROPERTYID:"get_staff_by_propertyId",
-
-
-  }
+    GET_STAFF_BY_PROPERTYID: "get_staff_by_propertyId",
+  },
+  MAINTENANCE: {
+    CREATE: "property_maintenance_create",
+    GET_BY_PROPERTY: "property_maintenance_get_by_property",
+    ASSIGN_STAFF: "property_maintenance_assign_staff",
+    MARK_RESOLVED: "property_maintenance_mark_resolved",
+    GET_BY_ID: "property_maintenance_get_by_id",
+    GET_BY_USER: "property_maintenance_get_by_user",
+    GET_ALL: "property_maintenance_get_all",
+    UPDATE: "property_maintenance_update",
+    DELETE: "property_maintenance_delete",
+  },
 };

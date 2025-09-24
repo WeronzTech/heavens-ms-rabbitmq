@@ -1,5 +1,6 @@
 import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../../libs/patterns/client/client.pattern.js";
+import { PROPERTY_PATTERN } from "../../../../../libs/patterns/property/property.pattern.js";
 
 export const registerManager = async (req, res) => {
   try {
@@ -155,46 +156,27 @@ export const getAllManagers = async (req, res) => {
   }
 };
 
-// export const getManagerById = async (data) => {
-//   try {
-//     const { id } = data;
-//     const manager = await Manager.findById(id);
-//     if (!manager) {
-//       return { success: false, status: 404, message: "Manager not found." };
-//     }
+export const getManagerById = async (req, res) => {
+  try {
+    const id = req.params.id;
 
-//     const managerObject = manager.toObject();
-//     if (manager.propertyId && manager.propertyId.length > 0) {
-//       try {
-//         const propertyResponse = await axios.get(
-//           `${process.env.PROPERTY_SERVICE_URL}/property/${manager.propertyId[0]}`
-//         );
-//         if (propertyResponse.data) {
-//           managerObject.property = {
-//             _id: propertyResponse.data._id,
-//             name: propertyResponse.data.propertyName,
-//           };
-//         }
-//       } catch (axiosError) {
-//         console.error(
-//           `Failed to fetch property details for ID ${manager.propertyId[0]}:`,
-//           axiosError.message
-//         );
-//         managerObject.property = { name: "Could not fetch property details" };
-//       }
-//     }
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Manager retrieved successfully.",
-//       data: managerObject,
-//     };
-//   } catch (error) {
-//     console.error("Error during manager retrieval:", error);
-//     return { success: false, status: 500, message: "Internal Server Error" };
-//   }
-// };
+    const manager = await sendRPCRequest(
+      CLIENT_PATTERN.MANAGER.GET_MANAGER_BY_ID,
+      { id }
+    );
 
+    if (manager.status === 200) {
+      res.status(200).json(manager);
+    } else {
+      res.status(manager.status).json(manager);
+    }
+  } catch (error) {
+    console.error("Error during manager retrieval:", error);
+    res
+      .status(500)
+      .json({ success: false, status: 500, message: "Internal Server Error" });
+  }
+};
 export const editManager = async (req, res) => {
   try {
     const updates = req.body;

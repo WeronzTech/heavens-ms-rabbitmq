@@ -1,9 +1,8 @@
 import { WeeklyMenu } from "../models/messMenu.model.js";
 import { validateMealTimesArray, validateMenuData } from "../utils/helpers.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-// Assuming user/property patterns are defined elsewhere
-// import { USER_PATTERN } from '../../../libs/patterns/user/user.pattern.js';
-// import { PROPERTY_PATTERN } from '../../../libs/patterns/property/property.pattern.js';
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 
 export const createWeeklyMenu = async (data) => {
   try {
@@ -222,7 +221,9 @@ export const getMessMenuByPropertyId = async (data) => {
     const { userId, date: dayOfWeek } = data;
 
     // Replace with actual pattern names
-    const user = await sendRPCRequest("user_get_user_by_id", { userId });
+    const user = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_ID, {
+      userId,
+    });
     if (!user || !user.stayDetails?.propertyId) {
       return {
         success: false,
@@ -231,9 +232,12 @@ export const getMessMenuByPropertyId = async (data) => {
       };
     }
 
-    const property = await sendRPCRequest("property_get_by_id", {
-      propertyId: user.stayDetails.propertyId,
-    });
+    const property = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      {
+        propertyId: user.stayDetails.propertyId,
+      }
+    );
     if (!property || !property.kitchenId) {
       return {
         success: false,

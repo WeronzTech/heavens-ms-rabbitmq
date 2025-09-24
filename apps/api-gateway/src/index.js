@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { CLIENT_ORIGIN, HOST, PORT } from "./config/env.js";
 import authRoutes from "./routes/auth/auth.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
@@ -26,6 +27,8 @@ import pushNotificationRoutes from "./routes/notification/pushNotification.route
 import notificationRoutes from "./routes/notification/notification.routes.js";
 import alertNotificationRoutes from "./routes/notification/alertNotification.routes.js";
 import feePaymentRoutes from "./routes/accounts/feePayment.routes.js";
+import socketRoutes from "./routes/socket/socket.routes.js";
+import maintenanceRoutes from "./routes/property/maintenance.routes.js";
 
 dotenv.config();
 const app = express();
@@ -33,9 +36,26 @@ connect();
 
 // ----- Middleware ----- //
 app.use(express.json());
-app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
 app.use(helmet());
 app.use(morgan("combined"));
+
+const socketProxy = createProxyMiddleware({
+  target: process.env.SOCKET_SERVICE_URL, // e.g., 'http://socket-service:5006'
+  ws: true, // Enable WebSocket proxying
+  logLevel: "info", // Use 'info' in prod, 'debug' for development
+  onError: (err, req, res) => {
+    console.error("Socket Proxy Error:", err);
+    res.writeHead(500, {
+      "Content-Type": "text/plain",
+    });
+    res.end("Something went wrong with the WebSocket connection.");
+  },
+});
+
+// Apply the proxy to the socket path
+app.use("/api/v2/socket", socketProxy);
+app.use("/api/v2/internalSocket", socketRoutes);
 
 app.use("/api/v2/auth", authRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
@@ -50,14 +70,15 @@ app.use("/api/v2/inventory/internal", internalRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
-app.use("/api/v2/property",propertyRoutes)
-app.use("/api/v2/user",userRoutes)
-app.use("/api/v2/room", roomRoutes)
-app.use("/api/v2/staff", staffRoutes)
-app.use("/api/v2/pushNotification",pushNotificationRoutes )
-app.use("/api/v2/notification", notificationRoutes)
-app.use("/api/v2/alertNotification", alertNotificationRoutes)
-app.use("/api/v2/feePayments",feePaymentRoutes)
+app.use("/api/v2/property", propertyRoutes);
+app.use("/api/v2/user", userRoutes);
+app.use("/api/v2/room", roomRoutes);
+app.use("/api/v2/staff", staffRoutes);
+app.use("/api/v2/pushNotification", pushNotificationRoutes);
+app.use("/api/v2/notification", notificationRoutes);
+app.use("/api/v2/alertNotification", alertNotificationRoutes);
+app.use("/api/v2/feePayments", feePaymentRoutes);
+app.use("/api/v2/property/maintenance", maintenanceRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

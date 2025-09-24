@@ -24,7 +24,7 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
-await connect();
+connect();
 
 // Middleware
 app.use(express.json());
