@@ -7,7 +7,7 @@ import {
   updateAddon,
   updateAddonAvailability,
   deleteAddon,
-  // getAddonByPropertyId,
+  getAddonByPropertyId,
 } from "../services/addon.service.js";
 
 createResponder(INVENTORY_PATTERN.ADDON.CREATE, async (data) => {
@@ -34,6 +34,6 @@ createResponder(INVENTORY_PATTERN.ADDON.DELETE, async (data) => {
   return await deleteAddon(data);
 });
 
-// createResponder(INVENTORY_PATTERN.ADDON.GET_BY_PROPERTY, async (data) => {
-//   return await getAddonByPropertyId(data);
-// });
+createResponder(INVENTORY_PATTERN.ADDON.GET_BY_PROPERTY, async (data) => {
+  return await getAddonByPropertyId(data);
+});

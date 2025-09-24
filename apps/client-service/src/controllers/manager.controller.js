@@ -7,6 +7,7 @@ import {
   forgotPasswordManager,
   getAllManagers,
   getManagerByEmail,
+  getManagerById,
   registerManager,
   resetPasswordManager,
   validateManagerCredentials,
@@ -40,6 +41,10 @@ createResponder(CLIENT_PATTERN.MANAGER.RESET_PASSWORD_MANAGER, async (data) => {
 
 createResponder(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, async (data) => {
   return await getAllManagers(data);
+});
+
+createResponder(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, async (data) => {
+  return await getManagerById(data);
 });
 
 createResponder(CLIENT_PATTERN.MANAGER.EDIT_MANAGER, async (data) => {

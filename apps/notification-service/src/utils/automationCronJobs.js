@@ -1,18 +1,19 @@
-import axios from "axios";
 import moment from "moment";
 import { sendPushNotificationToUser } from "./sendNotificationHelper.js";
 import FcmToken from "../models/fcmToken.model.js";
 import NotificationLog from "../models/notificationLog.model.js";
-
-const STUDENT_API = `${process.env.USER_SERVICE_URL}/student/heavens-residents/push-notification?messOnly=true&studentOnly=true`;
-const MEAL_TIMING_API = `${process.env.INVENTORY_SERVICE_URL}/inventory/mess/all-properties/booking-times`;
-const STUDENT_IDS_API = `${process.env.USER_SERVICE_URL}/student/heavens-residents/get-studentIds`;
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 
 export const runFeeNotificationCron = async () => {
   try {
     const today = moment.utc().startOf("day");
 
-    const response = await axios.get(STUDENT_API);
+    const response = await sendRPCRequest(USER_PATTERN.USER.GET_USER_IDS, {
+      messOnly: true,
+      studentOnly: true,
+    });
     const students = response.data; // Array of { id, dueDate }
 
     for (const student of students) {
@@ -71,13 +72,21 @@ export const notifyMealTimings = async () => {
   try {
     const nowIST = moment.utc().add(5, "hours").add(30, "minutes");
 
-    const res = await axios.get(MEAL_TIMING_API);
-    const properties = res.data?.data || [];
+    const res = await sendRPCRequest(
+      INVENTORY_PATTERN.MENU.FETCH_ALL_BOOKING_TIMES,
+      {}
+    );
+    const properties = res?.data || [];
 
     for (const property of properties) {
       const { propertyId, mealTimes = [] } = property;
 
-      const studentRes = await axios.get(`${STUDENT_IDS_API}/${propertyId}`);
+      const studentRes = await sendRPCRequest(
+        USER_PATTERN.USER.GET_USERS_BY_RENT_TYPE,
+        {
+          propertyId,
+        }
+      );
       const studentIds = studentRes.data || [];
 
       for (const meal of mealTimes) {

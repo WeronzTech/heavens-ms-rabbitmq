@@ -8,8 +8,8 @@ import { WeeklyMenu } from "../models/messMenu.model.js";
 import Recipe from "../models/recipe.model.js";
 import { normalizeQuantity } from "./helpers.js";
 import { UsageForPreparation } from "../models/usageForPreparation.model.js";
-import axios from "axios";
 import Kitchen from "../models/kitchen.model.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 
 export const updateInventoryFromBookings = async () => {
   console.log("Cron job started: Updating inventory for tomorrow's bookings.");
@@ -403,14 +403,9 @@ export const checkLowStockAndNotify = async () => {
               `Sending notification to user ${userId} for kitchen ${kitchen.name}...`
             );
 
-            await axios.post(
-              `${process.env.NOTIFICATION_SERVICE_URL}/notification`,
-              notificationPayload,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
+            await sendRPCRequest(
+              NOTIFICATION_PATTERN.NOTIFICATION.SEND_NOTIFICATION,
+              { data: notificationPayload } // ✅ wrapped in data
             );
 
             console.log(

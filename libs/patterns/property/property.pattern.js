@@ -32,6 +32,16 @@ export const PROPERTY_PATTERN = {
   },
   INTERNAL: {
     UPDATE_PROPERTY_COUNTS: "update_property_counts"
-  }
-
+  },
+    MAINTENANCE: {
+    CREATE: "property_maintenance_create",
+    GET_BY_PROPERTY: "property_maintenance_get_by_property",
+    ASSIGN_STAFF: "property_maintenance_assign_staff",
+    MARK_RESOLVED: "property_maintenance_mark_resolved",
+    GET_BY_ID: "property_maintenance_get_by_id",
+    GET_BY_USER: "property_maintenance_get_by_user",
+    GET_ALL: "property_maintenance_get_all",
+    UPDATE: "property_maintenance_update",
+    DELETE: "property_maintenance_delete",
+  },
 };

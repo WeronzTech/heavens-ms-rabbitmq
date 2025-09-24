@@ -6,77 +6,77 @@ import RecipeCategory from "../models/recipeCategory.model.js";
 import { WeeklyMenu } from "../models/messMenu.model.js";
 import Inventory from "../models/inventory.model.js";
 import { normalizeQuantity } from "../utils/helpers.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 
-// export const getAllKitchens = async (data) => {
-//   try {
-//     const { location, incharge, propertyId, search } = data;
-//     const filter = {};
+export const getAllKitchens = async (data) => {
+  try {
+    const { location, incharge, propertyId, search } = data;
+    const filter = {};
 
-//     if (location) filter.location = { $regex: new RegExp(location, "i") };
-//     if (search) filter.name = { $regex: new RegExp(search, "i") };
-//     if (incharge && mongoose.Types.ObjectId.isValid(incharge))
-//       filter.incharge = incharge;
-//     if (propertyId) filter.propertyId = propertyId;
+    if (location) filter.location = { $regex: new RegExp(location, "i") };
+    if (search) filter.name = { $regex: new RegExp(search, "i") };
+    if (incharge && mongoose.Types.ObjectId.isValid(incharge))
+      filter.incharge = incharge;
+    if (propertyId) filter.propertyId = propertyId;
 
-//     const [kitchens, staffResponse, propertyResponse] = await Promise.all([
-//       Kitchen.find(filter).lean(),
-//       axios.get(`${process.env.PROPERTY_SERVICE_URL}/property/staff/getAll`),
-//       axios.get(
-//         `${process.env.PROPERTY_SERVICE_URL}/property/heavens-properties`
-//       ),
-//     ]);
+    const [kitchens, staffResponse, propertyResponse] = await Promise.all([
+      Kitchen.find(filter).lean(),
+      sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_ALL_STAFF, {}),
+      sendRPCRequest(PROPERTY_PATTERN.PROPERTY.GET_ALL_HEAVENS_PROPERTIES, {}),
+    ]);
 
-//     if (kitchens.length === 0) {
-//       return { success: true, status: 200, data: [] };
-//     }
+    if (kitchens.length === 0) {
+      return { success: true, status: 200, data: [] };
+    }
 
-//     const staffMap = new Map(
-//       staffResponse.data.staff.map((staff) => [
-//         staff._id.toString(),
-//         staff.name,
-//       ])
-//     );
-//     const propertyMap = new Map(
-//       propertyResponse.data.map((p) => [p._id.toString(), p.propertyName])
-//     );
+    const staffMap = new Map(
+      staffResponse.data.staff.map((staff) => [
+        staff._id.toString(),
+        staff.name,
+      ])
+    );
+    const propertyMap = new Map(
+      propertyResponse.data.map((p) => [p._id.toString(), p.propertyName])
+    );
 
-//     const enrichedKitchens = kitchens.map((kitchen) => {
-//       let inchargeData = null;
-//       if (kitchen.incharge) {
-//         const inchargeId = kitchen.incharge.toString();
-//         inchargeData = {
-//           _id: kitchen.incharge,
-//           name: staffMap.get(inchargeId) || "N/A",
-//         };
-//       }
-//       let propertyData;
-//       if (Array.isArray(kitchen.propertyId) && kitchen.propertyId.length > 0) {
-//         propertyData = kitchen.propertyId.map((id) => ({
-//           _id: id,
-//           name: propertyMap.get(id?.toString()) || "N/A",
-//         }));
-//       } else if (kitchen.propertyId) {
-//         propertyData = {
-//           _id: kitchen.propertyId,
-//           name: propertyMap.get(kitchen.propertyId?.toString()) || "N/A",
-//         };
-//       } else {
-//         propertyData = kitchen.propertyId;
-//       }
-//       return { ...kitchen, incharge: inchargeData, propertyId: propertyData };
-//     });
+    const enrichedKitchens = kitchens.map((kitchen) => {
+      let inchargeData = null;
+      if (kitchen.incharge) {
+        const inchargeId = kitchen.incharge.toString();
+        inchargeData = {
+          _id: kitchen.incharge,
+          name: staffMap.get(inchargeId) || "N/A",
+        };
+      }
+      let propertyData;
+      if (Array.isArray(kitchen.propertyId) && kitchen.propertyId.length > 0) {
+        propertyData = kitchen.propertyId.map((id) => ({
+          _id: id,
+          name: propertyMap.get(id?.toString()) || "N/A",
+        }));
+      } else if (kitchen.propertyId) {
+        propertyData = {
+          _id: kitchen.propertyId,
+          name: propertyMap.get(kitchen.propertyId?.toString()) || "N/A",
+        };
+      } else {
+        propertyData = kitchen.propertyId;
+      }
+      return { ...kitchen, incharge: inchargeData, propertyId: propertyData };
+    });
 
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Kitchens retrieved successfully",
-//       data: enrichedKitchens,
-//     };
-//   } catch (error) {
-//     console.error("Error in getAllKitchens:", error.message);
-//     return { success: false, status: 500, message: "Server error" };
-//   }
-// };
+    return {
+      success: true,
+      status: 200,
+      message: "Kitchens retrieved successfully",
+      data: enrichedKitchens,
+    };
+  } catch (error) {
+    console.error("Error in getAllKitchens:", error.message);
+    return { success: false, status: 500, message: "Server error" };
+  }
+};
 
 export const getKitchens = async () => {
   try {

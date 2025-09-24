@@ -10,159 +10,170 @@ import {
 } from "../utils/helpers.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
-// import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
-// import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 
-// export const createAddonBooking = async (data) => {
-//   try {
-//     const tomorrow = getTomorrowDate();
-//     const bookingData = {
-//       ...data,
-//       bookingDate: data.bookingDate || tomorrow,
-//     };
-//     const { userId, addons } = bookingData;
+export const createAddonBooking = async (data) => {
+  try {
+    const tomorrow = getTomorrowDate();
+    const bookingData = {
+      ...data,
+      bookingDate: data.bookingDate || tomorrow,
+    };
+    const { userId, addons } = bookingData;
 
-//     validateRequired(userId, "User ID");
-//     validateRequired(addons, "addons");
-//     validateObjectId(userId, "User ID");
+    validateRequired(userId, "User ID");
+    validateRequired(addons, "addons");
+    validateObjectId(userId, "User ID");
 
-//     if (!Array.isArray(addons) || addons.length === 0) {
-//       return {
-//         success: false,
-//         status: 400,
-//         message: "At least one addon must be included",
-//       };
-//     }
+    if (!Array.isArray(addons) || addons.length === 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "At least one addon must be included",
+      };
+    }
 
-//     const userResponse = await sendRPCRequest(USER_PATTERN.GET_USER_BY_ID, {
-//       userId,
-//     });
-//     if (!userResponse.success) {
-//       return {
-//         success: false,
-//         status: 404,
-//         message: "Could not find user details to create booking.",
-//       };
-//     }
-//     const userDetails = userResponse.data;
-//     const propertyId = userDetails?.stayDetails?.propertyId;
-//     const kitchenId =
-//       userDetails?.messDetails?.kitchenId || userDetails?.stayDetails?.kitchenId;
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      {
+        userId,
+      }
+    );
+    if (!userResponse.success) {
+      return {
+        success: false,
+        status: 404,
+        message: "Could not find user details to create booking.",
+      };
+    }
+    const userDetails = userResponse.data;
+    const propertyId = userDetails?.stayDetails?.propertyId;
+    const kitchenId =
+      userDetails?.messDetails?.kitchenId ||
+      userDetails?.stayDetails?.kitchenId;
 
-//     if (!propertyId) {
-//       return {
-//         success: false,
-//         status: 400,
-//         message: "User is not associated with a property. Cannot create booking.",
-//       };
-//     }
+    if (!propertyId) {
+      return {
+        success: false,
+        status: 400,
+        message:
+          "User is not associated with a property. Cannot create booking.",
+      };
+    }
 
-//     let grandTotalPrice = 0;
-//     const processedAddons = [];
-//     for (const item of addons) {
-//       const addon = await Addon.findById(item.addonId);
-//       if (!addon)
-//         return {
-//           success: false,
-//           status: 404,
-//           message: `Addon with ID ${item.addonId} not found.`,
-//         };
-//       const totalPrice = addon.price * item.quantity;
-//       grandTotalPrice += totalPrice;
-//       processedAddons.push({ ...item, totalPrice });
-//     }
+    let grandTotalPrice = 0;
+    const processedAddons = [];
+    for (const item of addons) {
+      const addon = await Addon.findById(item.addonId);
+      if (!addon)
+        return {
+          success: false,
+          status: 404,
+          message: `Addon with ID ${item.addonId} not found.`,
+        };
+      const totalPrice = addon.price * item.quantity;
+      grandTotalPrice += totalPrice;
+      processedAddons.push({ ...item, totalPrice });
+    }
 
-//     const newBooking = await AddonBooking.create({
-//       ...bookingData,
-//       propertyId,
-//       kitchenId,
-//       addons: processedAddons,
-//       grandTotalPrice,
-//       bookingDate: normalizeDate(bookingData.bookingDate),
-//     });
+    const newBooking = await AddonBooking.create({
+      ...bookingData,
+      propertyId,
+      kitchenId,
+      addons: processedAddons,
+      grandTotalPrice,
+      bookingDate: normalizeDate(bookingData.bookingDate),
+    });
 
-//     // --- Notify relevant parties via Socket ---
-//     const kitchen = await Kitchen.findById(kitchenId).lean();
-//     const propertyResponse = await sendRPCRequest(
-//       PROPERTY_PATTERN.GET_PROPERTY_BY_ID,
-//       { propertyId }
-//     );
-//     const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
-//     if (kitchen?.incharge) userIdsToNotify.push(kitchen.incharge.toString());
-//     if (propertyResponse.success && propertyResponse.data?.clientId) {
-//       userIdsToNotify.push(propertyResponse.data.clientId);
-//     }
-//     await sendRPCRequest(SOCKET_PATTERN.EMIT_EVENT, {
-//       userIds: userIdsToNotify,
-//       event: "new-addon-booking",
-//       data: newBooking,
-//     });
+    // --- Notify relevant parties via Socket ---
+    const kitchen = await Kitchen.findById(kitchenId).lean();
+    const propertyResponse = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      { propertyId }
+    );
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
+    if (kitchen?.incharge) userIdsToNotify.push(kitchen.incharge.toString());
+    if (propertyResponse.success && propertyResponse.data?.clientId) {
+      userIdsToNotify.push(propertyResponse.data.clientId);
+    }
+    await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "new-addon-booking",
+      data: newBooking,
+    });
 
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Addon Booking created successfully",
-//       data: newBooking,
-//     };
-//   } catch (error) {
-//     return { success: false, status: 500, message: error.message };
-//   }
-// };
+    return {
+      success: true,
+      status: 201,
+      message: "Addon Booking created successfully",
+      data: newBooking,
+    };
+  } catch (error) {
+    return { success: false, status: 500, message: error.message };
+  }
+};
 
-// export const getAddonBookingsByProperty = async (filters) => {
-//   try {
-//     const query = {};
-//     if (filters.propertyId) query.propertyId = filters.propertyId;
-//     if (filters.bookingDate) query.bookingDate = normalizeDate(filters.bookingDate);
-//     if (filters.status) query.status = filters.status;
+export const getAddonBookingsByProperty = async (filters) => {
+  try {
+    const query = {};
+    if (filters.propertyId) query.propertyId = filters.propertyId;
+    if (filters.bookingDate)
+      query.bookingDate = normalizeDate(filters.bookingDate);
+    if (filters.status) query.status = filters.status;
 
-//     const page = parseInt(filters.page, 10) || 1;
-//     const limit = parseInt(filters.limit, 10) || 10;
-//     const skip = (page - 1) * limit;
+    const page = parseInt(filters.page, 10) || 1;
+    const limit = parseInt(filters.limit, 10) || 10;
+    const skip = (page - 1) * limit;
 
-//     const [bookings, totalCount] = await Promise.all([
-//       AddonBooking.find(query)
-//         .populate("addons.addonId")
-//         .sort({ bookingDate: -1, createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .lean(),
-//       AddonBooking.countDocuments(query),
-//     ]);
+    const [bookings, totalCount] = await Promise.all([
+      AddonBooking.find(query)
+        .populate("addons.addonId")
+        .sort({ bookingDate: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      AddonBooking.countDocuments(query),
+    ]);
 
-//     const userIds = [...new Set(bookings.map((b) => b.userId.toString()))];
-//     const userResponse = await sendRPCRequest(USER_PATTERN.GET_USERS_BY_IDS, {
-//       userIds,
-//     });
-//     const userMap = new Map(
-//       userResponse.success ? userResponse.data.map((u) => [u._id.toString(), u]) : []
-//     );
+    const userIds = [...new Set(bookings.map((b) => b.userId.toString()))];
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      {
+        userIds,
+      }
+    );
+    const userMap = new Map(
+      userResponse.success
+        ? userResponse.data.map((u) => [u._id.toString(), u])
+        : []
+    );
 
-//     const enrichedData = bookings.map((booking) => {
-//       const userDetails = userMap.get(booking.userId.toString());
-//       return {
-//         ...booking,
-//         userName: userDetails?.name || "N/A",
-//       };
-//     });
+    const enrichedData = bookings.map((booking) => {
+      const userDetails = userMap.get(booking.userId.toString());
+      return {
+        ...booking,
+        userName: userDetails?.name || "N/A",
+      };
+    });
 
-//     return {
-//       success: true,
-//       status: 200,
-//       data: {
-//         data: enrichedData,
-//         pagination: {
-//           total: totalCount,
-//           page,
-//           limit,
-//           totalPages: Math.ceil(totalCount / limit),
-//         },
-//       },
-//     };
-//   } catch (error) {
-//     return { success: false, status: 500, message: error.message };
-//   }
-// };
+    return {
+      success: true,
+      status: 200,
+      data: {
+        data: enrichedData,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      },
+    };
+  } catch (error) {
+    return { success: false, status: 500, message: error.message };
+  }
+};
 
 export const getAddonBookingsForUser = async (filters) => {
   try {

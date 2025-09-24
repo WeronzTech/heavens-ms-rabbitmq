@@ -1,7 +1,7 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
 import {
-  // createMealBooking,
+  createMealBooking,
   getBookingById,
   getBookingByProperty,
   getUserBookings,
@@ -10,9 +10,9 @@ import {
   checkNextDayBooking,
 } from "../services/mealBooking.service.js";
 
-// createResponder(INVENTORY_PATTERN.BOOKING.CREATE_MEAL_BOOKING, async (data) => {
-//   return await createMealBooking(data);
-// });
+createResponder(INVENTORY_PATTERN.BOOKING.CREATE_MEAL_BOOKING, async (data) => {
+  return await createMealBooking(data);
+});
 
 createResponder(INVENTORY_PATTERN.BOOKING.GET_BOOKING_BY_ID, async (data) => {
   return await getBookingById(data);

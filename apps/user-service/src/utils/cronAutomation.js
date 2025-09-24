@@ -1,5 +1,6 @@
-import axios from "axios";
 import User from "../models/user.model.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { NOTIFICATION_PATTERN } from "../../../../libs/patterns/notification/notification.pattern.js";
 
 export const sendRentReminders = async () => {
   console.log("Running cron job: Checking for rent payment reminders...");
@@ -54,14 +55,15 @@ export const sendRentReminders = async () => {
       formData.append("userId", notificationPayload.userId);
 
       try {
-        await axios.post(
-          `${process.env.NOTIFICATION_SERVICE_URL}/notification`,
-          formData,
+        await sendRPCRequest(
+          NOTIFICATION_PATTERN.NOTIFICATION.SEND_NOTIFICATION,
           {
-            headers: {
-              ...formData.getHeaders(),
+            data: {
+              title: notificationPayload.title,
+              description: notificationPayload.description,
+              userId: notificationPayload.userId,
             },
-          }
+          } // ✅ wrapped in data
         );
         console.log(
           `Successfully sent notification to user: ${user.name} (${user._id})`

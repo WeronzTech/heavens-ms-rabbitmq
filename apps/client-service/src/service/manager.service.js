@@ -2,6 +2,8 @@ import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import Manager from "../models/manager.model.js";
 
 export const registerManager = async (data) => {
@@ -296,45 +298,46 @@ export const getAllManagers = async (data) => {
   }
 };
 
-// export const getManagerById = async (data) => {
-//   try {
-//     const { id } = data;
-//     const manager = await Manager.findById(id);
-//     if (!manager) {
-//       return { success: false, status: 404, message: "Manager not found." };
-//     }
+export const getManagerById = async (data) => {
+  try {
+    const { id } = data;
+    const manager = await Manager.findById(id);
+    if (!manager) {
+      return { success: false, status: 404, message: "Manager not found." };
+    }
 
-//     const managerObject = manager.toObject();
-//     if (manager.propertyId && manager.propertyId.length > 0) {
-//       try {
-//         const propertyResponse = await axios.get(
-//           `${process.env.PROPERTY_SERVICE_URL}/property/${manager.propertyId[0]}`
-//         );
-//         if (propertyResponse.data) {
-//           managerObject.property = {
-//             _id: propertyResponse.data._id,
-//             name: propertyResponse.data.propertyName,
-//           };
-//         }
-//       } catch (axiosError) {
-//         console.error(
-//           `Failed to fetch property details for ID ${manager.propertyId[0]}:`,
-//           axiosError.message
-//         );
-//         managerObject.property = { name: "Could not fetch property details" };
-//       }
-//     }
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Manager retrieved successfully.",
-//       data: managerObject,
-//     };
-//   } catch (error) {
-//     console.error("Error during manager retrieval:", error);
-//     return { success: false, status: 500, message: "Internal Server Error" };
-//   }
-// };
+    const managerObject = manager.toObject();
+    if (manager.propertyId && manager.propertyId.length > 0) {
+      try {
+        const propertyResponse = await sendRPCRequest(
+          PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+          { id: manager.propertyId[0] }
+        );
+        if (propertyResponse.data) {
+          managerObject.property = {
+            _id: propertyResponse.data._id,
+            name: propertyResponse.data.propertyName,
+          };
+        }
+      } catch (axiosError) {
+        console.error(
+          `Failed to fetch property details for ID ${manager.propertyId[0]}:`,
+          axiosError.message
+        );
+        managerObject.property = { name: "Could not fetch property details" };
+      }
+    }
+    return {
+      success: true,
+      status: 200,
+      message: "Manager retrieved successfully.",
+      data: managerObject,
+    };
+  } catch (error) {
+    console.error("Error during manager retrieval:", error);
+    return { success: false, status: 500, message: "Internal Server Error" };
+  }
+};
 
 export const editManager = async (data) => {
   try {

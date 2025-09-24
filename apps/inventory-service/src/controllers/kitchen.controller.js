@@ -1,7 +1,7 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
 import {
-  // getAllKitchens,
+  getAllKitchens,
   getKitchens,
   getKitchenById,
   addKitchen,
@@ -16,9 +16,9 @@ import {
 } from "../services/kitchen.service.js";
 
 // Kitchen Responders
-// createResponder(INVENTORY_PATTERN.KITCHEN.GET_ALL_KITCHENS, async (data) => {
-//   return await getAllKitchens(data);
-// });
+createResponder(INVENTORY_PATTERN.KITCHEN.GET_ALL_KITCHENS, async (data) => {
+  return await getAllKitchens(data);
+});
 
 createResponder(INVENTORY_PATTERN.KITCHEN.GET_KITCHENS_SIMPLE, async () => {
   return await getKitchens();

@@ -1,16 +1,14 @@
-import axios from "axios";
 import { Maintenance } from "../models/maintenance.model.js";
 import propertyModel from "../models/property.model.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { NOTIFICATION_PATTERN } from "../../../../libs/patterns/notification/notification.pattern.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 
 const sendNotification = async (userId, title, description) => {
   try {
-    const response = await axios.post(
-      `${process.env.NOTIFICATION_SERVICE_URL}/notification`,
-      {
-        title,
-        description,
-        userId,
-      }
+    const response = await sendRPCRequest(
+      NOTIFICATION_PATTERN.NOTIFICATION.SEND_NOTIFICATION,
+      { data: { title, description, userId } } // ✅ wrapped in data
     );
 
     if (response.status === 201) {
@@ -61,11 +59,9 @@ export const checkUnassignedMaintenance = async () => {
           continue;
         }
 
-        const managerResponse = await axios.get(
-          `${process.env.CLIENT_SERVICE_URL}/client/manager`,
-          {
-            params: { propertyId: request.propertyId },
-          }
+        const managerResponse = await sendRPCRequest(
+          CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
+          { propertyId: request.propertyId }
         );
         const manager = managerResponse.data?.data;
 

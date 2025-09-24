@@ -6,90 +6,91 @@ import {
   normalizeDate,
   validateRequired,
 } from "../utils/helpers.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
-// import { sendRPCRequest } from "../../../libs/common/rabbitMq.js";
-// import { USER_PATTERN } from "../../../libs/patterns/user/user.pattern.js";
 
-// export const createMealBooking = async (data) => {
-//   try {
-//     const { userId, mealType, menuId } = data;
+export const createMealBooking = async (data) => {
+  try {
+    const { userId, mealType, menuId } = data;
 
-//     validateRequired(userId, "User ID");
-//     validateRequired(mealType, "Meal Type");
+    validateRequired(userId, "User ID");
+    validateRequired(mealType, "Meal Type");
 
-//     const bookingDate = getTomorrowDate();
-//     const normalizedDate = normalizeDate(bookingDate);
+    const bookingDate = getTomorrowDate();
+    const normalizedDate = normalizeDate(bookingDate);
 
-//     let userDetails;
-//     try {
-//       // It's better to use RPC for inter-service communication
-//       // const userResponse = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_ID, { userId });
-//       // userDetails = userResponse.data;
-//       const response = await axios.get(
-//         `${process.env.USER_SERVICE_URL}/user/${userId}`
-//       );
-//       userDetails = response.data;
-//     } catch (error) {
-//       console.error("Failed to fetch user details:", error.message);
-//       return {
-//         success: false,
-//         status: 404,
-//         message: "Could not find user details to create booking.",
-//       };
-//     }
+    let userDetails;
+    try {
+      // It's better to use RPC for inter-service communication
+      const userResponse = await sendRPCRequest(
+        USER_PATTERN.USER.GET_USER_BY_ID,
+        { userId }
+      );
+      userDetails = userResponse.data;
+    } catch (error) {
+      console.error("Failed to fetch user details:", error.message);
+      return {
+        success: false,
+        status: 404,
+        message: "Could not find user details to create booking.",
+      };
+    }
 
-//     const propertyId = userDetails?.stayDetails?.propertyId;
-//     const kitchenId =
-//       userDetails?.messDetails?.kitchenId || userDetails?.stayDetails?.kitchenId;
+    const propertyId = userDetails?.stayDetails?.propertyId;
+    const kitchenId =
+      userDetails?.messDetails?.kitchenId ||
+      userDetails?.stayDetails?.kitchenId;
 
-//     if (!propertyId) {
-//       return {
-//         success: false,
-//         status: 400,
-//         message: "User is not associated with a property. Cannot create booking.",
-//       };
-//     }
+    if (!propertyId) {
+      return {
+        success: false,
+        status: 400,
+        message:
+          "User is not associated with a property. Cannot create booking.",
+      };
+    }
 
-//     const existingBooking = await MealBooking.findOne({
-//       userId,
-//       propertyId,
-//       kitchenId,
-//       bookingDate: normalizedDate,
-//       mealType,
-//     });
+    const existingBooking = await MealBooking.findOne({
+      userId,
+      propertyId,
+      kitchenId,
+      bookingDate: normalizedDate,
+      mealType,
+    });
 
-//     if (existingBooking) {
-//       return {
-//         success: false,
-//         status: 409,
-//         message: `A booking for ${mealType} on this date already exists.`,
-//       };
-//     }
+    if (existingBooking) {
+      return {
+        success: false,
+        status: 409,
+        message: `A booking for ${mealType} on this date already exists.`,
+      };
+    }
 
-//     const booking = await MealBooking.create({
-//       userId,
-//       propertyId,
-//       kitchenId,
-//       bookingDate: normalizedDate,
-//       mealType,
-//       menuId,
-//     });
+    const booking = await MealBooking.create({
+      userId,
+      propertyId,
+      kitchenId,
+      bookingDate: normalizedDate,
+      mealType,
+      menuId,
+    });
 
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Booking created successfully",
-//       data: booking,
-//     };
-//   } catch (error) {
-//     console.error("Error creating meal booking:", error);
-//     return {
-//       success: false,
-//       status: 500,
-//       message: "Internal Server Error",
-//     };
-//   }
-// };
+    return {
+      success: true,
+      status: 201,
+      message: "Booking created successfully",
+      data: booking,
+    };
+  } catch (error) {
+    console.error("Error creating meal booking:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+    };
+  }
+};
 
 export const getBookingById = async (data) => {
   try {
