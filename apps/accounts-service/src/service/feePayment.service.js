@@ -1,5 +1,6 @@
 import { getPropertyById, getUserById } from "./internal.service.js";
 import Payments from "../models/feePayments.model.js";
+import mongoose from "mongoose";
 
 export const addFeePayment = async (data) => {
   try {
@@ -222,8 +223,38 @@ export const updateFeePayment = async (paymentId, updateData) => {
   }
 };
 
-export const getFeePaymentById = async (paymentId) => {
+export const getFeePaymentById = async (data) => {
   try {
+    // Extract paymentId from data object
+    const { paymentId } = data;
+    
+    // Validate paymentId exists
+    if (!paymentId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Payment ID is required",
+      };
+    }
+
+    // Check if paymentId is an empty object
+    if (typeof paymentId === 'object' && Object.keys(paymentId).length === 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid payment ID: empty object",
+      };
+    }
+
+    // Check if it's a valid ObjectId
+    if (typeof paymentId === 'string' && !mongoose.Types.ObjectId.isValid(paymentId)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid payment ID format",
+      };
+    }
+
     const payment = await Payments.findById(paymentId);
     if (!payment) {
       return {
@@ -240,6 +271,83 @@ export const getFeePaymentById = async (paymentId) => {
     };
   } catch (error) {
     console.error("Get Payment Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getAllFeePayments = async () => {
+  try {
+    const payments = await Payments.find();
+
+    return {
+      success: true,
+      status: 200,
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Get All Fee Payments Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getMonthWiseRentCollection = async () => {
+  try {
+    // Use native MongoDB driver directly
+    const db = mongoose.connection.db;
+    const paymentsCollection = db.collection('payments');
+    
+    // Get all payments without Mongoose interference
+    const payments = await paymentsCollection.find({}, {
+      projection: { paymentDate: 1, amount: 1 }
+    }).toArray();
+
+    // Process the data
+    const monthlyData = new Map();
+
+    for (const payment of payments) {
+      if (!payment.paymentDate) continue;
+      
+      try {
+        const date = new Date(payment.paymentDate);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const key = `${year}-${month.toString().padStart(2, '0')}`;
+        
+        if (!monthlyData.has(key)) {
+          monthlyData.set(key, { year, month, totalCollection: 0, count: 0 });
+        }
+        
+        const monthData = monthlyData.get(key);
+        monthData.totalCollection += parseFloat(payment.amount) || 0;
+        monthData.count += 1;
+      } catch (error) {
+        console.log('Skipping invalid payment:', payment._id);
+        continue;
+      }
+    }
+
+    // Convert to array and sort
+    const result = Array.from(monthlyData.values()).sort((a, b) => {
+      return a.year === b.year ? a.month - b.month : a.year - b.year;
+    });
+
+    return {
+      success: true,
+      status: 200,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Month Wise Rent Collection Error:", error);
     return {
       success: false,
       status: 500,
