@@ -1,5 +1,6 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+
 import {
   addFeePayment,
   getFeePaymentById,
@@ -7,6 +8,8 @@ import {
   recordManualPayment,
   updateFeePayment,
   verifyAndRecordOnlinePayment,
+   getAllFeePayments,
+         getMonthWiseRentCollection,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -38,3 +41,12 @@ createResponder(ACCOUNTS_PATTERN.FEE_PAYMENTS.VERIFY_ONLINE, async (data) => {
 createResponder(ACCOUNTS_PATTERN.FEE_PAYMENTS.RECORD_MANUAL, async (data) => {
   return await recordManualPayment(data);
 });
+ 
+  createResponder( ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS, async (data) => {
+    return await getAllFeePayments(data);
+  });
+   
+  createResponder( ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_MONTHWISE_TOTAL_COLLECTION, async (data) => {
+    return await getMonthWiseRentCollection(data);
+  });
+   

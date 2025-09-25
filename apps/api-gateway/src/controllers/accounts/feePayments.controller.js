@@ -94,3 +94,42 @@ export const recordManualPayment = (req, res) => {
     req.body
   );
 };
+  };
+};
+
+export const getAllFeePaymentsController = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
+     {}
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get All Fee Payments Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getMonthWiseRentCollectionController = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_MONTHWISE_TOTAL_COLLECTION,
+      {}
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get Month Wise Rent Collection Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+

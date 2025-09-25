@@ -6,5 +6,7 @@ export const ACCOUNTS_PATTERN = {
     INITIATE_ONLINE: "payment_initiate_online",
     VERIFY_ONLINE: "payment_verify_online",
     RECORD_MANUAL: "payment_record_manual",
+    GET_ALL_FEE_PAYMENTS: "get_all_fee_payments",
+        GET_MONTHWISE_TOTAL_COLLECTION : "get_monthwise_total_collection"
   },
 };
