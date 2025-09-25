@@ -2684,3 +2684,38 @@ export const updatePassword = async ({ userId, password }) => {
     message: "Password updated successfully",
   };
 };
+
+export const updateUser = async (data) => {
+  try {
+    const { userId, userData } = data;
+
+    const user = await User.findByIdAndUpdate(userId, userData, { new: true });
+    if (!user) {
+      return {
+        status: 404,
+        body: {
+          success: false,
+          error: "User not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        message: "User updated successfully",
+        data: user,
+      },
+    };
+  } catch (err) {
+    console.error("Error handling update user:", err);
+    return {
+      status: 500,
+      body: {
+        success: false,
+        error: "Server error while updating user",
+      },
+    };
+  }
+};

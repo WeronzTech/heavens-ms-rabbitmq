@@ -7,7 +7,7 @@ export const addFeePaymentController = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_FEE_PAYMENTS,
-      paymentData  // Send the data directly, not wrapped in {data: {}}
+      paymentData // Send the data directly, not wrapped in {data: {}}
     );
 
     return res.status(response?.status || 500).json(response);
@@ -16,7 +16,6 @@ export const addFeePaymentController = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 export const updateFeePaymentController = async (req, res) => {
   try {
@@ -31,10 +30,10 @@ export const updateFeePaymentController = async (req, res) => {
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error("RPC Update Fee Payment Controller Error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message 
+      error: error.message,
     });
   }
 };
@@ -51,11 +50,50 @@ export const getFeePaymentController = async (req, res) => {
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error("RPC Get Fee Payment Controller Error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message 
+      error: error.message,
     });
+  }
+};
+
+const handleRPCAndRespond = async (res, pattern, data) => {
+  try {
+    const response = await sendRPCRequest(pattern, data);
+    return res.status(response.status || 500).json(response);
+  } catch (error) {
+    console.error(`API Gateway Error in ${pattern}:`, error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error in API Gateway.",
+    });
+  }
+};
+
+export const initiateOnlinePayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.FEE_PAYMENTS.INITIATE_ONLINE,
+    req.body
+  );
+};
+
+export const verifyAndRecordOnlinePayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.FEE_PAYMENTS.VERIFY_ONLINE,
+    req.body
+  );
+};
+
+export const recordManualPayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.FEE_PAYMENTS.RECORD_MANUAL,
+    req.body
+  );
+};
   };
 };
 
@@ -94,3 +132,4 @@ export const getMonthWiseRentCollectionController = async (req, res) => {
     });
   }
 };
+
