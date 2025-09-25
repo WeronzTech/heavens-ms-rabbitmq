@@ -9,11 +9,12 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { checkUnassignedMaintenance } from "./utils/automation.js";
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
-import "./controllers/property.controller.js";
-import "./controllers/room.controller.js";
-import "./controllers/staff.controller.js";
-import "./controllers/log.controller.js"
-import "./controllers/internal.controller.js";
+// ⛔️ REMOVED: Controller imports are moved into the startup function.
+// import "./controllers/property.controller.js";
+// import "./controllers/room.controller.js";
+// import "./controllers/staff.controller.js";
+// import "./controllers/log.controller.js";
+// import "./controllers/internal.controller.js";
 
 dotenv.config();
 
@@ -26,15 +27,11 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
-connect();
+// ⛔️ REMOVED: The connect() call is moved to ensure proper order.
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",
-  })
-);
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" }));
 app.use(helmet());
 app.use(parseForwardedAuth);
 
@@ -59,15 +56,29 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.PROPERTY_MONGO_URI, {
-      //   useNewUrlParser: true,
-      //   useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
+    // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
+    console.log("[PROPERTY] Connecting to RabbitMQ...");
+    await connect();
+    console.log("[PROPERTY] RabbitMQ connection successful.");
 
+    // ✅ STEP 2: Dynamically import controllers AFTER the connection is ready.
+    console.log("[PROPERTY] Setting up RabbitMQ responders...");
+    await import("./controllers/property.controller.js");
+    await import("./controllers/room.controller.js");
+    await import("./controllers/staff.controller.js");
+    await import("./controllers/log.controller.js");
+    await import("./controllers/internal.controller.js");
+    console.log("[PROPERTY] Responders are ready.");
+
+    // ✅ STEP 3: Connect to your database.
+    console.log("[PROPERTY] Connecting to MongoDB...");
+    await mongoose.connect(process.env.PROPERTY_MONGO_URI);
+    console.log("[PROPERTY] MongoDB connection successful.");
+
+    // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.PROPERTY_PORT, () => {
       console.log(
-        `Property Service running on port ${process.env.PROPERTY_PORT}`
+        `[PROPERTY] Service is fully started and running on port ${process.env.PROPERTY_PORT}`
       );
     });
 

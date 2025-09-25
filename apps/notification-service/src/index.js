@@ -10,14 +10,15 @@ import {
   runFeeNotificationCron,
 } from "./utils/automationCronJobs.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
-
-import "./controllers/pushNotification.controller.js";
-import "./controllers/notification.controller.js";
-import "./controllers/alertNotification.controller.js";
+// ⛔️ REMOVED: Controller imports are moved into the startup function.
+// import "./controllers/pushNotification.controller.js";
+// import "./controllers/notification.controller.js";
+// import "./controllers/alertNotification.controller.js";
 
 dotenv.config();
-dbConnect();
-connect();
+
+// ⛔️ REMOVED: dbConnect() and connect() moved into the startup function.
+
 // Validate required environment variables
 const requiredEnvVars = ["NOTIFICATION_PORT"];
 for (const envVar of requiredEnvVars) {
@@ -30,15 +31,10 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",
-  })
-);
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" }));
 app.use(helmet());
 
-// Routes
-
+// Cron Jobs
 cron.schedule(
   "30 5 * * *",
   () => {
@@ -83,21 +79,37 @@ app.use((err, req, res, next) => {
 
 const startServer = async () => {
   try {
-    // await mongoose.connect(process.env.MONGO_URI, {
-    // //   useNewUrlParser: true,
-    // //   useUnifiedTopology: true,
-    // });
-    // console.log('Connected to MongoDB');
+    // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
+    console.log("[NOTIFICATION] Connecting to RabbitMQ...");
+    await connect();
+    console.log("[NOTIFICATION] RabbitMQ connection successful.");
 
-    app.listen(process.env.NOTIFICATION_PORT, () => {
+    // ✅ STEP 2: Dynamically import controllers AFTER the connection is ready.
+    console.log("[NOTIFICATION] Setting up RabbitMQ responders...");
+    await import("./controllers/pushNotification.controller.js");
+    await import("./controllers/notification.controller.js");
+    await import("./controllers/alertNotification.controller.js");
+    console.log("[NOTIFICATION] Responders are ready.");
+
+    // ✅ STEP 3: Connect to your database.
+    console.log("[NOTIFICATION] Connecting to Database...");
+    await dbConnect();
+    console.log("[NOTIFICATION] Database connection successful.");
+
+    // ✅ STEP 4: Start the HTTP server.
+    const server = app.listen(process.env.NOTIFICATION_PORT, () => {
       console.log(
-        `Notification Service running on port ${process.env.NOTIFICATION_PORT}`
+        `[NOTIFICATION] Service is fully started and running on port ${process.env.NOTIFICATION_PORT}`
       );
     });
 
     // Graceful shutdown
     process.on("SIGTERM", () => {
       console.log("SIGTERM received. Shutting down gracefully...");
+      server.close(() => {
+        console.log("Server closed.");
+        process.exit(0);
+      });
     });
   } catch (error) {
     console.error("Error starting server:", error);

@@ -4,24 +4,18 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import { connect } from "../../../libs/common/rabbitMq.js";
-import "./controllers/client.controller.js";
-import "./controllers/manager.controller.js";
-import "./controllers/pettyCash.controller.js"
+// ⛔️ REMOVED: Controller imports are moved into the startup function.
+// import "./controllers/client.controller.js";
+// import "./controllers/manager.controller.js";
 
 dotenv.config();
 
-// Validate required environment variables
-
 const app = express();
-connect();
+// ⛔️ REMOVED: The connect() call is moved to ensure proper order.
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: "*",
-  })
-);
+app.use(cors({ origin: "*" }));
 app.use(helmet());
 
 // Health check endpoint
@@ -37,17 +31,32 @@ app.use((err, req, res, next) => {
 
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.CLIENT_MONGO_URI, {
-      //   useNewUrlParser: true,
-      //   useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
+    // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
+    console.log("[CLIENT] Connecting to RabbitMQ...");
+    await connect();
+    console.log("[CLIENT] RabbitMQ connection successful.");
 
+    // ✅ STEP 2: Dynamically import controllers AFTER the connection is ready.
+    // This executes the createResponder calls inside them at the correct time.
+    console.log("[CLIENT] Setting up RabbitMQ responders...");
+    await import("./controllers/client.controller.js");
+    await import("./controllers/manager.controller.js");
+    await import ("./controllers/pettyCash.controller.js");
+    console.log("[CLIENT] Responders are ready.");
+
+    // ✅ STEP 3: Connect to your database.
+    console.log("[CLIENT] Connecting to MongoDB...");
+    await mongoose.connect(process.env.CLIENT_MONGO_URI);
+    console.log("[CLIENT] MongoDB connection successful.");
+
+    // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.CLIENT_PORT, () => {
-      console.log(`Client Service running on port ${process.env.CLIENT_PORT}`);
+      console.log(
+        `[CLIENT] Service is fully started and running on port ${process.env.CLIENT_PORT}`
+      );
     });
 
-    // Graceful shutdown
+    // Graceful shutdown logic remains the same.
     process.on("SIGTERM", () => {
       console.log("SIGTERM received. Shutting down gracefully...");
       server.close(() => {

@@ -10,24 +10,18 @@ import refreshRoutes from "./routes/refresh.routes.js";
 import internalRoutes from "./routes/internal.routes.js";
 import roleRoutes from "./routes/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
-import "./controllers/auth.controller.js";
-import "./controllers/roles.controller.js";
-
+// ⛔️ REMOVED: Controller imports are moved into the startup function.
+// import "./controllers/auth.controller.js";
+// import "./controllers/roles.controller.js";
 
 dotenv.config();
 
-// Validate required environment variables
-
 const app = express();
-connect();
+// ⛔️ REMOVED: The connect() call is moved to ensure proper order.
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: "*",
-  })
-);
+app.use(cors({ origin: "*" }));
 app.use(helmet());
 app.use(useragent.express());
 
@@ -50,17 +44,31 @@ app.use((err, req, res, next) => {
 
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.AUTH_MONGO_URI, {
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
+    // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
+    console.log("[AUTH] Connecting to RabbitMQ...");
+    await connect();
+    console.log("[AUTH] RabbitMQ connection successful.");
 
+    // ✅ STEP 2: Dynamically import controllers AFTER the connection is ready.
+    // This executes the createResponder calls inside them at the correct time.
+    console.log("[AUTH] Setting up RabbitMQ responders...");
+    await import("./controllers/auth.controller.js");
+    await import("./controllers/roles.controller.js");
+    console.log("[AUTH] Responders are ready.");
+
+    // ✅ STEP 3: Connect to your database.
+    console.log("[AUTH] Connecting to MongoDB...");
+    await mongoose.connect(process.env.AUTH_MONGO_URI);
+    console.log("[AUTH] MongoDB connection successful.");
+
+    // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.AUTH_PORT, () => {
-      console.log(`Auth Service running on port ${process.env.AUTH_PORT}`);
+      console.log(
+        `[AUTH] Service is fully started and running on port ${process.env.AUTH_PORT}`
+      );
     });
 
-    // Graceful shutdown
+    // Graceful shutdown logic remains the same.
     process.on("SIGTERM", () => {
       console.log("SIGTERM received. Shutting down gracefully...");
       server.close(() => {
