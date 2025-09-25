@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 
 export const addPettyCash = async (data) => {
     try {
-        const { inHandAmount, inAccountAmount, manager, managerName } = data;
+        const { inHandAmount, inAccountAmount, manager, managerName, property: requestedProperty } = data;
 
         // Validate required fields
         if (!manager || !managerName) {
@@ -37,9 +37,15 @@ export const addPettyCash = async (data) => {
             };
         }
 
-        // Get property from manager (adjust field name based on your schema)
-        const property = client.propertyId || client.assignedProperty;
-        if (!property) {
+        // Get properties from manager
+        let properties = client.property || client.propertyId || client.assignedProperty;
+        
+        // Ensure properties is an array
+        if (!Array.isArray(properties)) {
+            properties = properties ? [properties] : [];
+        }
+
+        if (properties.length === 0) {
             return {
                 success: false,
                 message: "Manager is not associated with any property",
@@ -48,8 +54,34 @@ export const addPettyCash = async (data) => {
             };
         }
 
-        // Find existing petty cash by manager ID
-        let existingPettyCash = await PettyCash.findOne({ manager });
+        let property;
+        
+        // If property is specified in request, use it (after validation)
+        if (requestedProperty) {
+            const isValidProperty = properties.some(p => 
+                p.toString() === requestedProperty.toString() || 
+                (p._id && p._id.toString() === requestedProperty.toString())
+            );
+            
+            if (!isValidProperty) {
+                return {
+                    success: false,
+                    message: "Manager is not associated with the specified property",
+                    status: 400,
+                    data: null
+                };
+            }
+            property = requestedProperty;
+        } else {
+            // Use the first property by default
+            property = properties[0];
+        }
+
+        // Find existing petty cash by manager ID and property
+        let existingPettyCash = await PettyCash.findOne({ 
+            manager, 
+            property: property._id || property 
+        });
 
         if (existingPettyCash) {
             // Update existing petty cash
