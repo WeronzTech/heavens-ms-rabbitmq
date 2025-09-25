@@ -58,6 +58,43 @@ export const getFeePaymentController = async (req, res) => {
   }
 };
 
+const handleRPCAndRespond = async (res, pattern, data) => {
+  try {
+    const response = await sendRPCRequest(pattern, data);
+    return res.status(response.status || 500).json(response);
+  } catch (error) {
+    console.error(`API Gateway Error in ${pattern}:`, error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error in API Gateway.",
+    });
+  }
+};
+
+export const initiateOnlinePayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.FEE_PAYMENTS.INITIATE_ONLINE,
+    req.body
+  );
+};
+
+export const verifyAndRecordOnlinePayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.FEE_PAYMENTS.VERIFY_ONLINE,
+    req.body
+  );
+};
+
+export const recordManualPayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.FEE_PAYMENTS.RECORD_MANUAL,
+    req.body
+  );
+};
+
 export const getAllFeePaymentsController = async (req, res) => {
   try {
     const response = await sendRPCRequest(
@@ -107,6 +144,10 @@ export const getFinancialSummary = async (req, res) => {
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {
+    console.error(
+      "RPC Get Month Wise Rent Collection Controller Error:",
+      error
+    );
     console.error(
       "RPC Get Month Wise Rent Collection Controller Error:",
       error

@@ -1,12 +1,15 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+
 import {
   addFeePayment,
-  getAllFeePayments,
   getFeePaymentById,
-  getFinancialSummary,
-  getMonthWiseRentCollection,
+  initiateOnlinePayment,
+  recordManualPayment,
   updateFeePayment,
+  verifyAndRecordOnlinePayment,
+   getAllFeePayments,
+         getMonthWiseRentCollection,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -27,9 +30,19 @@ createResponder(ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENT, async (data) => {
   return await getFeePaymentById(data);
 });
 
-createResponder(
-  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
-  async (data) => {
+createResponder(ACCOUNTS_PATTERN.FEE_PAYMENTS.INITIATE_ONLINE, async (data) => {
+  return await initiateOnlinePayment(data);
+});
+
+createResponder(ACCOUNTS_PATTERN.FEE_PAYMENTS.VERIFY_ONLINE, async (data) => {
+  return await verifyAndRecordOnlinePayment(data);
+});
+
+createResponder(ACCOUNTS_PATTERN.FEE_PAYMENTS.RECORD_MANUAL, async (data) => {
+  return await recordManualPayment(data);
+});
+ 
+  createResponder( ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS, async (data) => {
     return await getAllFeePayments(data);
   }
 );
@@ -47,3 +60,6 @@ createResponder(
     return await getFinancialSummary(data);
   }
 );
+
+  });
+   

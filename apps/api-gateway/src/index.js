@@ -31,6 +31,7 @@ import socketRoutes from "./routes/socket/socket.routes.js";
 import maintenanceRoutes from "./routes/property/maintenance.routes.js";
 import propertyLogRoutes from "./routes/property/propertyLog.routes.js";
 import userLogRoutes from "./routes/user/userLogs.routes.js";
+import pettyCashRoutes from "./routes/client/pettyCash.routes.js";
 
 dotenv.config();
 const app = express();
@@ -83,6 +84,7 @@ app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes)
+app.use("/api/v2/pettycash", pettyCashRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

@@ -219,45 +219,169 @@ async function publishToQueue(queueName, data) {
 }
 
 // ✅ CORRECTED to prevent double-acking and handle errors gracefully
+// async function createResponder(queueName, handler) {
+//   if (!channel) await connect();
+//   await channel.assertQueue(queueName, { durable: true });
+
+//   console.log(`[Responder] Listening for requests on '${queueName}'`);
+
+//   channel.consume(queueName, async (msg) => {
+//     if (msg && msg.properties.replyTo && msg.properties.correlationId) {
+//       let response;
+//       try {
+//         const requestData = JSON.parse(msg.content.toString());
+//         response = await handler(requestData);
+
+//         channel.sendToQueue(
+//           msg.properties.replyTo,
+//           Buffer.from(JSON.stringify(response)),
+//           { correlationId: msg.properties.correlationId }
+//         );
+
+//         channel.ack(msg);
+//       } catch (error) {
+//         console.error(`[Responder Error on ${queueName}]`, error);
+//         response = {
+//           success: false,
+//           status: 500,
+//           message: error.message || "An internal server error occurred.",
+//         };
+
+//         channel.sendToQueue(
+//           msg.properties.replyTo,
+//           Buffer.from(JSON.stringify(response)),
+//           { correlationId: msg.properties.correlationId }
+//         );
+
+//         channel.nack(msg, false, false);
+//       }
+//     } else {
+//       console.warn("Received invalid message, rejecting.");
+//       if (msg) channel.nack(msg, false, false);
+//     }
+//   });
+// }
+// ✅ CORRECTED to prevent double-acknowledgment
+// async function createResponder(queueName, handler) {
+//   if (!channel) await connect();
+//   await channel.assertQueue(queueName, { durable: false });
+
+//   console.log(`[Responder] Listening for requests on '${queueName}'`);
+
+//   channel.consume(queueName, async (msg) => {
+//     // If msg is null, do nothing.
+//     if (!msg) {
+//       console.warn("Received a null message.");
+//       return;
+//     }
+
+//     // Check for invalid messages first.
+//     if (!msg.properties.replyTo || !msg.properties.correlationId) {
+//       console.warn("Received invalid message, rejecting.");
+//       // Nack the invalid message so it doesn't get redelivered.
+//       return channel.nack(msg, false, false);
+//     }
+
+//     try {
+//       const requestData = JSON.parse(msg.content.toString());
+//       const response = await handler(requestData);
+
+//       // Try to send the successful response.
+//       channel.sendToQueue(
+//         msg.properties.replyTo,
+//         Buffer.from(JSON.stringify(response)),
+//         { correlationId: msg.properties.correlationId }
+//       );
+
+//       // If sending the response was successful, ACK the original message.
+//       channel.ack(msg);
+//     } catch (error) {
+//       console.error(`[Responder Error on ${queueName}]`, error);
+
+//       const errorResponse = {
+//         success: false,
+//         status: 500,
+//         message: error.message || "An internal server error occurred.",
+//       };
+
+//       // Try to send an error response back. This might also fail if the channel is closing,
+//       // but we attempt it before nacking.
+//       channel.sendToQueue(
+//         msg.properties.replyTo,
+//         Buffer.from(JSON.stringify(errorResponse)),
+//         { correlationId: msg.properties.correlationId }
+//       );
+
+//       // IMPORTANT: Since an error occurred, we now NACK the message.
+//       // This happens only in the catch block, ensuring no double-ack.
+//       channel.nack(msg, false, false);
+//     }
+//   });
+// }
 async function createResponder(queueName, handler) {
   if (!channel) await connect();
-  await channel.assertQueue(queueName, { durable: true });
+
+  // Defensive check for the 'undefined' queue name problem
+  if (!queueName) {
+    console.error(
+      "[Responder Error] Attempted to listen on an undefined queue name. Aborting."
+    );
+    return;
+  }
+
+  await channel.assertQueue(queueName, { durable: false });
 
   console.log(`[Responder] Listening for requests on '${queueName}'`);
 
   channel.consume(queueName, async (msg) => {
-    if (msg && msg.properties.replyTo && msg.properties.correlationId) {
-      let response;
-      try {
-        const requestData = JSON.parse(msg.content.toString());
-        response = await handler(requestData);
+    // If msg is null (e.g., queue deleted), do nothing.
+    if (!msg) {
+      console.warn(
+        `Consumer for queue '${queueName}' received a null message.`
+      );
+      return;
+    }
 
-        channel.sendToQueue(
-          msg.properties.replyTo,
-          Buffer.from(JSON.stringify(response)),
-          { correlationId: msg.properties.correlationId }
-        );
+    // Check for invalid messages first.
+    if (!msg.properties.replyTo || !msg.properties.correlationId) {
+      console.warn(
+        "Received invalid message (missing replyTo or correlationId), rejecting."
+      );
+      // Nack the invalid message so it's not redelivered.
+      return channel.nack(msg, false, false);
+    }
 
-        channel.ack(msg);
-      } catch (error) {
-        console.error(`[Responder Error on ${queueName}]`, error);
-        response = {
-          success: false,
-          status: 500,
-          message: error.message || "An internal server error occurred.",
-        };
+    try {
+      const requestData = JSON.parse(msg.content.toString());
+      const response = await handler(requestData);
 
-        channel.sendToQueue(
-          msg.properties.replyTo,
-          Buffer.from(JSON.stringify(response)),
-          { correlationId: msg.properties.correlationId }
-        );
+      // Try to send the successful response.
+      channel.sendToQueue(
+        msg.properties.replyTo,
+        Buffer.from(JSON.stringify(response)),
+        { correlationId: msg.properties.correlationId }
+      );
 
-        channel.nack(msg, false, false);
-      }
-    } else {
-      console.warn("Received invalid message, rejecting.");
-      if (msg) channel.nack(msg, false, false);
+      // ✅ Guarantees message is ack'd only on full success
+      channel.ack(msg);
+    } catch (error) {
+      console.error(`[Responder Error on ${queueName}]`, error);
+
+      const errorResponse = {
+        success: false,
+        status: 500,
+        message: error.message || "An internal server error occurred.",
+      };
+
+      // Try to send an error response back.
+      channel.sendToQueue(
+        msg.properties.replyTo,
+        Buffer.from(JSON.stringify(errorResponse)),
+        { correlationId: msg.properties.correlationId }
+      );
+
+      // ✅ Guarantees message is nack'd exactly once on failure
+      channel.nack(msg, false, false);
     }
   });
 }

@@ -1,5 +1,10 @@
-import { getPropertyById, getUserById } from "./internal.service.js";
 import Payments from "../models/feePayments.model.js";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import {
+  createRazorpayOrderId,
+  verifyPayment as verifyRazorpaySignature,
+} from "../../../../libs/common/razorpay.js";
 import mongoose from "mongoose";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
@@ -45,7 +50,18 @@ export const addFeePayment = async (data) => {
       paymentMethod: "Payment Method",
       paymentType: "Payment Type",
       userId: "User ID",
+      name: "Tenant Name",
+      contact: "Contact Number",
+      room: "Room Number",
+      rent: "Rent Amount",
+      amount: "Payment Amount",
+      dueAmount: "Due Amount",
+      accountBalance: "Account Balance",
+      paymentMethod: "Payment Method",
+      paymentType: "Payment Type",
+      userId: "User ID",
     };
+
 
     const missingFields = Object.entries(requiredFields)
       .filter(([field]) => !data[field] && data[field] !== 0)
@@ -56,6 +72,7 @@ export const addFeePayment = async (data) => {
         success: false,
         status: 400,
         message: `Missing required fields: ${missingFields.join(", ")}`,
+        message: `Missing required fields: ${missingFields.join(", ")}`,
       };
     }
 
@@ -64,9 +81,15 @@ export const addFeePayment = async (data) => {
       (paymentMethod === "UPI" || paymentMethod === "Bank Transfer") &&
       !transactionId
     ) {
+    if (
+      (paymentMethod === "UPI" || paymentMethod === "Bank Transfer") &&
+      !transactionId
+    ) {
       return {
         success: false,
         status: 400,
+        message:
+          "Transaction ID is required for UPI and Bank Transfer payments",
         message:
           "Transaction ID is required for UPI and Bank Transfer payments",
       };
@@ -86,6 +109,8 @@ export const addFeePayment = async (data) => {
       paymentMethod: paymentMethod?.toString().trim(),
       transactionId: transactionId?.toString().trim(),
       collectedBy: collectedBy?.toString().trim(),
+      fullyClearedRentMonths: Array.isArray(fullyClearedRentMonths)
+        ? fullyClearedRentMonths.map((month) => month.toString().trim())
       fullyClearedRentMonths: Array.isArray(fullyClearedRentMonths)
         ? fullyClearedRentMonths.map((month) => month.toString().trim())
         : [],
@@ -120,6 +145,7 @@ export const addFeePayment = async (data) => {
       message: "Internal Server Error",
       error: error.message,
     };
+  }
   }
 };
 
@@ -165,6 +191,7 @@ export const updateFeePayment = async (paymentId, updateData) => {
     // ✅ Prepare update data
     const updateFields = {};
 
+
     if (name !== undefined) updateFields.name = name.toString().trim();
     if (contact !== undefined) updateFields.contact = contact.toString().trim();
     if (room !== undefined) updateFields.room = room.toString().trim();
@@ -184,7 +211,25 @@ export const updateFeePayment = async (paymentId, updateData) => {
       updateFields.transactionId = transactionId.toString().trim();
     if (collectedBy !== undefined)
       updateFields.collectedBy = collectedBy.toString().trim();
+    if (dueAmount !== undefined)
+      updateFields.dueAmount = parseFloat(dueAmount) || 0;
+    if (waveOffAmount !== undefined)
+      updateFields.waveOffAmount = parseFloat(waveOffAmount) || 0;
+    if (waveOffReason !== undefined)
+      updateFields.waveOffReason = waveOffReason.toString().trim();
+    if (accountBalance !== undefined)
+      updateFields.accountBalance = parseFloat(accountBalance) || 0;
+    if (paymentMethod !== undefined)
+      updateFields.paymentMethod = paymentMethod.toString().trim();
+    if (transactionId !== undefined)
+      updateFields.transactionId = transactionId.toString().trim();
+    if (collectedBy !== undefined)
+      updateFields.collectedBy = collectedBy.toString().trim();
     if (fullyClearedRentMonths !== undefined) {
+      updateFields.fullyClearedRentMonths = Array.isArray(
+        fullyClearedRentMonths
+      )
+        ? fullyClearedRentMonths.map((month) => month.toString().trim())
       updateFields.fullyClearedRentMonths = Array.isArray(
         fullyClearedRentMonths
       )
@@ -195,9 +240,23 @@ export const updateFeePayment = async (paymentId, updateData) => {
       updateFields.paymentType = paymentType.toString().trim();
     if (paymentDate !== undefined)
       updateFields.paymentDate = new Date(paymentDate);
+    if (paymentType !== undefined)
+      updateFields.paymentType = paymentType.toString().trim();
+    if (paymentDate !== undefined)
+      updateFields.paymentDate = new Date(paymentDate);
     if (status !== undefined) updateFields.status = status.toString().trim();
     if (remarks !== undefined) updateFields.remarks = remarks.toString().trim();
     if (property !== undefined) updateFields.property = property;
+    if (receiptNumber !== undefined)
+      updateFields.receiptNumber = receiptNumber.toString().trim();
+    if (razorpayOrderId !== undefined)
+      updateFields.razorpayOrderId = razorpayOrderId.toString().trim();
+    if (razorpayPaymentId !== undefined)
+      updateFields.razorpayPaymentId = razorpayPaymentId.toString().trim();
+    if (razorpaySignature !== undefined)
+      updateFields.razorpaySignature = razorpaySignature.toString().trim();
+    if (clientId !== undefined)
+      updateFields.clientId = clientId.toString().trim();
     if (receiptNumber !== undefined)
       updateFields.receiptNumber = receiptNumber.toString().trim();
     if (razorpayOrderId !== undefined)
@@ -217,9 +276,17 @@ export const updateFeePayment = async (paymentId, updateData) => {
         updateFields.paymentMethod === "Bank Transfer") &&
       !updateFields.transactionId
     ) {
+    if (
+      updateFields.paymentMethod &&
+      (updateFields.paymentMethod === "UPI" ||
+        updateFields.paymentMethod === "Bank Transfer") &&
+      !updateFields.transactionId
+    ) {
       return {
         success: false,
         status: 400,
+        message:
+          "Transaction ID is required for UPI and Bank Transfer payments",
         message:
           "Transaction ID is required for UPI and Bank Transfer payments",
       };
@@ -316,7 +383,7 @@ export const getAllFeePayments = async () => {
     return {
       success: true,
       status: 200,
-      data: payments,
+      data: groupedPayments,
     };
   } catch (error) {
     console.error("Get All Fee Payments Service Error:", error);
@@ -374,7 +441,6 @@ export const getMonthWiseRentCollection = async () => {
     const result = Array.from(monthlyData.values()).sort((a, b) => {
       return a.year === b.year ? a.month - b.month : a.year - b.year;
     });
-
     return {
       success: true,
       status: 200,

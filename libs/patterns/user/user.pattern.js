@@ -7,6 +7,7 @@ export const USER_PATTERN = {
     REJECT_USER: "reject_user",
     VERIFY_EMAIL: "verify_email",
     UPDATE_PROFILE: "update_profile",
+    UPDATE_USER: "update_user",
     ADMIN_UPDATE_PROFILE: "admin_update_profile",
     GET_USER_BY_ID: "get_user_by_id",
     GET_USERS_BY_RENT_TYPE: "get_users_by_rent_type",

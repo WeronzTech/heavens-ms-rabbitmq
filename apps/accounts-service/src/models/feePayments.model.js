@@ -11,6 +11,8 @@ const paymentSchema = new mongoose.Schema(
     waveOffAmount: { type: Number, required: false },
     waveOffReason: { type: String, required: false },
     accountBalance: { type: Number, required: true },
+    advanceApplied: { type: Number, default: 0 }, // How much credit was used for this payment
+    remainingBalance: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
       enum: ["Cash", "UPI", "Bank Transfer", "Razorpay"],
