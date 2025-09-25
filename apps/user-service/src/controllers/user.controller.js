@@ -24,6 +24,7 @@ import {
   verifyEmail,
   setResetToken,
   getUserByResetToken,
+  updateUser,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -137,3 +138,7 @@ createResponder(
     return await updatePassword({ userId, password });
   }
 );
+
+createResponder(USER_PATTERN.USER.UPDATE_USER, async (data) => {
+  return await updateUser(data);
+});
