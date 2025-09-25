@@ -41,6 +41,7 @@ const startServer = async () => {
     console.log("[CLIENT] Setting up RabbitMQ responders...");
     await import("./controllers/client.controller.js");
     await import("./controllers/manager.controller.js");
+    await import ("./controllers/pettyCash.controller.js");
     console.log("[CLIENT] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

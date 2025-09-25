@@ -7,6 +7,9 @@ export const ACCOUNTS_PATTERN = {
     VERIFY_ONLINE: "payment_verify_online",
     RECORD_MANUAL: "payment_record_manual",
     GET_ALL_FEE_PAYMENTS: "get_all_fee_payments",
-        GET_MONTHWISE_TOTAL_COLLECTION : "get_monthwise_total_collection"
+    GET_MONTHWISE_TOTAL_COLLECTION: "get_monthwise_total_collection",
+    GET_ALL_PENDING_PAYMENTS: "get_all_pending_payments",
+    GET_LATEST_BY_USERS: "get_latest_by_users",
+    GET_FINANCIAL_SUMMARY: "get_Financial_Summary",
   },
 };

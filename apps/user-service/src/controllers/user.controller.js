@@ -25,6 +25,7 @@ import {
   setResetToken,
   getUserByResetToken,
   updateUser,
+  getAllPaymentPendingUsers,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -142,3 +143,10 @@ createResponder(
 createResponder(USER_PATTERN.USER.UPDATE_USER, async (data) => {
   return await updateUser(data);
 });
+
+createResponder(
+  USER_PATTERN.PAYMENT.GET_ALL_PAYMENT_PENDING_USERS,
+  async (data) => {
+    return await getAllPaymentPendingUsers(data);
+  }
+);
