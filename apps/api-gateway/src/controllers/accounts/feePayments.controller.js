@@ -7,7 +7,7 @@ export const addFeePaymentController = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_FEE_PAYMENTS,
-      paymentData  // Send the data directly, not wrapped in {data: {}}
+      paymentData // Send the data directly, not wrapped in {data: {}}
     );
 
     return res.status(response?.status || 500).json(response);
@@ -16,7 +16,6 @@ export const addFeePaymentController = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 export const updateFeePaymentController = async (req, res) => {
   try {
@@ -31,10 +30,10 @@ export const updateFeePaymentController = async (req, res) => {
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error("RPC Update Fee Payment Controller Error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message 
+      error: error.message,
     });
   }
 };
@@ -51,19 +50,19 @@ export const getFeePaymentController = async (req, res) => {
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error("RPC Get Fee Payment Controller Error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message 
+      error: error.message,
     });
-  };
+  }
 };
 
 export const getAllFeePaymentsController = async (req, res) => {
   try {
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
-     {}
+      {}
     );
 
     return res.status(response?.status || 500).json(response);
@@ -86,7 +85,32 @@ export const getMonthWiseRentCollectionController = async (req, res) => {
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {
-    console.error("RPC Get Month Wise Rent Collection Controller Error:", error);
+    console.error(
+      "RPC Get Month Wise Rent Collection Controller Error:",
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getFinancialSummary = async (req, res) => {
+  try {
+    const { propertyId, rentType } = req.query;
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FINANCIAL_SUMMARY,
+      { propertyId, rentType }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error(
+      "RPC Get Month Wise Rent Collection Controller Error:",
+      error
+    );
     return res.status(500).json({
       success: false,
       message: "Internal server error",

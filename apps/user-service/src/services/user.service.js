@@ -38,6 +38,8 @@ import {
   renderVerificationSuccess,
 } from "../../../../libs/email/renderTemplate.service.js";
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 
 export const fetchUserData = async (data) => {
   try {
@@ -1158,7 +1160,8 @@ export const getHeavensUserById = async (data) => {
 
     return {
       status: 200,
-      body: { success: true, data: { ...user, rentReminder } },
+      // body: { success: true, data: { ...user, rentReminder } },
+      body: user
     };
   } catch (error) {
     console.error("getHeavensUserById error:", error);
@@ -2683,4 +2686,134 @@ export const updatePassword = async ({ userId, password }) => {
     status: 200,
     message: "Password updated successfully",
   };
+};
+
+export const getAllPaymentPendingUsers = async (data) => {
+  try {
+    const { propertyId, rentType, page = 1, limit = 10 } = data;
+
+    const query = {
+      paymentStatus: "pending",
+      isVacated: { $ne: true },
+    };
+
+    if (propertyId) {
+      query["stayDetails.propertyId"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    if (rentType) {
+      query.rentType = rentType;
+    }
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    let projection = {
+      name: 1,
+      contact: 1,
+      "stayDetails.roomNumber": 1,
+    };
+
+    if (rentType === "monthly") {
+      projection["stayDetails.joinDate"] = 1;
+      projection["financialDetails.monthlyRent"] = 1;
+      projection["financialDetails.pendingRent"] = 1;
+    } else if (rentType === "daily") {
+      projection["stayDetails.checkInDate"] = 1;
+      projection["stayDetails.checkOutDate"] = 1;
+      projection["financialDetails.totalAmount"] = 1;
+      projection["financialDetails.pendingAmount"] = 1;
+    } else if (rentType === "mess") {
+      projection["messDetails.messStartDate"] = 1;
+      projection["messDetails.messEndDate"] = 1;
+      projection["financialDetails.totalAmount"] = 1;
+      projection["financialDetails.pendingAmount"] = 1;
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(query).select(projection).skip(skip).limit(limitNum).lean(),
+      User.countDocuments(query),
+    ]);
+
+    if (!users.length) {
+      return {
+        success: true,
+        status: 200,
+        data: [],
+        pagination: { total: 0, page: pageNum, limit: limitNum, pages: 0 },
+      };
+    }
+
+    // Collect userIds
+    const userIds = users.map((u) => u._id.toString());
+
+    // 🔥 Call Accounts service to get latest payments
+    const paymentsResponse = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
+      { userIds }
+    );
+
+    const paymentsMap = {};
+    if (paymentsResponse?.success && Array.isArray(paymentsResponse.data)) {
+      paymentsResponse.data.forEach((p) => {
+        paymentsMap[p.userId] = {
+          lastPaidDate: p.lastPaidDate,
+          rentClearedMonth: p.rentClearedMonth,
+        };
+      });
+    }
+
+    // Flatten & merge payment info
+    const formattedUsers = users.map((u) => {
+      const paymentInfo = paymentsMap[u._id.toString()] || {};
+      return {
+        name: u.name,
+        contact: u.contact,
+        roomNumber: u.stayDetails?.roomNumber || null,
+
+        ...(rentType === "monthly" && {
+          joinDate: u.stayDetails?.joinDate || null,
+          monthlyRent: u.financialDetails?.monthlyRent || null,
+          pendingRent: u.financialDetails?.pendingRent || null,
+        }),
+        ...(rentType === "daily" && {
+          checkInDate: u.stayDetails?.checkInDate || null,
+          checkOutDate: u.stayDetails?.checkOutDate || null,
+          totalAmount: u.financialDetails?.totalAmount || null,
+          pendingAmount: u.financialDetails?.pendingAmount || null,
+        }),
+        ...(rentType === "mess" && {
+          messStartDate: u.messDetails?.messStartDate || null,
+          messEndDate: u.messDetails?.messEndDate || null,
+          totalAmount: u.financialDetails?.totalAmount || null,
+          pendingAmount: u.financialDetails?.pendingAmount || null,
+        }),
+
+        // merged from accounts service
+        lastPaidDate: paymentInfo.lastPaidDate || null,
+        rentClearedMonth: paymentInfo.rentClearedMonth || null,
+      };
+    });
+
+    return {
+      success: true,
+      status: 200,
+      data: formattedUsers,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    };
+  } catch (error) {
+    console.error("Get All Pending Payment users Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
 };

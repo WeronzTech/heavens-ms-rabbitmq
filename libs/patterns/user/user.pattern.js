@@ -41,4 +41,7 @@ export const USER_PATTERN = {
     SNOOZE_REMINDER: "snooze_reminder",
     DELETE_NOTE: "delete_note",
   },
+  PAYMENT: {
+    GET_ALL_PAYMENT_PENDING_USERS: "get_all_payment_pending_users",
+  },
 };
