@@ -528,3 +528,22 @@ export const handleBlockStatus = async (req, res) => {
   }
 };
 
+export const getAllPendingPayments = async (req, res) => {
+  try {
+    const { propertyId, rentType, page = 1, limit = 10 } = req.query;
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.PAYMENT.GET_ALL_PAYMENT_PENDING_USERS,
+      { propertyId, rentType, page, limit }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get All Fee Payments Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};

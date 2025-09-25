@@ -4,6 +4,7 @@ import {
   approveUser,
   createStatusRequest,
   extendUserDays,
+  getAllPendingPayments,
   getCheckOutedUsersByRentType,
   getHeavensUserById,
   getPendingStatusRequests,
@@ -67,6 +68,7 @@ userRoutes.put("/:id/profile-completion", updateProfileCompletion);
 
 // User Management
 userRoutes.get("/", getUsersByRentType);
+userRoutes.get("/pending-payments", getAllPendingPayments);
 userRoutes.get("/offBoarding", getCheckOutedUsersByRentType);
 
 // userRoutes

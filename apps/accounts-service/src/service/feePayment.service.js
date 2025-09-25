@@ -6,6 +6,8 @@ import {
   verifyPayment as verifyRazorpaySignature,
 } from "../../../../libs/common/razorpay.js";
 import mongoose from "mongoose";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -256,7 +258,7 @@ export const getFeePaymentById = async (data) => {
   try {
     // Extract paymentId from data object
     const { paymentId } = data;
-    
+
     // Validate paymentId exists
     if (!paymentId) {
       return {
@@ -267,7 +269,7 @@ export const getFeePaymentById = async (data) => {
     }
 
     // Check if paymentId is an empty object
-    if (typeof paymentId === 'object' && Object.keys(paymentId).length === 0) {
+    if (typeof paymentId === "object" && Object.keys(paymentId).length === 0) {
       return {
         success: false,
         status: 400,
@@ -276,7 +278,10 @@ export const getFeePaymentById = async (data) => {
     }
 
     // Check if it's a valid ObjectId
-    if (typeof paymentId === 'string' && !mongoose.Types.ObjectId.isValid(paymentId)) {
+    if (
+      typeof paymentId === "string" &&
+      !mongoose.Types.ObjectId.isValid(paymentId)
+    ) {
       return {
         success: false,
         status: 400,
@@ -460,8 +465,8 @@ export const initiateOnlinePayment = async (data) => {
         message: "Failed to create payment order.",
       };
     }
-    
-     return {
+
+    return {
       success: true,
       status: 200,
       message: "Order created successfully.",
@@ -539,7 +544,6 @@ export const recordManualPayment = async (data) => {
 
 export const getAllFeePayments = async () => {
   try {
-  
     const payments = await Payments.find().lean();
 
     const groupedPayments = {
@@ -564,39 +568,43 @@ export const getAllFeePayments = async () => {
   }
 };
 
-
 export const getMonthWiseRentCollection = async () => {
   try {
     // Use native MongoDB driver directly
     const db = mongoose.connection.db;
-    const paymentsCollection = db.collection('payments');
-    
+    const paymentsCollection = db.collection("payments");
+
     // Get all payments without Mongoose interference
-    const payments = await paymentsCollection.find({}, {
-      projection: { paymentDate: 1, amount: 1 }
-    }).toArray();
+    const payments = await paymentsCollection
+      .find(
+        {},
+        {
+          projection: { paymentDate: 1, amount: 1 },
+        }
+      )
+      .toArray();
 
     // Process the data
     const monthlyData = new Map();
 
     for (const payment of payments) {
       if (!payment.paymentDate) continue;
-      
+
       try {
         const date = new Date(payment.paymentDate);
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
-        const key = `${year}-${month.toString().padStart(2, '0')}`;
-        
+        const key = `${year}-${month.toString().padStart(2, "0")}`;
+
         if (!monthlyData.has(key)) {
           monthlyData.set(key, { year, month, totalCollection: 0, count: 0 });
         }
-        
+
         const monthData = monthlyData.get(key);
         monthData.totalCollection += parseFloat(payment.amount) || 0;
         monthData.count += 1;
       } catch (error) {
-        console.log('Skipping invalid payment:', payment._id);
+        console.log("Skipping invalid payment:", payment._id);
         continue;
       }
     }
@@ -607,7 +615,7 @@ export const getMonthWiseRentCollection = async () => {
     });
     return {
       success: true,
-      status: 200, 
+      status: 200,
       data: result,
     };
   } catch (error) {
@@ -621,5 +629,111 @@ export const getMonthWiseRentCollection = async () => {
   }
 };
 
-   
-    
+export const getLatestPaymentsByUsers = async ({ userIds }) => {
+  try {
+    const payments = await Payments.aggregate([
+      {
+        $match: {
+          userId: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        },
+      },
+      { $sort: { createdAt: -1 } }, // ensure latest first
+      {
+        $group: {
+          _id: "$userId",
+          paymentDate: { $first: "$paymentDate" },
+          fullyClearedRentMonths: { $first: "$fullyClearedRentMonths" }, // take from latest doc
+        },
+      },
+      {
+        $project: {
+          userId: "$_id",
+          paymentDate: 1,
+          lastClearedMonth: {
+            $arrayElemAt: ["$fullyClearedRentMonths", -1], // last element of array
+          },
+          _id: 0,
+        },
+      },
+    ]);
+
+    return { success: true, status: 200, data: payments };
+  } catch (err) {
+    return { success: false, status: 500, message: err.message };
+  }
+};
+
+export const getFinancialSummary = async (data) => {
+  try {
+    let propertyId;
+    let rentType;
+    console.log(data);
+    // Handle both cases: data could be string (propertyId) or object
+    if (typeof data === "string") {
+      propertyId = data;
+    } else if (typeof data === "object" && data !== null) {
+      propertyId = data.propertyId;
+      rentType = data.rentType;
+    }
+
+    // Build match condition
+    const matchCondition = { status: "Paid" };
+    if (propertyId) {
+      matchCondition.propertyId = new mongoose.Types.ObjectId(propertyId);
+    }
+    if (rentType) {
+      matchCondition.rentType = rentType;
+    }
+
+    // Aggregate collected amounts per month (all years)
+    const collected = await Payments.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$paymentDate" },
+            month: { $month: "$paymentDate" },
+          },
+          totalCollected: { $sum: "$amount" },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // Format response: only months that have payments
+    const summary = collected.map((c) => ({
+      year: c._id.year,
+      month: monthNames[c._id.month - 1],
+      collected: c.totalCollected,
+    }));
+
+    return {
+      success: true,
+      status: 200,
+      data: summary,
+    };
+  } catch (error) {
+    console.error("Financial Summary Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
