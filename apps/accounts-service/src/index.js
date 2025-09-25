@@ -5,10 +5,10 @@ import cors from "cors";
 import helmet from "helmet";
 // import cron from "node-cron";
 
-import {connect} from "../../../libs/common/rabbitMq.js";
+import { connect } from "../../../libs/common/rabbitMq.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import "./controllers/feePayment.controller.js";
-
+// ⛔️ REMOVED: Controller import is moved into the startup function.
+// import "./controllers/feePayment.controller.js";
 
 dotenv.config();
 
@@ -21,28 +21,12 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
-await connect();
+// ⛔️ REMOVED: The connect() call is moved to ensure proper order.
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",
-  })
-);
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" }));
 app.use(helmet());
-
-
-// cron.schedule(
-//   "0 * * * *",
-//   () => {
-//     checkUnassignedMaintenance();
-//   },
-//   {
-//     scheduled: true,
-//     timezone: "Asia/Kolkata",
-//   }
-// );
 
 // Health check endpoint
 app.get("/health", (_, res) => {
@@ -54,19 +38,29 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.ACCOUNTS_MONGO_URI, {
-      //   useNewUrlParser: true,
-      //   useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
+    // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
+    console.log("[ACCOUNTS] Connecting to RabbitMQ...");
+    await connect();
+    console.log("[ACCOUNTS] RabbitMQ connection successful.");
 
+    // ✅ STEP 2: Dynamically import controller AFTER the connection is ready.
+    console.log("[ACCOUNTS] Setting up RabbitMQ responders...");
+    await import("./controllers/feePayment.controller.js");
+    console.log("[ACCOUNTS] Responders are ready.");
+
+    // ✅ STEP 3: Connect to your database.
+    console.log("[ACCOUNTS] Connecting to MongoDB...");
+    await mongoose.connect(process.env.ACCOUNTS_MONGO_URI);
+    console.log("[ACCOUNTS] MongoDB connection successful.");
+
+    // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.ACCOUNTS_PORT, () => {
       console.log(
-        `Account Service running on port ${process.env.ACCOUNTS_PORT}`
+        `[ACCOUNTS] Service is fully started and running on port ${process.env.ACCOUNTS_PORT}`
       );
     });
 
-    // Graceful shutdown
+    // Graceful shutdown logic remains the same.
     process.on("SIGTERM", () => {
       console.log("SIGTERM received. Shutting down gracefully...");
       server.close(() => {

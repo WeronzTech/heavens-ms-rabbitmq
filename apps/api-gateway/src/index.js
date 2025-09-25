@@ -4,7 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { CLIENT_ORIGIN, HOST, PORT } from "./config/env.js";
+import { HOST } from "./config/env.js";
 import authRoutes from "./routes/auth/auth.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
@@ -34,7 +34,7 @@ import userLogRoutes from "./routes/user/userLogs.routes.js";
 
 dotenv.config();
 const app = express();
-connect();
+// ⛔️ REMOVED: The connect() call is moved into the startup function to ensure proper order.
 
 // ----- Middleware ----- //
 app.use(express.json());
@@ -45,7 +45,7 @@ app.use(morgan("combined"));
 const socketProxy = createProxyMiddleware({
   target: process.env.SOCKET_SERVICE_URL, // e.g., 'http://socket-service:5006'
   ws: true, // Enable WebSocket proxying
-  logLevel: "info", // Use 'info' in prod, 'debug' for development
+  logLevel: "info",
   onError: (err, req, res) => {
     console.error("Socket Proxy Error:", err);
     res.writeHead(500, {
@@ -55,10 +55,9 @@ const socketProxy = createProxyMiddleware({
   },
 });
 
-// Apply the proxy to the socket path
+// Apply routes
 app.use("/api/v2/socket", socketProxy);
 app.use("/api/v2/internalSocket", socketRoutes);
-
 app.use("/api/v2/auth", authRoutes);
 app.use("/api/v2/auth/role", roleRoutes);
 app.use("/api/v2/client", clientRoutes);
@@ -82,65 +81,37 @@ app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
-app.use("/api/v2/logs", propertyLogRoutes)
+app.use("/api/v2/logs", propertyLogRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK" });
 });
 
-// services.forEach(({ route, target }) => {
-//   const isSocketRoute = route.includes("socket");
-//   app.use(
-//     route,
-//     createProxyMiddleware({
-//       target,
-//       changeOrigin: true,
-//       logLevel: "debug",
-//       ws: isSocketRoute,
-//       onProxyReq: (proxyReq, req) => {
-//         // Forward all user context headers
-//         if (req.userAuth) {
-//           proxyReq.setHeader("x-user-id", req.userAuth);
-//         }
-//         if (req.userRole) {
-//           proxyReq.setHeader("x-user-role", req.userRole);
-//         }
-//         if (req.userName) {
-//           proxyReq.setHeader("x-user-userName", req.userName);
-//         }
-
-//         // Handle body forwarding
-//         const contentType = req.headers["content-type"];
-//         if (
-//           req.body &&
-//           contentType &&
-//           contentType.includes("application/json")
-//         ) {
-//           const bodyData = JSON.stringify(req.body);
-//           proxyReq.setHeader("Content-Type", "application/json");
-//           proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
-//           proxyReq.write(bodyData);
-//         }
-//       },
-//       proxyTimeout: 30000,
-//       timeout: 30000,
-//     })
-//   );
-// });
-
 app.get("/", (_, res) => {
   res.send("API Gateway is up and running!");
 });
 
-// ----- Global Error Handler ----- //
-// app.use(errorHandler);
+// ----- Main Server Startup Function ----- //
+const startServer = async () => {
+  try {
+    // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
+    console.log("[API-GATEWAY] Connecting to RabbitMQ...");
+    await connect();
+    console.log("[API-GATEWAY] RabbitMQ connection successful.");
 
-// ----- Start Server ----- //
-app.listen(process.env.API_GATEWAY_PORT, () => {
-  console.log(
-    `API Gateway running at http://${HOST || "localhost"}:${
-      process.env.API_GATEWAY_PORT
-    }`
-  );
-});
+    // ✅ STEP 2: Start the HTTP server AFTER the connection is ready.
+    app.listen(process.env.API_GATEWAY_PORT, () => {
+      console.log(
+        `[API-GATEWAY] Server is ready and listening at http://${
+          HOST || "localhost"
+        }:${process.env.API_GATEWAY_PORT}`
+      );
+    });
+  } catch (error) {
+    console.error("[API-GATEWAY] Failed to start:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
