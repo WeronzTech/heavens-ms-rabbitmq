@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import Payments from "../models/feePayments.model.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
@@ -455,7 +454,6 @@ export const initiateOnlinePayment = async (data) => {
       return { success: false, status: 404, message: "User not found." };
     }
     const user = userResponse.body.data;
-
     const razorpayResponse = await createRazorpayOrderId(amount);
     if (!razorpayResponse.success) {
       return {
