@@ -8,6 +8,7 @@ import {
   updateFeePaymentController,
   verifyAndRecordOnlinePayment,
   getMonthWiseRentCollectionController,
+  getFinancialSummary,
 } from "../../controllers/accounts/feePayments.controller.js";
 
 const feePaymentRoutes = express.Router();
@@ -21,6 +22,8 @@ feePaymentRoutes.get("/:paymentId", getFeePaymentController);
 feePaymentRoutes.get("/", getAllFeePaymentsController);
 
 feePaymentRoutes.get("/monthly", getMonthWiseRentCollectionController);
+
+feePaymentRoutes.get("/financial/summary", getFinancialSummary);
 
 feePaymentRoutes.post("/initiate-online", initiateOnlinePayment);
 feePaymentRoutes.post("/verify-online", verifyAndRecordOnlinePayment);
