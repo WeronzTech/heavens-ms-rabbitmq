@@ -6,6 +6,7 @@ import helmet from "helmet";
 import { connect } from "../../../libs/common/rabbitMq.js";
 import "./controllers/client.controller.js";
 import "./controllers/manager.controller.js";
+import "./controllers/pettyCash.controller.js"
 
 dotenv.config();
 

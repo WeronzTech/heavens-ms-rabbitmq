@@ -21,4 +21,10 @@ export const CLIENT_PATTERN = {
     DELETE_MANAGER: "client_delete_manager",
     CHANGE_MANAGER_STATUS: "client_change_manager_status",
   },
+  PETTYCASH: {
+    ADD_PETTYCASH: "add_pettycash",
+    GET_PETTYCASH: "get_pettycash",
+    GET_PETTYCASH_BY_MANAGER: "get_pettycash_by_manager"
+
+  },
 };

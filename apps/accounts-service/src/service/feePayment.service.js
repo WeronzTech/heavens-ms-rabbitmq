@@ -282,12 +282,19 @@ export const getFeePaymentById = async (data) => {
 
 export const getAllFeePayments = async () => {
   try {
-    const payments = await Payments.find();
+  
+    const payments = await Payments.find().lean();
+
+    const groupedPayments = {
+      Monthly: payments.filter((p) => p.rentType?.trim() === "Monthly"),
+      DailyRent: payments.filter((p) => p.rentType?.trim() === "DailyRent"),
+      MessOnly: payments.filter((p) => p.rentType?.trim() === "MessOnly"),
+    };
 
     return {
       success: true,
       status: 200,
-      data: payments,
+      data: groupedPayments,
     };
   } catch (error) {
     console.error("Get All Fee Payments Service Error:", error);
@@ -299,6 +306,7 @@ export const getAllFeePayments = async () => {
     };
   }
 };
+
 
 export const getMonthWiseRentCollection = async () => {
   try {
