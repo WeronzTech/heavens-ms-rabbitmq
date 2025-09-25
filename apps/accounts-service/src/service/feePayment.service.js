@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Payments from "../models/feePayments.model.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
@@ -5,9 +6,6 @@ import {
   createRazorpayOrderId,
   verifyPayment as verifyRazorpaySignature,
 } from "../../../../libs/common/razorpay.js";
-import mongoose from "mongoose";
-import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 
 export const addFeePayment = async (data) => {
   try {

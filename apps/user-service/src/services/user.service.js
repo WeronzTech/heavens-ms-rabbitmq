@@ -1160,7 +1160,7 @@ export const getHeavensUserById = async (data) => {
 
     return {
       status: 200,
-      body: { success: true, data: { ...user, rentReminder } },
+      body: user,
     };
   } catch (error) {
     console.error("getHeavensUserById error:", error);
