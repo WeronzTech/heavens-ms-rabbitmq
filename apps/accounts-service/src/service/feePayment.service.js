@@ -510,6 +510,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       razorpayPaymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
     },
+    transactionId: razorpay_payment_id,
   });
 };
 

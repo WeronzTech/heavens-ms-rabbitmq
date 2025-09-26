@@ -23,17 +23,18 @@ export const PROPERTY_PATTERN = {
     GET_STAFF_BY_ID: "get_staff_by_id",
     DELETE_STAFF: "delete_staff",
     STAFF_STATUS_CHANGE: "staff_status_change",
-    GET_STAFF_BY_PROPERTYID:"get_staff_by_propertyId",
+    GET_STAFF_BY_PROPERTYID: "get_staff_by_propertyId",
     ADD_STAFF: "add_staff",
+    UPDATE_STAFF: "update_staff",
     UPDATE_STAFF: "update_staff",
   },
   PROPERTY_LOG: {
-    GET_ACTIVITY_LOG : "get_activity_log"
+    GET_ACTIVITY_LOG: "get_activity_log",
   },
   INTERNAL: {
-    UPDATE_PROPERTY_COUNTS: "update_property_counts"
+    UPDATE_PROPERTY_COUNTS: "update_property_counts",
   },
-    MAINTENANCE: {
+  MAINTENANCE: {
     CREATE: "property_maintenance_create",
     GET_BY_PROPERTY: "property_maintenance_get_by_property",
     ASSIGN_STAFF: "property_maintenance_assign_staff",
@@ -43,5 +44,11 @@ export const PROPERTY_PATTERN = {
     GET_ALL: "property_maintenance_get_all",
     UPDATE: "property_maintenance_update",
     DELETE: "property_maintenance_delete",
+  },
+  DASHBOARD: {
+    GET_DASHBOARD_DATA: "get_dashbaord_data",
+    GET_STAFF_COUNTS: "get_staff_counts",
+    GET_MAINTENANCE_COUNTS: "get_maintenance_counts",
+    GET_OCCUPANCY_RATE: "get_ocuupancy_rate",
   },
 };

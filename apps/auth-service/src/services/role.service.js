@@ -133,7 +133,6 @@ export const getAllRoles = async () => {
 export const getRoleById = async (data) => {
   try {
     const { id } = data;
-
     const role = await Role.findById(id).populate("reportTo", "roleName");
 
     if (!role) {

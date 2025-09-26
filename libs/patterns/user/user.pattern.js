@@ -45,4 +45,7 @@ export const USER_PATTERN = {
   PAYMENT: {
     GET_ALL_PAYMENT_PENDING_USERS: "get_all_payment_pending_users",
   },
+  DASHBOARD: {
+    GET_USERS_COUNTS: "get_users_counts",
+  },
 };

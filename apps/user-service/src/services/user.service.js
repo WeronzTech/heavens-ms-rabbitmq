@@ -2851,3 +2851,27 @@ export const getAllPaymentPendingUsers = async (data) => {
     };
   }
 };
+
+export const getResidentCounts = async (data) => {
+  try {
+    const { propertyId } = data;
+    console.log("herererer");
+    const filter = {
+      isVacated: false,
+    };
+
+    if (propertyId) {
+      filter["stayDetails.propertyId"] = propertyId;
+    }
+
+    const [monthlyResidents, dailyRenters] = await Promise.all([
+      User.countDocuments({ ...filter, rentType: "monthly" }),
+      User.countDocuments({ ...filter, rentType: "daily" }),
+    ]);
+
+    return { monthlyResidents, dailyRenters };
+  } catch (error) {
+    console.error("Error fetching resident counts:", error);
+    return { error: "Failed to fetch resident counts" };
+  }
+};

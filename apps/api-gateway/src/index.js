@@ -32,6 +32,7 @@ import maintenanceRoutes from "./routes/property/maintenance.routes.js";
 import propertyLogRoutes from "./routes/property/propertyLog.routes.js";
 import userLogRoutes from "./routes/user/userLogs.routes.js";
 import pettyCashRoutes from "./routes/client/pettyCash.routes.js";
+import dashboardRoutes from "./routes/property/dashboard.routes.js";
 
 dotenv.config();
 const app = express();
@@ -39,7 +40,12 @@ const app = express();
 
 // ----- Middleware ----- //
 app.use(express.json());
-app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://192.168.1.80:5173"],
+    credentials: true,
+  })
+);
 app.use(helmet());
 app.use(morgan("combined"));
 
@@ -73,6 +79,7 @@ app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
 app.use("/api/v2/property", propertyRoutes);
+app.use("/api/v2/property/dashboard", dashboardRoutes);
 app.use("/api/v2/user", userRoutes);
 app.use("/api/v2/user/logs", userLogRoutes);
 app.use("/api/v2/room", roomRoutes);
@@ -82,8 +89,8 @@ app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
-app.use("/api/v2/logs", propertyLogRoutes)
-app.use("/api/v2/pettycash", pettyCashRoutes)
+app.use("/api/v2/logs", propertyLogRoutes);
+app.use("/api/v2/pettycash", pettyCashRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
