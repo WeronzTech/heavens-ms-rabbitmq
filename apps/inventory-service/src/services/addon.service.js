@@ -188,10 +188,10 @@ export const getAddonByPropertyId = async ({ userId }) => {
       USER_PATTERN.USER.GET_USER_BY_ID,
       { userId }
     );
-    if (!userResponse.success) {
+    if (!userResponse.body.success) {
       return { success: false, status: 404, message: "User not found" };
     }
-    const user = userResponse.data;
+    const user = userResponse.body.data;
 
     const propertyResponse = await sendRPCRequest(
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,

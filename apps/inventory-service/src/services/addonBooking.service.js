@@ -40,14 +40,14 @@ export const createAddonBooking = async (data) => {
         userId,
       }
     );
-    if (!userResponse.success) {
+    if (!userResponse.body.success) {
       return {
         success: false,
         status: 404,
         message: "Could not find user details to create booking.",
       };
     }
-    const userDetails = userResponse.data;
+    const userDetails = userResponse.body.data;
     const propertyId = userDetails?.stayDetails?.propertyId;
     const kitchenId =
       userDetails?.messDetails?.kitchenId ||
@@ -144,8 +144,8 @@ export const getAddonBookingsByProperty = async (filters) => {
       }
     );
     const userMap = new Map(
-      userResponse.success
-        ? userResponse.data.map((u) => [u._id.toString(), u])
+      userResponse.body.success
+        ? userResponse.body.data.map((u) => [u._id.toString(), u])
         : []
     );
 

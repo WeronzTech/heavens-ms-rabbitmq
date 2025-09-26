@@ -13,7 +13,7 @@ import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 const messBookingRoutes = Router();
 
 messBookingRoutes
-  .route("/check-booking")
+  .route("/get-booking")
   .get(isAuthenticated, checkNextDayBooking);
 
 messBookingRoutes.route("/").post(isAuthenticated, createMealBooking);
