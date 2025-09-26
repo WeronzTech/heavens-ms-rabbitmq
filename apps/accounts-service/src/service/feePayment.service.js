@@ -759,7 +759,7 @@ export const getNextDueDate = async (data) => {
 
     const today = new Date();
     const dueDate = new Date(nextDueDate);
-    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24)) - 1;
 
     return {
       success: true,
