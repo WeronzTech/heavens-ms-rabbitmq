@@ -148,10 +148,26 @@ export const getFinancialSummary = async (req, res) => {
       "RPC Get Month Wise Rent Collection Controller Error:",
       error
     );
-    console.error(
-      "RPC Get Month Wise Rent Collection Controller Error:",
-      error
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getNextDueDate = async (req, res) => {
+  try {
+    const userId = req.userAuth;
+    console.log("UserId", userId);
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_NEXT_DUE_DATE,
+      { userId }
     );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get Next Due Date Controller Error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

@@ -221,9 +221,11 @@ export const getMessMenuByPropertyId = async (data) => {
     const { userId, date: dayOfWeek } = data;
 
     // Replace with actual pattern names
-    const user = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_ID, {
+    const userData = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_ID, {
       userId,
     });
+
+    let user = userData.body.data;
     if (!user || !user.stayDetails?.propertyId) {
       return {
         success: false,
