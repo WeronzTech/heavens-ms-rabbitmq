@@ -32,6 +32,7 @@ import maintenanceRoutes from "./routes/property/maintenance.routes.js";
 import propertyLogRoutes from "./routes/property/propertyLog.routes.js";
 import userLogRoutes from "./routes/user/userLogs.routes.js";
 import pettyCashRoutes from "./routes/client/pettyCash.routes.js";
+import expenseRoutes from "./routes/accounts/expense.routes.js";
 
 dotenv.config();
 const app = express();
@@ -84,6 +85,7 @@ app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes)
 app.use("/api/v2/pettycash", pettyCashRoutes)
+app.use("/api/v2/expense", expenseRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

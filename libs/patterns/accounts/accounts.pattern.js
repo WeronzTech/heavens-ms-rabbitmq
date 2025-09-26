@@ -12,4 +12,7 @@ export const ACCOUNTS_PATTERN = {
     GET_LATEST_BY_USERS: "get_latest_by_users",
     GET_FINANCIAL_SUMMARY: "get_Financial_Summary",
   },
+  EXPENSE: {
+    ADD_EXPENSE : "add_expense"
+  }
 };
