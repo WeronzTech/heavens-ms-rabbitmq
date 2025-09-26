@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import {Maintenance} from "../models/maintenance.model.js";
+import { Maintenance } from "../models/maintenance.model.js";
 import Property from "../models/property.model.js";
 import Staff from "../models/staff.model.js";
 import PropertyLog from "../models/propertyLog.model.js";
@@ -56,8 +56,6 @@ import PropertyLog from "../models/propertyLog.model.js";
 //   };
 // };
 
-
-
 export const createProperty = async (data) => {
   try {
     const {
@@ -104,7 +102,7 @@ export const createProperty = async (data) => {
 
     const property = new Property({ ...propertyData, isHeavens: true });
     const savedProperty = await property.save();
-    console.log(savedProperty)
+    console.log(savedProperty);
 
     try {
       await PropertyLog.create({
@@ -122,7 +120,7 @@ export const createProperty = async (data) => {
       success: true,
       status: 201,
       message: "Property created",
-       savedProperty,
+      savedProperty,
     };
   } catch (error) {
     console.error("Create Property Error:", error);
@@ -151,7 +149,7 @@ export const updateProperty = async (data) => {
       adminName,
       ...rest
     } = data;
-    console.log(data)
+    console.log(data);
 
     const clean = (str) => str?.trim();
 
@@ -177,18 +175,17 @@ export const updateProperty = async (data) => {
       images,
     };
 
-    const updatedProperty = await Property.findByIdAndUpdate(
-       id,
-      propertyData,
-      { new: true, runValidators: true }
-    );
+    const updatedProperty = await Property.findByIdAndUpdate(id, propertyData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!updatedProperty) {
       return {
         success: false,
-        status:404,
+        status: 404,
         message: "Property not found",
-      }
+      };
     }
 
     // Optional logging
@@ -213,7 +210,7 @@ export const updateProperty = async (data) => {
   } catch (error) {
     console.error("Update Property Error:", error);
     return {
-      status:400,
+      status: 400,
       success: false,
       message: "Failed to update property",
       error: error.message,
@@ -222,7 +219,7 @@ export const updateProperty = async (data) => {
 };
 export const deleteProperty = async (data) => {
   try {
-    const { id } = data; 
+    const { id } = data;
 
     const deletedProperty = await Property.findByIdAndDelete(id);
 
@@ -363,4 +360,32 @@ export const getClientProperties = async (data) => {
       data: null,
     };
   }
+};
+
+export const calculateOccupancyRate = async (data) => {
+  const { propertyId } = data;
+  const propertyFilter = propertyId ? { _id: propertyId } : {};
+
+  const properties = await Property.find(propertyFilter, {
+    totalBeds: 1,
+    occupiedBeds: 1,
+  });
+
+  const totals = properties.reduce(
+    (acc, property) => {
+      acc.totalBeds += property.totalBeds || 0;
+      acc.occupiedBeds += property.occupiedBeds || 0;
+      return acc;
+    },
+    { totalBeds: 0, occupiedBeds: 0 }
+  );
+
+  const { totalBeds, occupiedBeds } = totals;
+
+  return {
+    occupancyRate:
+      totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0,
+    totalBeds,
+    occupiedBeds,
+  };
 };

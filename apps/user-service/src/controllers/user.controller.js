@@ -26,6 +26,7 @@ import {
   getUserByResetToken,
   updateUser,
   getAllPaymentPendingUsers,
+  getResidentCounts,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -150,3 +151,7 @@ createResponder(
     return await getAllPaymentPendingUsers(data);
   }
 );
+
+createResponder(USER_PATTERN.DASHBOARD.GET_USERS_COUNTS, async (data) => {
+  return await getResidentCounts(data);
+});

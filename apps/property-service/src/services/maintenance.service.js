@@ -903,3 +903,19 @@ export const deleteMaintenance = async (data) => {
     };
   }
 };
+
+export const getLatestMaintenanceData = async (data) => {
+  const { propertyId } = data;
+  const filter = {};
+  if (propertyId) {
+    filter.propertyId = propertyId;
+  }
+
+  const [count, latest] = await Promise.all([
+    Maintenance.countDocuments({ ...filter, status: "Pending" }),
+
+    Maintenance.find(filter).sort({ createdAt: -1 }).limit(4).lean(),
+  ]);
+
+  return { count, latest };
+};

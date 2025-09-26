@@ -221,9 +221,11 @@ export const getMessMenuByPropertyId = async (data) => {
     const { userId, date: dayOfWeek } = data;
 
     // Replace with actual pattern names
-    const user = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_ID, {
+    const userData = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_ID, {
       userId,
     });
+
+    let user = userData.body.data;
     if (!user || !user.stayDetails?.propertyId) {
       return {
         success: false,
@@ -235,10 +237,10 @@ export const getMessMenuByPropertyId = async (data) => {
     const property = await sendRPCRequest(
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
       {
-        propertyId: user.stayDetails.propertyId,
+        id: user.stayDetails.propertyId,
       }
     );
-    if (!property || !property.kitchenId) {
+    if (!property || !property?.data.kitchenId) {
       return {
         success: false,
         status: 404,
@@ -248,7 +250,7 @@ export const getMessMenuByPropertyId = async (data) => {
 
     const menu = await WeeklyMenu.find(
       {
-        kitchenId: property.kitchenId,
+        kitchenId: property?.data.kitchenId,
         "menu.dayOfWeek": dayOfWeek,
       },
       {
@@ -265,7 +267,7 @@ export const getMessMenuByPropertyId = async (data) => {
     if (!menu || menu.length === 0) {
       return {
         success: false,
-        status: 404,
+        status: 200,
         message: "Menu for the specified day not found.",
       };
     }

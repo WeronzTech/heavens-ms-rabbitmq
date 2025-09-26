@@ -27,7 +27,7 @@ export const createMealBooking = async (data) => {
         USER_PATTERN.USER.GET_USER_BY_ID,
         { userId }
       );
-      userDetails = userResponse.data;
+      userDetails = userResponse.body.data;
     } catch (error) {
       console.error("Failed to fetch user details:", error.message);
       return {

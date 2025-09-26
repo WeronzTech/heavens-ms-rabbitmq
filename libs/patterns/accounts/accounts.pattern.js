@@ -11,6 +11,15 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL_PENDING_PAYMENTS: "get_all_pending_payments",
     GET_LATEST_BY_USERS: "get_latest_by_users",
     GET_FINANCIAL_SUMMARY: "get_Financial_Summary",
+    GET_NEXT_DUE_DATE: "get_next_due_date",
+  },
+  COMMISSION: {
+    ADD_COMMISSION: "add_commission",
+    GET_COMMISSION_BY_ID: "get_commission_by_id",
+    GET_ALL_COMMISSION: "get_all_commission",
+    EDIT_COMMISSION: "edit_commission",
+    DELETE_COMMISSION: "delete_commission",
+    GET_ALL_COMMISSION_BY_USER: "get_all_commission_by_user",
   },
   EXPENSE: {
     ADD_EXPENSE : "add_expense"

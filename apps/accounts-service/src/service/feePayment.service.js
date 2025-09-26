@@ -327,10 +327,10 @@ const processAndRecordPayment = async ({
       USER_PATTERN.USER.GET_USER_BY_ID,
       { userId }
     );
-    if (!userResponse.success) {
+    if (!userResponse.body.success) {
       throw new Error(userResponse.message || "User not found.");
     }
-    const user = userResponse.data;
+    const user = userResponse.body.data;
 
     // --- Financial Logic ---
     if (user.rentType === "daily" || user.rentType === "mess") {
@@ -388,6 +388,7 @@ const processAndRecordPayment = async ({
       room: user.stayDetails?.roomNumber || "N/A",
       rent: user.financialDetails?.monthlyRent || 0,
       amount: amount,
+      accountBalance: user.financialDetails?.accountBalance || 0,
       dueAmount: user.financialDetails.pendingRent,
       paymentMethod,
       transactionId,
@@ -400,21 +401,21 @@ const processAndRecordPayment = async ({
       ...razorpayDetails,
     });
 
-    await newPayment.save({ session });
+    await newPayment.save();
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
       USER_PATTERN.USER.UPDATE_USER,
       {
         userId,
-        updateData: {
+        userData: {
           financialDetails: user.financialDetails,
           paymentStatus: user.paymentStatus,
         },
       }
     );
 
-    if (!updateUserResponse.success) {
+    if (!updateUserResponse.body.success) {
       throw new Error("Failed to update user financial details.");
     }
 
@@ -454,7 +455,6 @@ export const initiateOnlinePayment = async (data) => {
       return { success: false, status: 404, message: "User not found." };
     }
     const user = userResponse.body.data;
-
     const razorpayResponse = await createRazorpayOrderId(amount);
     if (!razorpayResponse.success) {
       return {
@@ -470,8 +470,7 @@ export const initiateOnlinePayment = async (data) => {
       message: "Order created successfully.",
       data: {
         orderId: razorpayResponse.orderId,
-        amount: Number(amount) * 100,
-        key: process.env.RAZORPAY_KEY_ID,
+        amount: Number(amount),
         name: "Heavens Living",
         prefill: { name: user.name, email: user.email, contact: user.contact },
       },
@@ -512,6 +511,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       razorpayPaymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
     },
+    transactionId: razorpay_payment_id,
   });
 };
 
@@ -732,6 +732,55 @@ export const getFinancialSummary = async (data) => {
       status: 500,
       message: "Internal Server Error",
       error: error.message,
+    };
+  }
+};
+
+export const getNextDueDate = async (data) => {
+  try {
+    const { userId } = data;
+
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      { userId }
+    );
+
+    if (!userResponse.body.success) {
+      return { success: false, status: 404, message: "User not found." };
+    }
+    const user = userResponse.body.data;
+
+    console.log("user", user.financialDetails);
+
+    const { nextDueDate, pendingRent } = user.financialDetails;
+
+    // Get last payment details
+    const lastPayment = await Payments.findOne({ userId })
+      .sort({ paymentDate: -1 })
+      .limit(1);
+
+    const today = new Date();
+    const dueDate = new Date(nextDueDate);
+    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24)) - 1;
+
+    return {
+      success: true,
+      status: 200,
+      data: {
+        paymentDate: dueDate.toISOString(),
+        pendingAmount: pendingRent,
+        daysLeft: daysLeft > 0 ? daysLeft : 0,
+        lastPayedDate: lastPayment?.paymentDate.toISOString() || null,
+        lastPayedAmount: lastPayment?.amount || 0,
+      },
+    };
+  } catch (err) {
+    console.error("Getting due date Service Error:", err);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: err.message,
     };
   }
 };

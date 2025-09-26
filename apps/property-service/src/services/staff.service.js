@@ -2,11 +2,15 @@ import Staff from "../models/staff.model.js";
 import axios from "axios";
 import Property from "../models/property.model.js";
 import { getAccessibleKitchens, getRoleName } from "./internal.service.js";
-import { deleteFromFirebase, uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import PropertyLog from "../models/propertyLog.model.js";
+import mongoose from "mongoose";
 
 // 🛠️ Service logic
 export const getAllStaff = async (data) => {
@@ -38,8 +42,10 @@ export const getAllStaff = async (data) => {
     let kitchenStaff = [];
     if (propertyId) {
       try {
-        const accessibleKitchens = await getAccessibleKitchens(propertyId); 
-        const accessibleKitchenIds = accessibleKitchens.map((k) => k._id.toString());
+        const accessibleKitchens = await getAccessibleKitchens(propertyId);
+        const accessibleKitchenIds = accessibleKitchens.map((k) =>
+          k._id.toString()
+        );
 
         if (accessibleKitchenIds.length > 0) {
           kitchenStaff = await Staff.find({
@@ -79,7 +85,10 @@ export const getAllStaff = async (data) => {
       try {
         const managerResponse = async (propertyId, joinDate, status, name) => {
           return sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, {
-            propertyId, joinDate, status, name,
+            propertyId,
+            joinDate,
+            status,
+            name,
           });
         };
 
@@ -103,7 +112,10 @@ export const getAllStaff = async (data) => {
           enrichedStaff.push(...enrichedManagers.filter(Boolean));
         }
       } catch (error) {
-        console.error(`Could not fetch or process manager for property ${propertyId}:`, error.message);
+        console.error(
+          `Could not fetch or process manager for property ${propertyId}:`,
+          error.message
+        );
       }
     }
 
@@ -185,7 +197,6 @@ export const getStaffById = async (data) => {
   }
 };
 
-
 export const deleteStaff = async (data) => {
   try {
     const { id, adminName } = data;
@@ -207,7 +218,10 @@ export const deleteStaff = async (data) => {
     };
   } catch (error) {
     console.error("Error in deleteStaff service:", error);
-    return { status: 500, message: error.message || "Internal server error while deleting staff" };
+    return {
+      status: 500,
+      message: error.message || "Internal server error while deleting staff",
+    };
   }
 };
 
@@ -237,7 +251,10 @@ export const staffStatusChange = async (data) => {
     };
   } catch (error) {
     console.error("Error in staffStatusChange service:", error);
-    return { status: 500, message: error.message || "Internal server error while updating status" };
+    return {
+      status: 500,
+      message: error.message || "Internal server error while updating status",
+    };
   }
 };
 
@@ -261,10 +278,16 @@ export const getStaffByPropertyId = async (data) => {
       })
     );
 
-    return { status: 200, data: { count: enrichedStaff.length, staff: enrichedStaff } };
+    return {
+      status: 200,
+      data: { count: enrichedStaff.length, staff: enrichedStaff },
+    };
   } catch (error) {
     console.error("Error in getStaffByPropertyId service:", error);
-    return { status: 500, message: error.message || "Internal server error while fetching staff" };
+    return {
+      status: 500,
+      message: error.message || "Internal server error while fetching staff",
+    };
   }
 };
 
@@ -353,13 +376,16 @@ export const addStaff = async (data) => {
       console.error("Failed to save property log (addStaff):", logError);
     }
 
-    return { status: 201, message: "Staff added successfully", data: savedStaff };
+    return {
+      status: 201,
+      message: "Staff added successfully",
+      data: savedStaff,
+    };
   } catch (error) {
     console.error("❌ Error in addStaff:", error);
     return { status: 500, message: error.message };
   }
 };
-
 
 export const updateStaff = async (data) => {
   try {
@@ -437,9 +463,24 @@ export const updateStaff = async (data) => {
       console.error("Failed to save property log (updateStaff):", logError);
     }
 
-    return { status: 200, message: "Staff updated successfully", data: updatedStaff };
+    return {
+      status: 200,
+      message: "Staff updated successfully",
+      data: updatedStaff,
+    };
   } catch (error) {
     console.error("❌ Error in updateStaff:", error);
     return { status: 500, message: error.message };
   }
+};
+
+export const getEmployeeCount = async (data) => {
+  const { propertyId } = data;
+  const filter = { status: "Active" };
+
+  if (propertyId) {
+    filter.propertyId = new mongoose.Types.ObjectId(propertyId);
+  }
+
+  return Staff.countDocuments(filter);
 };

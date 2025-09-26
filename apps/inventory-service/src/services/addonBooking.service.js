@@ -12,6 +12,10 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import {
+  createRazorpayOrderId,
+  verifyPayment,
+} from "../../../../libs/common/razorpay.js";
 
 export const createAddonBooking = async (data) => {
   try {
@@ -21,6 +25,7 @@ export const createAddonBooking = async (data) => {
       bookingDate: data.bookingDate || tomorrow,
     };
     const { userId, addons } = bookingData;
+    console.log("bookingData", bookingData);
 
     validateRequired(userId, "User ID");
     validateRequired(addons, "addons");
@@ -40,18 +45,31 @@ export const createAddonBooking = async (data) => {
         userId,
       }
     );
-    if (!userResponse.success) {
+    if (!userResponse.body.success) {
       return {
         success: false,
         status: 404,
         message: "Could not find user details to create booking.",
       };
     }
-    const userDetails = userResponse.data;
+    const userDetails = userResponse.body.data;
     const propertyId = userDetails?.stayDetails?.propertyId;
-    const kitchenId =
-      userDetails?.messDetails?.kitchenId ||
-      userDetails?.stayDetails?.kitchenId;
+
+    const property = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      {
+        id: propertyId,
+      }
+    );
+    if (!property || !property?.data.kitchenId) {
+      return {
+        success: false,
+        status: 404,
+        message: "Property or associated kitchen not found.",
+      };
+    }
+
+    const kitchenId = property?.data.kitchenId;
 
     if (!propertyId) {
       return {
@@ -77,30 +95,27 @@ export const createAddonBooking = async (data) => {
       processedAddons.push({ ...item, totalPrice });
     }
 
+    const paymentResponse = await createRazorpayOrderId(grandTotalPrice);
+
+    if (!paymentResponse.success) {
+      return {
+        success: false,
+        status: 500,
+        message: "Failed to create Razorpay Order.",
+        error: paymentResponse.error,
+      };
+    }
+
+    const { orderId: razorpayOrderId } = paymentResponse;
+
     const newBooking = await AddonBooking.create({
       ...bookingData,
       propertyId,
       kitchenId,
       addons: processedAddons,
       grandTotalPrice,
+      razorpayOrderId,
       bookingDate: normalizeDate(bookingData.bookingDate),
-    });
-
-    // --- Notify relevant parties via Socket ---
-    const kitchen = await Kitchen.findById(kitchenId).lean();
-    const propertyResponse = await sendRPCRequest(
-      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-      { propertyId }
-    );
-    const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
-    if (kitchen?.incharge) userIdsToNotify.push(kitchen.incharge.toString());
-    if (propertyResponse.success && propertyResponse.data?.clientId) {
-      userIdsToNotify.push(propertyResponse.data.clientId);
-    }
-    await sendRPCRequest(SOCKET_PATTERN.EMIT, {
-      userIds: userIdsToNotify,
-      event: "new-addon-booking",
-      data: newBooking,
     });
 
     return {
@@ -111,6 +126,88 @@ export const createAddonBooking = async (data) => {
     };
   } catch (error) {
     return { success: false, status: 500, message: error.message };
+  }
+};
+
+export const verifyAddonBookingPayment = async (data) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return {
+        success: false,
+        status: 400,
+        message: "Missing payment verification details.",
+      };
+    }
+
+    const booking = await AddonBooking.findOne({
+      razorpayOrderId: razorpay_order_id,
+    });
+    if (!booking) {
+      return {
+        success: false,
+        status: 404,
+        message: "No booking found with the given order ID.",
+      };
+    }
+
+    const isPaymentValid = await verifyPayment({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    });
+
+    if (!isPaymentValid) {
+      await AddonBooking.findByIdAndDelete(booking._id);
+
+      return {
+        success: false,
+        status: 400,
+        message: "Payment verification failed. Signature mismatch.",
+      };
+    }
+
+    const finalizedBooking = await AddonBooking.findByIdAndUpdate(
+      booking._id,
+      {
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        status: "Paid",
+        deliveredDate: null,
+      },
+      { new: true }
+    );
+
+    const kitchen = await Kitchen.findById(booking?.kitchenId).lean();
+    const propertyResponse = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      { id: booking?.propertyId }
+    );
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
+    if (kitchen?.incharge) userIdsToNotify.push(kitchen.incharge.toString());
+    if (propertyResponse.success && propertyResponse.data?.clientId) {
+      userIdsToNotify.push(propertyResponse.data.clientId);
+    }
+    await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "new-addon-booking",
+      data: finalizedBooking,
+    });
+
+    return {
+      success: true,
+      status: 201,
+      message: "Addon Booking created successfully and payment verified.",
+      data: finalizedBooking,
+    };
+  } catch (error) {
+    console.error("Verify Addon Payment Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: error.message,
+    };
   }
 };
 
@@ -144,8 +241,8 @@ export const getAddonBookingsByProperty = async (filters) => {
       }
     );
     const userMap = new Map(
-      userResponse.success
-        ? userResponse.data.map((u) => [u._id.toString(), u])
+      userResponse.body.success
+        ? userResponse.body.data.map((u) => [u._id.toString(), u])
         : []
     );
 

@@ -1,37 +1,25 @@
+import { createResponder } from "../../../../libs/common/rabbitMq.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import { getDashboardStats } from "../services/dashbaord.service.js";
+import { getLatestMaintenanceData } from "../services/maintenance.service.js";
+import { calculateOccupancyRate } from "../services/property.service.js";
+import { getEmployeeCount } from "../services/staff.service.js";
 
-import {
-  // getEmployeeCount,
-  // calculateOccupancyRate,
-  // getLatestMaintenanceData,
-} from "../services/property.service.js";
+createResponder(PROPERTY_PATTERN.DASHBOARD.GET_DASHBOARD_DATA, async (data) => {
+  return await getDashboardStats(data);
+});
 
-export const getDashboardStats = async (req, res) => {
-  try {
-    const {propertyId} = req.query; // get from request query
+createResponder(PROPERTY_PATTERN.DASHBOARD.GET_STAFF_COUNTS, async (data) => {
+  return await getEmployeeCount(data);
+});
 
-    const [residentCounts, employees, maintenance, occupancy] =
-      await Promise.all([
-        getResidentCounts(propertyId),
-        getEmployeeCount(propertyId),
-        getLatestMaintenanceData(propertyId),
-        // calculateOccupancyRate(propertyId),
-      ]);
-
-    res.json({
-      success: true,
-      data: {
-        residents: residentCounts.monthlyResidents,
-        dailyRenters: residentCounts.dailyRenters,
-        employees,
-        maintenance,
-        occupancy,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to load dashboard data",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+createResponder(
+  PROPERTY_PATTERN.DASHBOARD.GET_MAINTENANCE_COUNTS,
+  async (data) => {
+    return await getLatestMaintenanceData(data);
   }
-};
+);
+
+createResponder(PROPERTY_PATTERN.DASHBOARD.GET_OCCUPANCY_RATE, async (data) => {
+  return await calculateOccupancyRate(data);
+});

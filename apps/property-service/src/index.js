@@ -68,6 +68,7 @@ const startServer = async () => {
     await import("./controllers/staff.controller.js");
     await import("./controllers/log.controller.js");
     await import("./controllers/internal.controller.js");
+    await import("./controllers/dashboard.controller.js");
     console.log("[PROPERTY] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

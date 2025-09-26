@@ -9,6 +9,7 @@ import {
   updateAddonAvailability,
 } from "../../controllers/inventory/addon.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
 const addonRoutes = Router();
 
@@ -17,7 +18,7 @@ addonRoutes
   .post(upload.fields([{ name: "itemImage", maxCount: 1 }]), createAddon)
   .get(getAllAddons);
 
-addonRoutes.route("/user").get(getAddonByPropertyId);
+addonRoutes.get("/user", isAuthenticated, getAddonByPropertyId);
 
 addonRoutes
   .route("/:addonId")

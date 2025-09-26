@@ -2690,6 +2690,7 @@ export const updatePassword = async ({ userId, password }) => {
 export const updateUser = async (data) => {
   try {
     const { userId, userData } = data;
+    console.log("userData", userData)
 
     const user = await User.findByIdAndUpdate(userId, userData, { new: true });
     if (!user) {
@@ -2849,5 +2850,29 @@ export const getAllPaymentPendingUsers = async (data) => {
       message: "Internal Server Error",
       error: error.message,
     };
+  }
+};
+
+export const getResidentCounts = async (data) => {
+  try {
+    const { propertyId } = data;
+    console.log("herererer");
+    const filter = {
+      isVacated: false,
+    };
+
+    if (propertyId) {
+      filter["stayDetails.propertyId"] = propertyId;
+    }
+
+    const [monthlyResidents, dailyRenters] = await Promise.all([
+      User.countDocuments({ ...filter, rentType: "monthly" }),
+      User.countDocuments({ ...filter, rentType: "daily" }),
+    ]);
+
+    return { monthlyResidents, dailyRenters };
+  } catch (error) {
+    console.error("Error fetching resident counts:", error);
+    return { error: "Failed to fetch resident counts" };
   }
 };
