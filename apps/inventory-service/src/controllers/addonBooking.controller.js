@@ -6,6 +6,7 @@ import {
   getAddonBookingsForUser,
   getAddonBookingById,
   updateAddonBookingStatus,
+  verifyAddonBookingPayment,
 } from "../services/addonBooking.service.js";
 
 createResponder(INVENTORY_PATTERN.ADDON_BOOKING.CREATE, async (data) => {
@@ -29,4 +30,8 @@ createResponder(INVENTORY_PATTERN.ADDON_BOOKING.GET_BY_ID, async (data) => {
 
 createResponder(INVENTORY_PATTERN.ADDON_BOOKING.UPDATE_STATUS, async (data) => {
   return await updateAddonBookingStatus(data);
+});
+
+createResponder(INVENTORY_PATTERN.ADDON_BOOKING.VERIFY, async (data) => {
+  return await verifyAddonBookingPayment(data);
 });

@@ -39,3 +39,6 @@ export const updateAddonBookingStatus = (req, res) =>
     ...req.body,
     bookingId: req.params.bookingId,
   });
+
+export const verifyAddonBookingPayment = (req, res) =>
+  handleRPCAndRespond(res, INVENTORY_PATTERN.ADDON_BOOKING.VERIFY, req.body);
