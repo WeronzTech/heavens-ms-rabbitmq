@@ -195,7 +195,7 @@ export const getAddonByPropertyId = async ({ userId }) => {
 
     const propertyResponse = await sendRPCRequest(
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-      { propertyId: user?.stayDetails?.propertyId }
+      { id: user?.stayDetails?.propertyId }
     );
     if (!propertyResponse.success) {
       return { success: false, status: 404, message: "Property not found" };

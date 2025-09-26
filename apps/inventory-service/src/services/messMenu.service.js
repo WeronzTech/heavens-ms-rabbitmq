@@ -267,7 +267,7 @@ export const getMessMenuByPropertyId = async (data) => {
     if (!menu || menu.length === 0) {
       return {
         success: false,
-        status: 404,
+        status: 200,
         message: "Menu for the specified day not found.",
       };
     }

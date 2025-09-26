@@ -19,6 +19,7 @@ export const INVENTORY_PATTERN = {
   },
   ADDON_BOOKING: {
     CREATE: "mess_addon_booking_create",
+    VERIFY: "mess_addon_booking_verify",
     GET_BY_PROPERTY: "mess_addon_booking_get_by_property",
     GET_FOR_USER: "mess_addon_booking_get_for_user",
     GET_BY_ID: "mess_addon_booking_get_by_id",
@@ -82,4 +83,3 @@ export const INVENTORY_PATTERN = {
     DELETE_RECIPE_CATEGORY: "inventory_delete_recipe_category",
   },
 };
-
