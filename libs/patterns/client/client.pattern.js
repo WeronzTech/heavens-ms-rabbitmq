@@ -27,4 +27,11 @@ export const CLIENT_PATTERN = {
     GET_PETTYCASH_BY_MANAGER: "get_pettycash_by_manager"
 
   },
+  AGENCY: {
+    GET_AGENCIES: "get_agencies",
+    GET_AGENCY_BY_ID: "get_agency_by_id",
+    ADD_AGENCY: "add_agency",
+    EDIT_AGENCY: "edit_agency",
+    DELETE_AGENCY: "delete_agency",
+  }
 };

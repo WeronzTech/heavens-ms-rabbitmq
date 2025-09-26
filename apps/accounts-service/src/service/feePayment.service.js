@@ -388,6 +388,7 @@ const processAndRecordPayment = async ({
       room: user.stayDetails?.roomNumber || "N/A",
       rent: user.financialDetails?.monthlyRent || 0,
       amount: amount,
+      accountBalance: user.financialDetails?.accountBalance || 0,
       dueAmount: user.financialDetails.pendingRent,
       paymentMethod,
       transactionId,
@@ -400,21 +401,21 @@ const processAndRecordPayment = async ({
       ...razorpayDetails,
     });
 
-    await newPayment.save({ session });
+    await newPayment.save();
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
       USER_PATTERN.USER.UPDATE_USER,
       {
         userId,
-        updateData: {
+        userData: {
           financialDetails: user.financialDetails,
           paymentStatus: user.paymentStatus,
         },
       }
     );
 
-    if (!updateUserResponse.success) {
+    if (!updateUserResponse.body.success) {
       throw new Error("Failed to update user financial details.");
     }
 

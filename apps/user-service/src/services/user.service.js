@@ -2690,6 +2690,7 @@ export const updatePassword = async ({ userId, password }) => {
 export const updateUser = async (data) => {
   try {
     const { userId, userData } = data;
+    console.log("userData", userData)
 
     const user = await User.findByIdAndUpdate(userId, userData, { new: true });
     if (!user) {

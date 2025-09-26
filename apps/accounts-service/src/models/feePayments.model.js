@@ -29,7 +29,6 @@ const paymentSchema = new mongoose.Schema(
     },
     collectedBy: { type: String, required: false },
     fullyClearedRentMonths: [{ type: String, required: true }], // Example: "January 2024"
-    paymentType: { type: String, enum: ["Manual", "Online"], required: true }, // manual or online
     paymentDate: { type: Date, default: Date.now },
     status: { type: String, enum: ["Paid", "Pending"], default: "Pending" },
     remarks: { type: String },
