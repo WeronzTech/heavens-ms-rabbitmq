@@ -96,6 +96,7 @@ app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes);
 app.use("/api/v2/pettycash", pettyCashRoutes);
+app.use("/api/v2/expense",expenseRoutes)
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
