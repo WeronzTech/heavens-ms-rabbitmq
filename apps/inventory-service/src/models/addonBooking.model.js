@@ -73,6 +73,23 @@ const addonBookingSchema = new Schema(
       enum: ["Pending", "Delivered"],
       default: "Pending",
     },
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid"],
+      default: "Pending",
+    },
+    razorpayOrderId: {
+      type: String,
+      required: false,
+    },
+    razorpayPaymentId: {
+      type: String,
+      required: false,
+    },
+    razorpaySignature: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );

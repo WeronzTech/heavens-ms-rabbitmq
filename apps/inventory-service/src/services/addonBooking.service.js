@@ -12,6 +12,7 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import { createRazorpayOrderId } from "../../../../libs/common/razorpay.js";
 
 export const createAddonBooking = async (data) => {
   try {
@@ -77,12 +78,26 @@ export const createAddonBooking = async (data) => {
       processedAddons.push({ ...item, totalPrice });
     }
 
+    const paymentResponse = await createRazorpayOrderId(grandTotalPrice);
+
+    if (!paymentResponse.success) {
+      return {
+        success: false,
+        status: 500,
+        message: "Failed to create Razorpay Order.",
+        error: paymentResponse.error,
+      };
+    }
+
+    const { orderId: razorpayOrderId } = paymentResponse;
+
     const newBooking = await AddonBooking.create({
       ...bookingData,
       propertyId,
       kitchenId,
       addons: processedAddons,
       grandTotalPrice,
+      razorpayOrderId,
       bookingDate: normalizeDate(bookingData.bookingDate),
     });
 

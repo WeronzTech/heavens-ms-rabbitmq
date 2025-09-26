@@ -237,10 +237,10 @@ export const getMessMenuByPropertyId = async (data) => {
     const property = await sendRPCRequest(
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
       {
-        propertyId: user.stayDetails.propertyId,
+        id: user.stayDetails.propertyId,
       }
     );
-    if (!property || !property.kitchenId) {
+    if (!property || !property?.data.kitchenId) {
       return {
         success: false,
         status: 404,
@@ -250,7 +250,7 @@ export const getMessMenuByPropertyId = async (data) => {
 
     const menu = await WeeklyMenu.find(
       {
-        kitchenId: property.kitchenId,
+        kitchenId: property?.data.kitchenId,
         "menu.dayOfWeek": dayOfWeek,
       },
       {
