@@ -8,6 +8,7 @@ import {
   fetchAllPropertiesBookingTimes,
   getMessMenuByPropertyId,
 } from "../../controllers/inventory/messMenu.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
 const mealRoutes = Router();
 
@@ -26,6 +27,6 @@ mealRoutes
   .route("/all-properties/booking-times")
   .get(fetchAllPropertiesBookingTimes); // Get all properties and its corresponding booking times
 
-mealRoutes.get("/property-menu", getMessMenuByPropertyId); // Get menu by property id
+mealRoutes.get("/property-menu", isAuthenticated, getMessMenuByPropertyId); // Get menu by property id
 
 export default mealRoutes;
