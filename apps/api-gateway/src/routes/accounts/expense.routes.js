@@ -1,5 +1,12 @@
 import express from "express";
-import { addExpenseController } from "../../controllers/accounts/expense.controller.js";
+import { addExpenseCategoryController, addExpenseController, 
+    deleteCategoryController, 
+    deleteExpenseController, 
+    getAllCategoriesController, 
+    getAllExpensesController, 
+    getCategoryByMainCategoryController, 
+    getExpenseByIdController } from "../../controllers/accounts/expense.controller.js";
+
 
 
 const expenseRoutes = express.Router();
@@ -7,18 +14,23 @@ const expenseRoutes = express.Router();
 
 expenseRoutes.post("/add", addExpenseController);
 
-// expenseRoutes.get("/all", getAllExpenses);
+expenseRoutes.post("/add-category", addExpenseCategoryController);
 
-// expenseRoutes.get("/:id", getExpenseById);
+expenseRoutes.get("/all", getAllExpensesController);
+
+expenseRoutes.get("/:expenseId", getExpenseByIdController);
 
 // expenseRoutes.put("/update/:id", updateExpense);
 
-// expenseRoutes.delete("/delete/:id", deleteExpense);
+expenseRoutes.delete("/delete/:expenseId", deleteExpenseController);
 
-// expenseRoutes.post("/addPettyCash", addPettyCash);
+expenseRoutes.post("/categories/by-main", getCategoryByMainCategoryController);
 
-// expenseRoutes.get("/getPettyCash", getPettyCash)
+expenseRoutes.get("/categories", getAllCategoriesController);
 
-// expenseRoutes.get("/pettyCash/:id",getPettyCashByManager)
+expenseRoutes.delete("/categories/:categoryId", deleteCategoryController);
+
+
+
 
 export default expenseRoutes;

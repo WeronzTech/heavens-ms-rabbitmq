@@ -2,6 +2,7 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
+import ExpenseCategory from "../models/expenseCategory.model.js";
 
 export const addExpense = async (data) => {
   try {
@@ -105,6 +106,135 @@ export const addExpense = async (data) => {
       status: 500,
       message: "An internal server error occurred while adding expense.",
       error: error.message,
+    };
+  }
+};
+
+export const getAllExpenses = async () => {
+    try {
+      // you can extend later (filters, pagination) using data
+      const expenses = await Expense.find().sort({ createdAt: -1 });
+      return { success: true, status: 200, data: expenses };
+    } catch (error) {
+      console.error("[ACCOUNTS] Error in getAllExpenses:", error);
+      return { success: false, status: 500, message: "Internal server error", error: error.message };
+    }
+  };
+  
+  // Get Expense by ID
+  export const getExpenseById = async (data) => {
+    try {
+      const { expenseId } = data;
+  
+      if (!expenseId) {
+        return { success: false, status: 400, message: "Expense ID is required" };
+      }
+  
+      const expense = await Expense.findById(expenseId);
+      if (!expense) {
+        return { success: false, status: 404, message: "Expense not found" };
+      }
+  
+      return {  success: true, 
+                status: 200, 
+                data: expense };
+    } catch (error) {
+      console.error("[ACCOUNTS] Error in getExpenseById:", error);
+      return {  success: false, 
+                status: 500, 
+                message: "Internal server error", error: error.message };
+    }
+  };
+  
+  // Delete Expense
+  export const deleteExpense = async (data) => {
+    try {
+      const { expenseId } = data;
+  
+      if (!expenseId) {
+        return { success: false, status: 400, message: "Expense ID is required" };
+      }
+  
+      const expense = await Expense.findByIdAndDelete(expenseId);
+      if (!expense) {
+        return { success: false, status: 404, message: "Expense not found" };
+      }
+  
+      return { success: true, status: 200, message: "Expense deleted successfully", data: expense };
+    } catch (error) {
+      console.error("[ACCOUNTS] Error in deleteExpense:", error);
+      return { success: false, status: 500, message: "Internal server error", error: error.message };
+    }
+  };
+
+export const addExpenseCategory = async (data) => { 
+  try {
+    const { mainCategory, subCategory } = data;
+
+    // ✅ Save to DB
+    const expenseCategory = await ExpenseCategory.create({ mainCategory, subCategory });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Expense category added successfully.",
+      data: expenseCategory,
+    };
+  } catch (error) {
+    console.error("Error in addExpenseCategory service:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while adding expenseCategory.",
+      error: error.message,
+    };
+  }
+};
+
+export const getCategoryByMainCategory = async (data) => { 
+  try {
+    const { mainCategory } = data;
+
+    const response = await getCategoryByMainCategory({ mainCategory });
+
+    return response;
+  } catch (error) {
+    console.error("Error in getCategoryByMainCategoryController:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching categories by main category.",
+    };
+  }
+};
+
+export const getAllCategories = async () => { 
+  try {
+    const response = await getAllCategories();
+    return response;
+  } catch (error) {
+    console.error("Error in getAllCategoriesController:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching all categories.",
+    };
+  }
+};
+
+export const deleteCategory = async (data) => { 
+  try {
+    const { categoryId } = data;
+
+    const response = await deleteCategory({ categoryId });
+
+    return response;
+  } catch (error) {
+    console.error("Error in deleteCategoryController:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while deleting category.",
     };
   }
 };

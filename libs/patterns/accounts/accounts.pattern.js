@@ -22,6 +22,13 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL_COMMISSION_BY_USER: "get_all_commission_by_user",
   },
   EXPENSE: {
-    ADD_EXPENSE : "add_expense"
+    ADD_EXPENSE : "add_expense",
+    GET_ALL_EXPENSES: "get_all_expense",
+    GET_EXPENSE_BY_ID: "get_expense_by_id",
+    DELETE_EXPENSE: "delete_expense",
+    ADD_EXPENSE_CATEGORY: "add_expense_category",
+    GET_CATEGORY_BY_MAINCATEROGY: "get_category_by_main_category",
+    GET_ALL_CATEGORIES: "get_all_categories",
+    DELETE_CATEGORY: "delete_category",
   }
 };
