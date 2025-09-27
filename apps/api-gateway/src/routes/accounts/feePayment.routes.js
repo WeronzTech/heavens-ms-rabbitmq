@@ -10,6 +10,7 @@ import {
   getMonthWiseRentCollectionController,
   getFinancialSummary,
   getNextDueDate,
+  getAllAccountsPaymentController,
 } from "../../controllers/accounts/feePayments.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
@@ -27,8 +28,10 @@ feePaymentRoutes.post("/record-manual", recordManualPayment);
 feePaymentRoutes.get("/next-due-date", isAuthenticated, getNextDueDate);
 feePaymentRoutes.put("/update/:id", updateFeePaymentController);
 
-feePaymentRoutes.get("/:paymentId", getFeePaymentController);
-
 feePaymentRoutes.get("/", getAllFeePaymentsController);
+
+feePaymentRoutes.get("/get_all_payments", getAllAccountsPaymentController);
+
+feePaymentRoutes.get("/:paymentId", getFeePaymentController);
 
 export default feePaymentRoutes;

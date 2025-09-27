@@ -175,3 +175,27 @@ export const getNextDueDate = async (req, res) => {
     });
   }
 };
+
+export const getAllAccountsPaymentController = async (req, res) => {
+  try {
+    
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY, 
+      {} 
+    );
+
+    if (response.success) {
+      return res.status(200).json(response);
+    } else {
+      return res.status(response.status || 500).json(response);
+    }
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getAllAccountsPaymentController:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching accounts summary.",
+      error: error.message,
+    });
+  }
+};

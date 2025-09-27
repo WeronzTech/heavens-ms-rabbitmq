@@ -12,6 +12,7 @@ export const ACCOUNTS_PATTERN = {
     GET_LATEST_BY_USERS: "get_latest_by_users",
     GET_FINANCIAL_SUMMARY: "get_Financial_Summary",
     GET_NEXT_DUE_DATE: "get_next_due_date",
+    GET_PAYMENT_SUMMARY: "get_payment_summary",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",
@@ -30,5 +31,5 @@ export const ACCOUNTS_PATTERN = {
     GET_CATEGORY_BY_MAINCATEROGY: "get_category_by_main_category",
     GET_ALL_CATEGORIES: "get_all_categories",
     DELETE_CATEGORY: "delete_category",
-  }
+  },
 };
