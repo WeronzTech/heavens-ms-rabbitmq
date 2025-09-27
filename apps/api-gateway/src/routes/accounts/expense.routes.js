@@ -16,21 +16,18 @@ expenseRoutes.post("/add", addExpenseController);
 
 expenseRoutes.post("/add-category", addExpenseCategoryController);
 
+expenseRoutes.post("/categories/by-main", getCategoryByMainCategoryController);
+
 expenseRoutes.get("/all", getAllExpensesController);
 
-expenseRoutes.get("/:expenseId", getExpenseByIdController);
+expenseRoutes.get("/get-all", getAllCategoriesController);
 
 // expenseRoutes.put("/update/:id", updateExpense);
 
 expenseRoutes.delete("/delete/:expenseId", deleteExpenseController);
 
-expenseRoutes.post("/categories/by-main", getCategoryByMainCategoryController);
-
-expenseRoutes.get("/categories", getAllCategoriesController);
-
 expenseRoutes.delete("/categories/:categoryId", deleteCategoryController);
 
-
-
+expenseRoutes.get("/:expenseId", getExpenseByIdController);
 
 export default expenseRoutes;

@@ -195,29 +195,46 @@ export const getCategoryByMainCategory = async (data) => {
   try {
     const { mainCategory } = data;
 
-    const response = await getCategoryByMainCategory({ mainCategory });
+    if (!mainCategory) {
+      return { success: false, status: 400, message: "Main category is required" };
+    }
 
-    return response;
+    // ✅ Query DB instead of recursive call
+    const categories = await ExpenseCategory.find({ mainCategory });
+
+    return {
+      success: true,
+      status: 200,
+      data: categories,
+    };
   } catch (error) {
-    console.error("Error in getCategoryByMainCategoryController:", error);
+    console.error("[ACCOUNTS] Error in getCategoryByMainCategory:", error);
     return {
       success: false,
       status: 500,
       message: "An internal server error occurred while fetching categories by main category.",
+      error: error.message,
     };
   }
 };
 
-export const getAllCategories = async () => { 
+
+export const getAllCategories = async () => {
   try {
-    const response = await getAllCategories();
-    return response;
+    const categories = await ExpenseCategory.find().lean(); // fetch all categories from DB
+
+    return {
+      success: true,
+      status: 200,
+      data: categories,
+    };
   } catch (error) {
-    console.error("Error in getAllCategoriesController:", error);
+    console.error("[ACCOUNTS] Error in getAllCategories:", error);
     return {
       success: false,
       status: 500,
       message: "An internal server error occurred while fetching all categories.",
+      error: error.message,
     };
   }
 };
