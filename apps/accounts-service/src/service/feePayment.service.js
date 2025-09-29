@@ -832,7 +832,8 @@ export const getAllAccountsPayments = async () => {
     return {
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching all accounts summary.",
+      message:
+        "An internal server error occurred while fetching all accounts summary.",
       error: error.message,
     };
   }

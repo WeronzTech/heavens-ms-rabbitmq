@@ -13,6 +13,7 @@ import {
   getFinancialSummary,
   getNextDueDate,
   getAllAccountsPayments,
+  getLatestPaymentsByUsers,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -70,6 +71,13 @@ createResponder(
   ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_NEXT_DUE_DATE,
   async (data) => {
     return await getNextDueDate(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
+  async ({ userIds }) => {
+    return await getLatestPaymentsByUsers({ userIds });
   }
 );
 
