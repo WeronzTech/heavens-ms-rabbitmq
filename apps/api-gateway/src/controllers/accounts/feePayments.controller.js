@@ -97,9 +97,10 @@ export const recordManualPayment = (req, res) => {
 
 export const getAllFeePaymentsController = async (req, res) => {
   try {
+    const { propertyId, rentType, page = 1, limit = 10 } = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
-      {}
+      { propertyId, rentType, page, limit }
     );
 
     return res.status(response?.status || 500).json(response);
@@ -171,6 +172,60 @@ export const getNextDueDate = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getAllAccountsPaymentController = async (req, res) => {
+  try {
+    
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY, 
+      {} 
+    );
+
+    if (response.success) {
+      return res.status(200).json(response);
+    } else {
+      return res.status(response.status || 500).json(response);
+    }
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getAllAccountsPaymentController:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching accounts summary.",
+      error: error.message,
+    });
+  }
+};
+
+export const getUserPaymentsController = async (req, res) => {
+  try {
+  
+    const userId = req.userAuth;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "Unauthorized: User ID not found in token",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID, 
+      { userId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getUserPaymentsController:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching user payments.",
       error: error.message,
     });
   }

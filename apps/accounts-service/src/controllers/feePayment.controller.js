@@ -12,6 +12,9 @@ import {
   getMonthWiseRentCollection,
   getFinancialSummary,
   getNextDueDate,
+  getAllAccountsPayments,
+  getFeePaymentsByUserId,
+  getLatestPaymentsByUsers,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -71,3 +74,26 @@ createResponder(
     return await getNextDueDate(data);
   }
 );
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
+  async ({ userIds }) => {
+    return await getLatestPaymentsByUsers({ userIds });
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY,
+  async (data) => {
+    return await getAllAccountsPayments(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID,
+  async (data) => {
+    return await getFeePaymentsByUserId(data);
+  }
+);
+
+

@@ -48,5 +48,7 @@ export const USER_PATTERN = {
   },
   DASHBOARD: {
     GET_USERS_COUNTS: "get_users_counts",
+    GET_USER_STATISTICS_FOR_ACCOUNTS_DASHBOARD:
+      "get_user_statistics_for_accounts_dashboard",
   },
 };

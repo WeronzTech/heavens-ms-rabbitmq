@@ -6,6 +6,8 @@ import {
   verifyPayment as verifyRazorpaySignature,
 } from "../../../../libs/common/razorpay.js";
 import mongoose from "mongoose";
+import Expense from "../models/expense.model.js";
+import Commission from "../models/commission.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -967,20 +969,41 @@ export const recordManualPayment = async (data) => {
   });
 };
 
-export const getAllFeePayments = async () => {
+export const getAllFeePayments = async (data) => {
   try {
-    const payments = await Payments.find().lean();
+    const { propertyId, rentType, page = 1, limit = 10 } = data;
 
-    const groupedPayments = {
-      Monthly: payments.filter((p) => p.rentType?.trim() === "Monthly"),
-      DailyRent: payments.filter((p) => p.rentType?.trim() === "DailyRent"),
-      MessOnly: payments.filter((p) => p.rentType?.trim() === "MessOnly"),
-    };
+    const filter = {};
+    if (propertyId) {
+      filter["property.id"] = propertyId;
+    }
+    if (rentType) {
+      filter.rentType = rentType.trim();
+    }
+
+    // Fields to select
+    const projection =
+      "name rent paymentMethod transactionId paymentDate amount";
+
+    // Query with pagination
+    const payments = await Payments.find(filter, projection)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    // Get total count for pagination metadata
+    const total = await Payments.countDocuments(filter);
 
     return {
       success: true,
       status: 200,
-      data: groupedPayments,
+      data: payments,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
     };
   } catch (error) {
     console.error("Get All Fee Payments Service Error:", error);
@@ -1092,7 +1115,6 @@ export const getFinancialSummary = async (data) => {
   try {
     let propertyId;
     let rentType;
-    console.log(data);
     // Handle both cases: data could be string (propertyId) or object
     if (typeof data === "string") {
       propertyId = data;
@@ -1208,6 +1230,79 @@ export const getNextDueDate = async (data) => {
       status: 500,
       message: "Internal Server Error",
       error: err.message,
+    };
+  }
+};
+
+export const getAllAccountsPayments = async () => {
+  try {
+    // 1️⃣ Fetch fee payments
+    const payments = await Payments.find().sort({ createdAt: -1 }).lean();
+
+    // 2️⃣ Fetch expenses
+    const expenses = await Expense.find().sort({ createdAt: -1 }).lean();
+
+    // 3️⃣ Fetch commissions
+    const commissions = await Commission.find().sort({ createdAt: -1 }).lean();
+
+    return {
+      success: true,
+      status: 200,
+      data: {
+        payments,
+        expenses,
+        commissions,
+      },
+    };
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getAllAccountsSummary:", error);
+    return {
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching all accounts summary.",
+      error: error.message,
+    };
+  }
+};
+
+export const getFeePaymentsByUserId = async (data) => {
+  try {
+    const { userId } = data; 
+
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: [],
+      };
+    }
+
+    const payments = await Payments.find({ userId }).lean();
+
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Payments fetched successfully",
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Error in getFeePaymentsByUserId:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching payments",
+      error: error.message,
     };
   }
 };

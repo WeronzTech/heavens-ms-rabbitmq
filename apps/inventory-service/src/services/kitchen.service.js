@@ -78,9 +78,11 @@ export const getAllKitchens = async (data) => {
   }
 };
 
-export const getKitchens = async () => {
+export const getKitchens = async (data) => {
   try {
-    const kitchens = await Kitchen.find({}, "_id name").lean();
+    const { propertyId } = data;
+    const filter = propertyId ? { propertyId } : {};
+    const kitchens = await Kitchen.find(filter, "_id name").lean();
     return {
       success: true,
       status: 200,

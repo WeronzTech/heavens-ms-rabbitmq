@@ -20,8 +20,8 @@ createResponder(INVENTORY_PATTERN.KITCHEN.GET_ALL_KITCHENS, async (data) => {
   return await getAllKitchens(data);
 });
 
-createResponder(INVENTORY_PATTERN.KITCHEN.GET_KITCHENS_SIMPLE, async () => {
-  return await getKitchens();
+createResponder(INVENTORY_PATTERN.KITCHEN.GET_KITCHENS_SIMPLE, async (data) => {
+  return await getKitchens(data);
 });
 
 createResponder(INVENTORY_PATTERN.KITCHEN.GET_KITCHEN_BY_ID, async (data) => {
