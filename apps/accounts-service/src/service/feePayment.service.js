@@ -817,3 +817,44 @@ export const getAllAccountsPayments = async () => {
     };
   }
 };
+
+export const getFeePaymentsByUserId = async (data) => {
+  try {
+    const { userId } = data; 
+
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: [],
+      };
+    }
+
+    const payments = await Payments.find({ userId }).lean();
+
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Payments fetched successfully",
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Error in getFeePaymentsByUserId:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching payments",
+      error: error.message,
+    };
+  }
+};

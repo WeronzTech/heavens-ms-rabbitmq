@@ -11,6 +11,7 @@ import {
   getFinancialSummary,
   getNextDueDate,
   getAllAccountsPaymentController,
+  getUserPaymentsController,
 } from "../../controllers/accounts/feePayments.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
@@ -31,6 +32,8 @@ feePaymentRoutes.put("/update/:id", updateFeePaymentController);
 feePaymentRoutes.get("/", getAllFeePaymentsController);
 
 feePaymentRoutes.get("/get_all_payments", getAllAccountsPaymentController);
+
+feePaymentRoutes.get("/user-payments", isAuthenticated, getUserPaymentsController);
 
 feePaymentRoutes.get("/:paymentId", getFeePaymentController);
 
