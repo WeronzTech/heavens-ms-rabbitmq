@@ -13,6 +13,6 @@ authRoutes.post("/tenant-login", tenantLogin);
 authRoutes.post("/user-login", userLogin);
 authRoutes.post("/forgot-password", forgotPasswordUser);
 authRoutes.post("/reset-password", resetPassword);
-authRoutes.post("/refresh-access-token", refreshAccessToken);
+authRoutes.post("/refresh", refreshAccessToken);
 
 export default authRoutes;

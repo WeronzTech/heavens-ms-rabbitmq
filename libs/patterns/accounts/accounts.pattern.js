@@ -21,4 +21,8 @@ export const ACCOUNTS_PATTERN = {
     DELETE_COMMISSION: "delete_commission",
     GET_ALL_COMMISSION_BY_USER: "get_all_commission_by_user",
   },
+  DASHBOARD: {
+    GET_ACCOUNT_DASHBAORD_DATA_FOR_INCOME_SECTION:
+      "get_account_dashbaord_data_for_income_section",
+  },
 };

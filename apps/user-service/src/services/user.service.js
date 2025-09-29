@@ -2690,7 +2690,7 @@ export const updatePassword = async ({ userId, password }) => {
 export const updateUser = async (data) => {
   try {
     const { userId, userData } = data;
-    console.log("userData", userData)
+    console.log("userData", userData);
 
     const user = await User.findByIdAndUpdate(userId, userData, { new: true });
     if (!user) {
@@ -2874,5 +2874,92 @@ export const getResidentCounts = async (data) => {
   } catch (error) {
     console.error("Error fetching resident counts:", error);
     return { error: "Failed to fetch resident counts" };
+  }
+};
+
+export const getUserStatisticsForAccountDashboard = async (data) => {
+  try {
+    const { propertyId } = data;
+
+    const matchCondition = {};
+    if (propertyId) {
+      matchCondition.$or = [
+        { "stayDetails.propertyId": new mongoose.Types.ObjectId(propertyId) },
+      ];
+
+      const accessibleKitchensResponse = await getAccessibleKitchens({
+        propertyId,
+      });
+      const accessibleKitchens = accessibleKitchensResponse?.data || [];
+
+      const accessibleKitchenIds = accessibleKitchens.map((k) =>
+        k._id.toString()
+      );
+
+      matchCondition.$or.push({
+        "messDetails.kitchenId": {
+          $in: accessibleKitchenIds.map(
+            (id) => new mongoose.Types.ObjectId(id)
+          ),
+        },
+      });
+    }
+
+    // Aggregate users by rent type
+    const userStats = await User.aggregate([
+      {
+        $match: matchCondition,
+      },
+      {
+        $group: {
+          _id: "$rentType",
+          totalMonthlyRent: {
+            $sum: {
+              $cond: [
+                { $eq: ["$rentType", "monthly"] },
+                "$financialDetails.monthlyRent",
+                0,
+              ],
+            },
+          },
+          totalMessAmount: {
+            $sum: {
+              $cond: [
+                { $eq: ["$rentType", "mess"] },
+                "$financialDetails.totalAmount",
+                0,
+              ],
+            },
+          },
+          totalDailyAmount: {
+            $sum: {
+              $cond: [
+                { $eq: ["$rentType", "daily"] },
+                "$financialDetails.totalAmount",
+                0,
+              ],
+            },
+          },
+          userCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      status: 200,
+      data: userStats,
+    };
+  } catch (error) {
+    console.error(
+      "User Service - getUserStatisticsForAccountDashboard Error:",
+      error
+    );
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
   }
 };

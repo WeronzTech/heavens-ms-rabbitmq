@@ -71,3 +71,10 @@ createResponder(
     return await getNextDueDate(data);
   }
 );
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
+  async ({ userIds }) => {
+    return await getLatestPaymentsByUsers({ userIds });
+  }
+);
