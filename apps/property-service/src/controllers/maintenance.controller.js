@@ -280,7 +280,9 @@ import {
   deleteMaintenance,
 } from "../services/maintenance.service.js";
 
-createResponder(PROPERTY_PATTERN.MAINTENANCE.CREATE, createMaintenance);
+createResponder(PROPERTY_PATTERN.MAINTENANCE.CREATE, async (data) => {
+  return await createMaintenance(data);
+});
 createResponder(
   PROPERTY_PATTERN.MAINTENANCE.GET_BY_PROPERTY,
   getMaintenanceByPropertyId

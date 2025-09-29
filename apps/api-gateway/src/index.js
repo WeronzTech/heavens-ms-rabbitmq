@@ -43,7 +43,7 @@ const app = express();
 // ⛔️ REMOVED: The connect() call is moved into the startup function to ensure proper order.
 
 // ----- Middleware ----- //
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://192.168.1.80:5173"],

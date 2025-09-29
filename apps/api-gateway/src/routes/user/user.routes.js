@@ -13,6 +13,7 @@ import {
   getUserIds,
   getUsersByRentType,
   getUserStatusRequests,
+  getUsersWithBirthdayToday,
   handleBlockStatus,
   registerUser,
   rejectUser,
@@ -70,6 +71,7 @@ userRoutes.put("/:id/profile-completion", updateProfileCompletion);
 userRoutes.get("/", getUsersByRentType);
 userRoutes.get("/pending-payments", getAllPendingPayments);
 userRoutes.get("/offBoarding", getCheckOutedUsersByRentType);
+userRoutes.get("/birthdays", getUsersWithBirthdayToday);
 
 // userRoutes
 //   .route("/:id")

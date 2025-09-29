@@ -39,6 +39,7 @@ export const addExpenseController = async (req, res) => {
 };
 
 // Get All Expenses
+// Get All Expenses
 export const getAllExpensesController = async (req, res) => {
   try {
     const expenses = await sendRPCRequest(
@@ -111,7 +112,85 @@ export const deleteExpenseController = async (req, res) => {
     });
   }
 };
+  try {
+    const expenses = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.GET_ALL_EXPENSES,
+      {}
+    );
+    res.status(expenses.status || 500).json(expenses);
+  } catch (error) {
+    console.error("Error in fetching expenses:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching expenses.",
+    });
+  }
+};
 
+// Get Expense By ID
+export const getExpenseByIdController = async (req, res) => {
+  try {
+    const { expenseId } = req.params;
+
+    if (!expenseId) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: "Expense ID is required",
+      });
+    }
+
+    const expense = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_BY_ID,
+      { expenseId }
+    );
+    res.status(expense.status || 500).json(expense);
+  } catch (error) {
+    console.error("Error in fetching expense by ID:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching the expense.",
+    });
+  }
+};
+
+// Delete Expense
+export const deleteExpenseController = async (req, res) => {
+  try {
+    const { expenseId } = req.params;
+
+    if (!expenseId) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: "Expense ID is required",
+      });
+    }
+
+    const expense = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.DELETE_EXPENSE,
+      { expenseId }
+    );
+    res.status(expense.status || 500).json(expense);
+  } catch (error) {
+    console.error("Error in deleting expense:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while deleting the expense.",
+    });
+  }
+};
+
+export const addExpenseCategoryController = async (req, res) => {
+  try {
+    const { mainCategory, subCategory } = req.body;
+
+    const expenseCategory = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.ADD_EXPENSE_CATEGORY,
+      {
 export const addExpenseCategoryController = async (req, res) => {
   try {
     const { mainCategory, subCategory } = req.body;

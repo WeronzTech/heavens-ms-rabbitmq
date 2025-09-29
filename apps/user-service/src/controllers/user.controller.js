@@ -27,6 +27,7 @@ import {
   updateUser,
   getAllPaymentPendingUsers,
   getResidentCounts,
+  getUsersWithBirthdayToday,
   getUserStatisticsForAccountDashboard,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
@@ -155,6 +156,10 @@ createResponder(
 
 createResponder(USER_PATTERN.DASHBOARD.GET_USERS_COUNTS, async (data) => {
   return await getResidentCounts(data);
+});
+
+createResponder(USER_PATTERN.USER.GET_USERS_WITH_BIRTHDAY_TODAY, async () => {
+  return await getUsersWithBirthdayToday();
 });
 
 createResponder(

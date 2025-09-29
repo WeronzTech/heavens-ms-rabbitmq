@@ -30,10 +30,18 @@ const expenseSchema = new mongoose.Schema(
       },
       _id: false,
     },
+    kitchenId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
     actionPerformedBy: { type: String, required: true },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Client",
+    },
+    imageUrl: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

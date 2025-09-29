@@ -1,3 +1,4 @@
+import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
@@ -12,8 +13,10 @@ export const addExpense = async (data) => {
       amount,
       handledBy,
       pettyCashType,
+      billImage,
       ...expenseData
     } = data;
+    console.log("data", property);
 
     // ✅ Required field validation
     if (
@@ -76,12 +79,14 @@ export const addExpense = async (data) => {
       }
 
       // ✅ Deduct petty cash (send negative amount)
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        managerId: handledBy,
-        pettyCashType,
-        amount: -amount, // 👈 deduct instead of add
-      });
     }
+
+    const originalQuality = true;
+    const billImageURL = await uploadToFirebase(
+      billImage,
+      "expense-images",
+      originalQuality
+    );
 
     // ✅ Create expense in DB
     const expense = new Expense({
@@ -89,12 +94,29 @@ export const addExpense = async (data) => {
       property,
       handledBy,
       paymentMethod,
+      imageUrl: billImageURL,
       pettyCashType: paymentMethod === "Petty Cash" ? pettyCashType : undefined,
       amount,
       ...expenseData,
     });
 
     await expense.save();
+
+    if (pettyCashType === "inHand") {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: handledBy,
+        pettyCashType,
+        inHandAmount: -amount, // 👈 deduct instead of add
+      });
+    }
+
+    if (pettyCashType === "inAccount") {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: handledBy,
+        pettyCashType,
+        inAccountAmount: -amount, // 👈 deduct instead of add
+      });
+    }
 
     return {
       success: true,
@@ -252,7 +274,6 @@ export const getCategoryByMainCategory = async (data) => {
       status: 500,
       message:
         "An internal server error occurred while fetching categories by main category.",
-      error: error.message,
     };
   }
 };
@@ -273,7 +294,6 @@ export const getAllCategories = async () => {
       status: 500,
       message:
         "An internal server error occurred while fetching all categories.",
-      error: error.message,
     };
   }
 };
