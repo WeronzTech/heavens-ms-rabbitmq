@@ -20,9 +20,10 @@ export const getAllKitchens = async (req, res) => {
 
 export const getKitchens = async (req, res) => {
   try {
+    const { propertyId } = req.query;
     const response = await sendRPCRequest(
       INVENTORY_PATTERN.KITCHEN.GET_KITCHENS_SIMPLE,
-      {}
+      { propertyId }
     );
     return res.status(response.status || 500).json(response);
   } catch (error) {

@@ -97,9 +97,10 @@ export const recordManualPayment = (req, res) => {
 
 export const getAllFeePaymentsController = async (req, res) => {
   try {
+    const { propertyId, rentType, page = 1, limit = 10 } = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
-      {}
+      { propertyId, rentType, page, limit }
     );
 
     return res.status(response?.status || 500).json(response);

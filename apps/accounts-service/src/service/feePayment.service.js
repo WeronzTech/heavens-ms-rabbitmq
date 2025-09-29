@@ -542,20 +542,41 @@ export const recordManualPayment = async (data) => {
   });
 };
 
-export const getAllFeePayments = async () => {
+export const getAllFeePayments = async (data) => {
   try {
-    const payments = await Payments.find().lean();
+    const { propertyId, rentType, page = 1, limit = 10 } = data;
 
-    const groupedPayments = {
-      Monthly: payments.filter((p) => p.rentType?.trim() === "Monthly"),
-      DailyRent: payments.filter((p) => p.rentType?.trim() === "DailyRent"),
-      MessOnly: payments.filter((p) => p.rentType?.trim() === "MessOnly"),
-    };
+    const filter = {};
+    if (propertyId) {
+      filter["property.id"] = propertyId;
+    }
+    if (rentType) {
+      filter.rentType = rentType.trim();
+    }
+
+    // Fields to select
+    const projection =
+      "name rent paymentMethod transactionId paymentDate amount";
+
+    // Query with pagination
+    const payments = await Payments.find(filter, projection)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    // Get total count for pagination metadata
+    const total = await Payments.countDocuments(filter);
 
     return {
       success: true,
       status: 200,
-      data: groupedPayments,
+      data: payments,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
     };
   } catch (error) {
     console.error("Get All Fee Payments Service Error:", error);
@@ -667,7 +688,6 @@ export const getFinancialSummary = async (data) => {
   try {
     let propertyId;
     let rentType;
-    console.log(data);
     // Handle both cases: data could be string (propertyId) or object
     if (typeof data === "string") {
       propertyId = data;
@@ -812,7 +832,8 @@ export const getAllAccountsPayments = async () => {
     return {
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching all accounts summary.",
+      message:
+        "An internal server error occurred while fetching all accounts summary.",
       error: error.message,
     };
   }

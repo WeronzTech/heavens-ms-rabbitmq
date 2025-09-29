@@ -35,6 +35,7 @@ import pettyCashRoutes from "./routes/client/pettyCash.routes.js";
 import dashboardRoutes from "./routes/property/dashboard.routes.js";
 import agencyRoutes from "./routes/client/agency.routes.js";
 import commissionRoutes from "./routes/accounts/commission.routes.js";
+import accountDashboardRoutes from "./routes/accounts/accountDashbaord.routes.js";
 import expenseRoutes from "./routes/accounts/expense.routes.js";
 
 dotenv.config();
@@ -92,11 +93,12 @@ app.use("/api/v2/pushNotification", pushNotificationRoutes);
 app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
+app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
 app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes);
 app.use("/api/v2/pettycash", pettyCashRoutes);
-app.use("/api/v2/expense",expenseRoutes)
+app.use("/api/v2/expense", expenseRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

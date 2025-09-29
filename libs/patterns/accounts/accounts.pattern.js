@@ -23,8 +23,12 @@ export const ACCOUNTS_PATTERN = {
     DELETE_COMMISSION: "delete_commission",
     GET_ALL_COMMISSION_BY_USER: "get_all_commission_by_user",
   },
+  DASHBOARD: {
+    GET_ACCOUNT_DASHBAORD_DATA_FOR_INCOME_SECTION:
+      "get_account_dashbaord_data_for_income_section",
+  },
   EXPENSE: {
-    ADD_EXPENSE : "add_expense",
+    ADD_EXPENSE: "add_expense",
     GET_ALL_EXPENSES: "get_all_expense",
     GET_EXPENSE_BY_ID: "get_expense_by_id",
     DELETE_EXPENSE: "delete_expense",
