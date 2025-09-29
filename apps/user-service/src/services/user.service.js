@@ -2262,13 +2262,22 @@ export const createStatusRequest = async (data) => {
 
     // Always fetch current request status
     const user = await User.findById(id).select(
-      "paymentStatus stayDetails.depositStatus currentStatusRequest"
+      "paymentStatus stayDetails.depositStatus currentStatus currentStatusRequest"
     );
 
     if (!user) {
       return {
         status: 404,
         body: { error: "User not found" },
+      };
+    }
+
+    if (user.currentStatus === type) {
+      return {
+        status: 400,
+        body: {
+          error: `You are already marked as "${type}". Cannot submit the same request.`,
+        },
       };
     }
 

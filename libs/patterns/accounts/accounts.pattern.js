@@ -13,7 +13,7 @@ export const ACCOUNTS_PATTERN = {
     GET_FINANCIAL_SUMMARY: "get_Financial_Summary",
     GET_NEXT_DUE_DATE: "get_next_due_date",
     GET_PAYMENT_SUMMARY: "get_payment_summary",
-    GET_PAYMENTS_BY_USERID: "get_payments_by_userId"
+    GET_PAYMENTS_BY_USERID: "get_payments_by_userId",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",
@@ -26,6 +26,8 @@ export const ACCOUNTS_PATTERN = {
   DASHBOARD: {
     GET_ACCOUNT_DASHBAORD_DATA_FOR_INCOME_SECTION:
       "get_account_dashbaord_data_for_income_section",
+    GET_ACCOUNT_DASHBAORD_DATA_FOR_EXPENESE_SECTION:
+      "get_account_dashbaord_data_for_expense_section",
   },
   EXPENSE: {
     ADD_EXPENSE: "add_expense",

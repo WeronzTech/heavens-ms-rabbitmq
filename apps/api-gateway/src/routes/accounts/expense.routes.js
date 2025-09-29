@@ -1,22 +1,22 @@
 import express from "express";
-import { addExpenseCategoryController, addExpenseController, 
-    deleteCategoryController, 
-    deleteExpenseController, 
-    getAllCategoriesController, 
-    getAllExpensesController, 
-    getCategoryByMainCategoryController, 
-    getExpenseByIdController } from "../../controllers/accounts/expense.controller.js";
-
-
+import {
+  addExpenseCategoryController,
+  addExpenseController,
+  deleteCategoryController,
+  deleteExpenseController,
+  getAllCategoriesController,
+  getAllExpensesController,
+  getCategoryByMainCategoryController,
+  getExpenseByIdController,
+} from "../../controllers/accounts/expense.controller.js";
 
 const expenseRoutes = express.Router();
-
 
 expenseRoutes.post("/add", addExpenseController);
 
 expenseRoutes.post("/add-category", addExpenseCategoryController);
 
-expenseRoutes.post("/categories/by-main", getCategoryByMainCategoryController);
+expenseRoutes.get("/categories/by-main", getCategoryByMainCategoryController);
 
 expenseRoutes.get("/all", getAllExpensesController);
 

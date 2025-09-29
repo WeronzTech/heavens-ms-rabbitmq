@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Payments from "../models/feePayments.model.js";
+import Expense from "../models/expense.model.js";
 
 export const getAccountDashboardDataForIncomeSection = async (data) => {
   try {
@@ -199,3 +200,107 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
 function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate();
 }
+
+export const getAccountDashboardDataForExpenseSection = async (data) => {
+  try {
+    const { propertyId } = data;
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentDay = currentDate.getDate();
+
+    const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+    const currentMonthStart = new Date(currentYear, currentMonth - 1, 1);
+    const currentMonthTillToday = new Date(
+      currentYear,
+      currentMonth - 1,
+      currentDay,
+      23,
+      59,
+      59,
+      999
+    );
+    const lastMonthStart = new Date(
+      lastMonthYear,
+      lastMonth - 1,
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const lastMonthEnd = new Date(lastMonthYear, lastMonth, 0, 23, 59, 59, 999);
+
+    const matchCondition = {
+      paymentDate: {
+        $gte: lastMonthStart,
+        $lte: currentMonthTillToday,
+      },
+    };
+
+    if (propertyId) {
+      matchCondition["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    // Aggregation for payment statistics
+    const paymentStats = await Expense.aggregate([
+      {
+        $match: matchCondition,
+      },
+      {
+        $project: {
+          amount: 1,
+          date: 1,
+          isCurrentMonth: {
+            $and: [
+              { $gte: ["$date", currentMonthStart] },
+              { $lte: ["$date", currentMonthTillToday] },
+            ],
+          },
+          isLastMonth: {
+            $and: [
+              { $gte: ["$date", lastMonthStart] },
+              { $lte: ["$date", lastMonthEnd] },
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          currentMonthReceived: {
+            $sum: { $cond: ["$isCurrentMonth", "$amount", 0] },
+          },
+          lastMonthReceived: {
+            $sum: { $cond: ["$isLastMonth", "$amount", 0] },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          currentMonthReceived: 1,
+          lastMonthReceived: 1,
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      status: 200,
+      message: "Financial dashboard data retrieved successfully",
+      data: paymentStats,
+    };
+  } catch (error) {
+    console.error("Expense Summary Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
