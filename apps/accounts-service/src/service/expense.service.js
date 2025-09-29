@@ -1,5 +1,5 @@
+import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
 import ExpenseCategory from "../models/expenseCategory.model.js";
@@ -13,8 +13,10 @@ export const addExpense = async (data) => {
       amount,
       handledBy,
       pettyCashType,
+      billImage,
       ...expenseData
     } = data;
+    console.log("data", property);
 
     // ✅ Required field validation
     if (
@@ -27,7 +29,11 @@ export const addExpense = async (data) => {
       !expenseData.category ||
       !expenseData.date
     ) {
-      return { success: false, status: 400, message: "Missing required fields" };
+      return {
+        success: false,
+        status: 400,
+        message: "Missing required fields",
+      };
     }
 
     // ✅ Additional validation for petty cash type
@@ -73,12 +79,14 @@ export const addExpense = async (data) => {
       }
 
       // ✅ Deduct petty cash (send negative amount)
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        managerId: handledBy,
-        pettyCashType,
-        amount: -amount, // 👈 deduct instead of add
-      });
     }
+
+    const originalQuality = true;
+    const billImageURL = await uploadToFirebase(
+      billImage,
+      "expense-images",
+      originalQuality
+    );
 
     // ✅ Create expense in DB
     const expense = new Expense({
@@ -86,12 +94,29 @@ export const addExpense = async (data) => {
       property,
       handledBy,
       paymentMethod,
+      imageUrl: billImageURL,
       pettyCashType: paymentMethod === "Petty Cash" ? pettyCashType : undefined,
       amount,
       ...expenseData,
     });
 
     await expense.save();
+
+    if (pettyCashType === "inHand") {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: handledBy,
+        pettyCashType,
+        inHandAmount: -amount, // 👈 deduct instead of add
+      });
+    }
+
+    if (pettyCashType === "inAccount") {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: handledBy,
+        pettyCashType,
+        inAccountAmount: -amount, // 👈 deduct instead of add
+      });
+    }
 
     return {
       success: true,
@@ -111,68 +136,87 @@ export const addExpense = async (data) => {
 };
 
 export const getAllExpenses = async () => {
-    try {
-      // you can extend later (filters, pagination) using data
-      const expenses = await Expense.find().sort({ createdAt: -1 });
-      return { success: true, status: 200, data: expenses };
-    } catch (error) {
-      console.error("[ACCOUNTS] Error in getAllExpenses:", error);
-      return { success: false, status: 500, message: "Internal server error", error: error.message };
-    }
-  };
-  
-  // Get Expense by ID
-  export const getExpenseById = async (data) => {
-    try {
-      const { expenseId } = data;
-  
-      if (!expenseId) {
-        return { success: false, status: 400, message: "Expense ID is required" };
-      }
-  
-      const expense = await Expense.findById(expenseId);
-      if (!expense) {
-        return { success: false, status: 404, message: "Expense not found" };
-      }
-  
-      return {  success: true, 
-                status: 200, 
-                data: expense };
-    } catch (error) {
-      console.error("[ACCOUNTS] Error in getExpenseById:", error);
-      return {  success: false, 
-                status: 500, 
-                message: "Internal server error", error: error.message };
-    }
-  };
-  
-  // Delete Expense
-  export const deleteExpense = async (data) => {
-    try {
-      const { expenseId } = data;
-  
-      if (!expenseId) {
-        return { success: false, status: 400, message: "Expense ID is required" };
-      }
-  
-      const expense = await Expense.findByIdAndDelete(expenseId);
-      if (!expense) {
-        return { success: false, status: 404, message: "Expense not found" };
-      }
-  
-      return { success: true, status: 200, message: "Expense deleted successfully", data: expense };
-    } catch (error) {
-      console.error("[ACCOUNTS] Error in deleteExpense:", error);
-      return { success: false, status: 500, message: "Internal server error", error: error.message };
-    }
-  };
+  try {
+    // you can extend later (filters, pagination) using data
+    const expenses = await Expense.find().sort({ createdAt: -1 });
+    return { success: true, status: 200, data: expenses };
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getAllExpenses:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
 
-export const addExpenseCategory = async (data) => { 
+// Get Expense by ID
+export const getExpenseById = async (data) => {
+  try {
+    const { expenseId } = data;
+
+    if (!expenseId) {
+      return { success: false, status: 400, message: "Expense ID is required" };
+    }
+
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      return { success: false, status: 404, message: "Expense not found" };
+    }
+
+    return { success: true, status: 200, data: expense };
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getExpenseById:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
+// Delete Expense
+export const deleteExpense = async (data) => {
+  try {
+    const { expenseId } = data;
+
+    if (!expenseId) {
+      return { success: false, status: 400, message: "Expense ID is required" };
+    }
+
+    const expense = await Expense.findByIdAndDelete(expenseId);
+    if (!expense) {
+      return { success: false, status: 404, message: "Expense not found" };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Expense deleted successfully",
+      data: expense,
+    };
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in deleteExpense:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
+export const addExpenseCategory = async (data) => {
   try {
     const { mainCategory, subCategory } = data;
 
     // ✅ Save to DB
-    const expenseCategory = await ExpenseCategory.create({ mainCategory, subCategory });
+    const expenseCategory = await ExpenseCategory.create({
+      mainCategory,
+      subCategory,
+    });
 
     return {
       success: true,
@@ -185,13 +229,14 @@ export const addExpenseCategory = async (data) => {
     return {
       success: false,
       status: 500,
-      message: "An internal server error occurred while adding expenseCategory.",
+      message:
+        "An internal server error occurred while adding expenseCategory.",
       error: error.message,
     };
   }
 };
 
-export const getCategoryByMainCategory = async (data) => { 
+export const getCategoryByMainCategory = async (data) => {
   try {
     const { mainCategory } = data;
 
@@ -203,12 +248,13 @@ export const getCategoryByMainCategory = async (data) => {
     return {
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching categories by main category.",
+      message:
+        "An internal server error occurred while fetching categories by main category.",
     };
   }
 };
 
-export const getAllCategories = async () => { 
+export const getAllCategories = async () => {
   try {
     const response = await getAllCategories();
     return response;
@@ -217,12 +263,13 @@ export const getAllCategories = async () => {
     return {
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching all categories.",
+      message:
+        "An internal server error occurred while fetching all categories.",
     };
   }
 };
 
-export const deleteCategory = async (data) => { 
+export const deleteCategory = async (data) => {
   try {
     const { categoryId } = data;
 

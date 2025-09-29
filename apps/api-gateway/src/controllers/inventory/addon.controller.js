@@ -21,6 +21,7 @@ export const createAddon = (req, res) => {
     payload.itemImage = {
       buffer: files.itemImage[0].buffer.toString("base64"),
       originalname: files.itemImage[0].originalname,
+      mimetype: files.itemImage[0].mimetype,
     };
   }
 
@@ -43,6 +44,7 @@ export const updateAddon = (req, res) => {
     payload.itemImage = {
       buffer: files.itemImage[0].buffer.toString("base64"),
       originalname: files.itemImage[0].originalname,
+      mimetype: files.itemImage[0].mimetype,
     };
   }
 

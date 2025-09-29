@@ -2876,3 +2876,53 @@ export const getResidentCounts = async (data) => {
     return { error: "Failed to fetch resident counts" };
   }
 };
+
+export const getUsersWithBirthdayToday = async () => {
+  try {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // getMonth() is 0-indexed
+    const currentDay = today.getDate();
+
+    const users = await User.aggregate([
+      {
+        $match: {
+          "personalDetails.dob": { $exists: true, $ne: null },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          month: { $month: "$personalDetails.dob" },
+          day: { $dayOfMonth: "$personalDetails.dob" },
+        },
+      },
+      {
+        $match: {
+          month: currentMonth,
+          day: currentDay,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      status: 200,
+      message: "Successfully retrieved users with birthdays today.",
+      data: users,
+    };
+  } catch (error) {
+    console.error("Error fetching users with birthday today:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};

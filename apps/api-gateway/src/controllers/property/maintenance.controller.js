@@ -7,12 +7,10 @@ const handleRPCAndRespond = async (res, pattern, data) => {
     return res.status(response.status || 500).json(response);
   } catch (error) {
     console.error(`API Gateway Error in ${pattern}:`, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Internal Server Error in API Gateway.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error in API Gateway.",
+    });
   }
 };
 
@@ -24,10 +22,11 @@ export const createMaintenance = (req, res) => {
     filesAsBase64.issueImage = {
       buffer: files.issueImage[0].buffer.toString("base64"),
       originalname: files.issueImage[0].originalname,
+      mimetype: files.issueImage[0].mimetype,
     };
   }
 
-  return handleRPCAndRespond(res, PROPERTY_PATTERN.MAINTENANCE.CREATE, {
+  handleRPCAndRespond(res, PROPERTY_PATTERN.MAINTENANCE.CREATE, {
     payload,
     files: filesAsBase64,
   });
