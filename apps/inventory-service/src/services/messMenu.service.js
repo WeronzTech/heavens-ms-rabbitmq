@@ -257,6 +257,8 @@ export const getMessMenuByPropertyId = async (data) => {
         "menu.$": 1,
         mealTimes: 1,
         name: 1,
+        bookingStartTime: 1,
+        bookingEndTime: 1,
       }
     ).populate({
       path: "menu.meals.itemIds",

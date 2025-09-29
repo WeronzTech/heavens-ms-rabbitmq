@@ -547,3 +547,18 @@ export const getAllPendingPayments = async (req, res) => {
     });
   }
 };
+
+const handleRPCAndRespond = async (res, pattern, data) => {
+  try {
+    const response = await sendRPCRequest(pattern, data);
+    return res.status(response.status || 500).json(response);
+  } catch (error) {
+    console.error(`API Gateway Error in ${pattern}:`, error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error in API Gateway." });
+  }
+};
+
+export const getUsersWithBirthdayToday = (req, res) =>
+  handleRPCAndRespond(res, USER_PATTERN.USER.GET_USERS_WITH_BIRTHDAY_TODAY, {});

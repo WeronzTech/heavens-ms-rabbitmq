@@ -40,9 +40,11 @@ export const uploadToFirebase = async (
   const uniqueName = `${uuidv4()}-${file.originalname}`;
   const destination = `${folderName}/${uniqueName}`;
   let bufferToUpload = file.buffer;
+  const imageBuffer = Buffer.from(file.buffer, "base64");
+  file.buffer = imageBuffer;
 
   // Compress image if not keeping original
-  if (file.mimetype.startsWith("image/") && !originalQuality) {
+  if (file?.mimetype?.startsWith("image/") && !originalQuality) {
     try {
       bufferToUpload = await sharp(file.buffer)
         .resize({ width: 800 })

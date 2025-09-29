@@ -1,18 +1,23 @@
 import express from "express";
-import { addExpenseCategoryController, addExpenseController, 
-    deleteCategoryController, 
-    deleteExpenseController, 
-    getAllCategoriesController, 
-    getAllExpensesController, 
-    getCategoryByMainCategoryController, 
-    getExpenseByIdController } from "../../controllers/accounts/expense.controller.js";
-
-
+import {
+  addExpenseCategoryController,
+  addExpenseController,
+  deleteCategoryController,
+  deleteExpenseController,
+  getAllCategoriesController,
+  getAllExpensesController,
+  getCategoryByMainCategoryController,
+  getExpenseByIdController,
+} from "../../controllers/accounts/expense.controller.js";
+import { upload } from "../../../../../libs/common/imageOperation.js";
 
 const expenseRoutes = express.Router();
 
-
-expenseRoutes.post("/add", addExpenseController);
+expenseRoutes.post(
+  "/add",
+  upload.fields([{ name: "billImage", maxCount: 1 }]),
+  addExpenseController
+);
 
 expenseRoutes.post("/add-category", addExpenseCategoryController);
 

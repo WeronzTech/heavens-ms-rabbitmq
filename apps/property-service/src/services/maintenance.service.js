@@ -487,6 +487,8 @@ export const createMaintenance = async (data) => {
 
     const maintenanceData = { ...payload };
 
+    console.log("Maintenance Data:", maintenanceData);
+
     if (files && files.issueImage) {
       const imageBuffer = Buffer.from(files.issueImage.buffer, "base64");
       const issueImageUrl = await uploadToFirebase(
@@ -497,29 +499,24 @@ export const createMaintenance = async (data) => {
     }
 
     const maintenanceRecord = await Maintenance.create(maintenanceData);
+    console.log("Maintenance Record:", maintenanceRecord);
 
     // After creation, trigger socket notification via RPC
-    try {
-      const property = await Property.findById(
-        maintenanceRecord?.propertyId
-      ).lean();
-      const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
-      if (property && property.clientId) {
-        userIdsToNotify.push(property.clientId.toString());
-      }
-
-      await sendRPCRequest(SOCKET_PATTERN.EMIT_EVENT, {
-        userIds: userIdsToNotify,
-        event: "new-maintenance",
-        data: maintenanceRecord,
-      });
-    } catch (socketError) {
-      // Log the error but don't fail the whole operation
-      console.error(
-        "Failed to emit socket event for new maintenance:",
-        socketError
-      );
+    const property = await Property.findById(
+      maintenanceRecord?.propertyId
+    ).lean();
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
+    if (property && property.clientId) {
+      userIdsToNotify.push(property.clientId.toString());
     }
+
+    const socketResponse = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "new-maintenance",
+      data: maintenanceRecord,
+    });
+
+    console.log("socketResponse", socketResponse);
 
     return {
       success: true,
@@ -816,11 +813,13 @@ export const getAllMaintenanceRecordsByUser = async (data) => {
 
     // console.log("Aggregation result:", JSON.stringify(result, null, 2)); // debug log
 
-    const data = result[0]?.data || [];
+    const dataResult = result[0]?.data || [];
     const total = result[0]?.totalCount[0]?.count || 0;
 
     return {
-      data,
+      success: true,
+      data: dataResult,
+      status: 200,
       pagination: {
         total,
         page,
