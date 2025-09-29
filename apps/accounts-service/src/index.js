@@ -46,6 +46,7 @@ const startServer = async () => {
     // ✅ STEP 2: Dynamically import controller AFTER the connection is ready.
     console.log("[ACCOUNTS] Setting up RabbitMQ responders...");
     await import("./controllers/feePayment.controller.js");
+    await import("./controllers/expense.controller.js");
     await import("./controllers/commission.controller.js");
     await import("./controllers/dashboard.controller.js");
     console.log("[ACCOUNTS] Responders are ready.");

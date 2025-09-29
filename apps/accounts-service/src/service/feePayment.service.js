@@ -6,6 +6,8 @@ import {
   verifyPayment as verifyRazorpaySignature,
 } from "../../../../libs/common/razorpay.js";
 import mongoose from "mongoose";
+import Expense from "../models/expense.model.js";
+import Commission from "../models/commission.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -801,6 +803,37 @@ export const getNextDueDate = async (data) => {
       status: 500,
       message: "Internal Server Error",
       error: err.message,
+    };
+  }
+};
+
+export const getAllAccountsPayments = async () => {
+  try {
+    // 1️⃣ Fetch fee payments
+    const payments = await Payments.find().sort({ createdAt: -1 }).lean();
+
+    // 2️⃣ Fetch expenses
+    const expenses = await Expense.find().sort({ createdAt: -1 }).lean();
+
+    // 3️⃣ Fetch commissions
+    const commissions = await Commission.find().sort({ createdAt: -1 }).lean();
+
+    return {
+      success: true,
+      status: 200,
+      data: {
+        payments,
+        expenses,
+        commissions,
+      },
+    };
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getAllAccountsSummary:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching all accounts summary.",
+      error: error.message,
     };
   }
 };

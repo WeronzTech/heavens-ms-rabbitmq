@@ -12,6 +12,7 @@ import {
   getMonthWiseRentCollection,
   getFinancialSummary,
   getNextDueDate,
+  getAllAccountsPayments,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -73,8 +74,8 @@ createResponder(
 );
 
 createResponder(
-  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
-  async ({ userIds }) => {
-    return await getLatestPaymentsByUsers({ userIds });
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY,
+  async (data) => {
+    return await getAllAccountsPayments(data);
   }
 );
