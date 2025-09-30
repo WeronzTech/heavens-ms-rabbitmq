@@ -51,4 +51,9 @@ export const PROPERTY_PATTERN = {
     GET_MAINTENANCE_COUNTS: "get_maintenance_counts",
     GET_OCCUPANCY_RATE: "get_ocuupancy_rate",
   },
+  CAROUSEL: {
+    ADD_CAROUSEL: "add_carousel",
+    UPDATE_CAROUSEL: "update_carousel",
+    DELETE_CAROUSEL: "delete_carousel",
+  }
 };
