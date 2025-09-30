@@ -2888,6 +2888,7 @@ export const getResidentCounts = async (data) => {
 
 export const getUsersWithBirthdayToday = async () => {
   try {
+    console.log("Here");
     const today = new Date();
     const currentMonth = today.getMonth() + 1; // getMonth() is 0-indexed
     const currentDay = today.getDate();
@@ -2915,7 +2916,7 @@ export const getUsersWithBirthdayToday = async () => {
         $project: {
           _id: 1,
           name: 1,
- },
+        },
       },
     ]);
 

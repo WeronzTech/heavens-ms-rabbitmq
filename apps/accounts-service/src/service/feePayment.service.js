@@ -8,6 +8,7 @@ import {
 import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
+import moment from "moment";
 
 export const addFeePayment = async (data) => {
   try {
@@ -670,6 +671,160 @@ export const getFeePaymentById = async (data) => {
 //     session.endSession();
 //   }
 // };
+// const processAndRecordPayment = async ({
+//   userId,
+//   amount,
+//   paymentMethod,
+//   transactionId = null,
+//   razorpayDetails = {},
+// }) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const userResponse = await sendRPCRequest(
+//       USER_PATTERN.USER.GET_USER_BY_ID,
+//       { userId }
+//     );
+//     if (!userResponse.body.success) {
+//       throw new Error(userResponse.message || "User not found.");
+//     }
+//     const user = userResponse.body.data;
+
+//     let paymentForMonths = []; // Initialize for all types
+
+//     // --- Logic for Daily and Mess users ---
+//     if (user.rentType === "daily" || user.rentType === "mess") {
+//       const pending = user.financialDetails.pendingAmount || 0;
+//       if (amount < pending) {
+//         throw new Error(
+//           `Payment amount must be at least the pending amount of ₹${pending}.`
+//         );
+//       }
+//       user.financialDetails.pendingAmount -= amount;
+//       if (user.financialDetails.pendingAmount <= 0) {
+//         user.paymentStatus = "paid";
+//       }
+//     }
+//     // --- Logic for Monthly Renters ---
+//     else if (user.rentType === "monthly") {
+//       const monthlyRent = user.financialDetails.monthlyRent || 0;
+//       const currentBalance = user.financialDetails.accountBalance || 0;
+//       const currentPendingRent = user.financialDetails.pendingRent || 0;
+//       const totalAvailableAmount = amount + currentBalance;
+//       console.log("Total", totalAvailableAmount);
+
+//       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
+
+//       if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
+//         throw new Error(
+//           `To clear your due, payment of ₹${amount} plus advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
+//         );
+//       }
+
+//       let monthsCleared = Math.floor(totalAvailableAmount / monthlyRent);
+//       let newAccountBalance = totalAvailableAmount % monthlyRent;
+
+//       user.financialDetails.accountBalance = newAccountBalance;
+//       user.financialDetails.pendingRent =
+//         currentPendingRent - monthsCleared * monthlyRent;
+//       if (user.financialDetails.pendingRent <= 0) {
+//         user.financialDetails.pendingRent = 0;
+//         user.paymentStatus = "paid";
+//       }
+//       console.log("Months cleared", monthsCleared);
+
+//       if (monthsCleared > 0) {
+//         const lastClearedDate = user.financialDetails.clearedTillMonth
+//           ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
+//           : new Date(user.stayDetails.joinDate);
+
+//         if (!user.financialDetails.clearedTillMonth) {
+//           lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
+//         }
+
+//         // This loop determines which months are being paid for
+//         for (let i = 0; i < monthsCleared; i++) {
+//           const paymentMonthDate = new Date(lastClearedDate);
+//           paymentMonthDate.setMonth(paymentMonthDate.getMonth() + i + 1);
+//           paymentForMonths.push(
+//             // The result is added here
+//             paymentMonthDate.toLocaleString("default", {
+//               month: "long",
+//               year: "numeric",
+//             })
+//           );
+//         }
+//         console.log("payment for month", paymentForMonths);
+
+//         const finalClearedDate = new Date(lastClearedDate);
+//         finalClearedDate.setMonth(finalClearedDate.getMonth() + monthsCleared);
+
+//         user.financialDetails.clearedTillMonth = `${finalClearedDate.getFullYear()}-${String(
+//           finalClearedDate.getMonth() + 1
+//         ).padStart(2, "0")}`;
+//         user.financialDetails.nextDueDate = new Date(
+//           finalClearedDate.getFullYear(),
+//           finalClearedDate.getMonth() + 1,
+//           5
+//         );
+//       }
+//     }
+
+//     // Create the Payment Record
+//     const newPayment = new Payments({
+//       name: user.name,
+//       contact: user.contact,
+//       room: user.stayDetails?.roomNumber || "N/A",
+//       rent: user.financialDetails?.monthlyRent || 0,
+//       amount: amount,
+//       accountBalance: user.financialDetails?.accountBalance || 0,
+//       dueAmount: user.financialDetails.pendingRent,
+//       paymentMethod,
+//       transactionId,
+//       paymentForMonths,
+//       status: "Paid",
+//       property: {
+//         id: user.stayDetails?.propertyId,
+//         name: user.stayDetails?.propertyName,
+//       },
+//       userId: user._id,
+//       ...razorpayDetails,
+//     });
+
+//     await newPayment.save();
+
+//     // Update user via RPC
+//     const updateUserResponse = await sendRPCRequest(
+//       USER_PATTERN.USER.UPDATE_USER,
+//       {
+//         userId,
+//         userData: {
+//           financialDetails: user.financialDetails,
+//           paymentStatus: user.paymentStatus,
+//         },
+//       }
+//     );
+
+//     if (!updateUserResponse.body.success) {
+//       throw new Error("Failed to update user financial details.");
+//     }
+
+//     await session.commitTransaction();
+//     return {
+//       success: true,
+//       status: 201,
+//       message: "Payment recorded successfully.",
+//       data: newPayment,
+//     };
+//   } catch (error) {
+//     await session.abortTransaction();
+//     console.error("Error during payment processing:", error);
+//     return { success: false, status: 400, message: error.message };
+//   } finally {
+//     session.endSession();
+//   }
+// };
 const processAndRecordPayment = async ({
   userId,
   amount,
@@ -708,11 +863,32 @@ const processAndRecordPayment = async ({
     // --- Logic for Monthly Renters ---
     else if (user.rentType === "monthly") {
       const monthlyRent = user.financialDetails.monthlyRent || 0;
+      if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
+
+      // ✅ **NEW LOGIC: Dynamically calculate and add overdue rent**
+      const { clearedTillMonth } = user.financialDetails;
+      if (clearedTillMonth) {
+        const today = moment();
+        const nextDueDate = moment(clearedTillMonth, "YYYY-MM").add(
+          1,
+          "months"
+        );
+
+        console.log("Before", user.financialDetails.pendingRent);
+        if (today.isAfter(nextDueDate)) {
+          const monthsOverdue = today.diff(nextDueDate, "months") + 1;
+          const overdueRent = monthsOverdue * monthlyRent;
+          console.log("Overdue rent:", overdueRent);
+          // Add the newly calculated overdue amount to any existing pending rent
+          user.financialDetails.pendingRent = overdueRent;
+          console.log("After", user.financialDetails.pendingRent);
+        }
+      }
+      // **END OF NEW LOGIC**
+
       const currentBalance = user.financialDetails.accountBalance || 0;
       const currentPendingRent = user.financialDetails.pendingRent || 0;
       const totalAvailableAmount = amount + currentBalance;
-
-      if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
 
       if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
         throw new Error(
@@ -730,7 +906,6 @@ const processAndRecordPayment = async ({
         user.financialDetails.pendingRent = 0;
         user.paymentStatus = "paid";
       }
-      console.log("Months cleared", monthsCleared);
 
       if (monthsCleared > 0) {
         const lastClearedDate = user.financialDetails.clearedTillMonth
@@ -741,19 +916,16 @@ const processAndRecordPayment = async ({
           lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
         }
 
-        // This loop determines which months are being paid for
         for (let i = 0; i < monthsCleared; i++) {
           const paymentMonthDate = new Date(lastClearedDate);
           paymentMonthDate.setMonth(paymentMonthDate.getMonth() + i + 1);
           paymentForMonths.push(
-            // The result is added here
             paymentMonthDate.toLocaleString("default", {
               month: "long",
               year: "numeric",
             })
           );
         }
-        console.log("payment for month", paymentForMonths);
 
         const finalClearedDate = new Date(lastClearedDate);
         finalClearedDate.setMonth(finalClearedDate.getMonth() + monthsCleared);
@@ -790,7 +962,7 @@ const processAndRecordPayment = async ({
       ...razorpayDetails,
     });
 
-    await newPayment.save();
+    await newPayment.save({ session });
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
@@ -1268,7 +1440,7 @@ export const getAllAccountsPayments = async () => {
 
 export const getFeePaymentsByUserId = async (data) => {
   try {
-    const { userId } = data; 
+    const { userId } = data;
 
     if (!userId) {
       return {
