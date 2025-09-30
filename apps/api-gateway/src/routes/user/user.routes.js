@@ -28,6 +28,7 @@ const userRoutes = express.Router();
 
 //For Notification
 userRoutes.get("/push-notification", getUserIds);
+userRoutes.get("/birthday", getUsersWithBirthdayToday);
 
 // Authentication
 userRoutes.post("/register", registerUser);
@@ -71,7 +72,6 @@ userRoutes.put("/:id/profile-completion", updateProfileCompletion);
 userRoutes.get("/", getUsersByRentType);
 userRoutes.get("/pending-payments", getAllPendingPayments);
 userRoutes.get("/offBoarding", getCheckOutedUsersByRentType);
-userRoutes.get("/birthdays", getUsersWithBirthdayToday);
 
 // userRoutes
 //   .route("/:id")
