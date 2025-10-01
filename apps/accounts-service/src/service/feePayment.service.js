@@ -1478,3 +1478,41 @@ export const getFeePaymentsByUserId = async (data) => {
     };
   }
 };
+
+export const getWaveOffedPayments = async (data) => {
+  try {
+    const query = { waveOffAmount: { $gt: 0 } };
+
+    // Extract propertyId from data
+    const { propertyId } = data || {};
+
+    if (propertyId) {
+      query["property.id"] = propertyId;
+    }
+
+    const waveOffedPayments = await Payments.find(query).lean();
+
+    const totalWaveOff = waveOffedPayments.reduce(
+      (sum, payment) => sum + (payment.waveOffAmount || 0),
+      0
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: "Wave-offed payments fetched successfully",
+      data: {
+        payments: waveOffedPayments,
+        totalWaveOff,
+      },
+    };
+  } catch (error) {
+    console.error("Service Error - getWaveOffedPayments:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};

@@ -230,3 +230,24 @@ export const getUserPaymentsController = async (req, res) => {
     });
   }
 };
+
+export const getWaveOffedPaymentsController = async (req, res) => {
+  try {
+    // Get propertyId from query params
+    const { propertyId } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
+      { propertyId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get WaveOffed Payments Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};

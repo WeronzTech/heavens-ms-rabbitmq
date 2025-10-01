@@ -15,6 +15,7 @@ import {
   getAllAccountsPayments,
   getFeePaymentsByUserId,
   getLatestPaymentsByUsers,
+  getWaveOffedPayments,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -96,4 +97,11 @@ createResponder(
   }
 );
 
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
+  async (data) => {
+    return await getWaveOffedPayments(data);
+  }
+);
 
