@@ -75,6 +75,7 @@ app.use("/api/v2/auth/role", roleRoutes);
 app.use("/api/v2/client", clientRoutes);
 app.use("/api/v2/client/manager", managerRoutes);
 app.use("/api/v2/client/agency", agencyRoutes);
+app.use("/api/v2/client/pettyCash", pettyCashRoutes);
 app.use("/api/v2/inventory/mess", mealRoutes);
 app.use("/api/v2/inventory/mess-booking", messBookingRoutes);
 app.use("/api/v2/inventory/kitchen", kitchenRoutes);
@@ -98,9 +99,8 @@ app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
 app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes);
-app.use("/api/v2/pettycash", pettyCashRoutes);
 app.use("/api/v2/expense", expenseRoutes);
-app.use("/api/v2/property/carousel", carouselRoutes)
+app.use("/api/v2/property/carousel", carouselRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

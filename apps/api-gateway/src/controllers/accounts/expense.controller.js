@@ -135,7 +135,7 @@ export const addExpenseCategoryController = async (req, res) => {
     if (expenseCategory.status === 200) {
       res.status(200).json(expenseCategory);
     } else {
-      res.status(expense.status).json(expenseCategory);
+      res.status(expenseCategory.status).json(expenseCategory);
     }
   } catch (error) {
     console.error("Error in adding expenseCategory:", error);
@@ -150,8 +150,10 @@ export const addExpenseCategoryController = async (req, res) => {
 
 export const getCategoryByMainCategoryController = async (req, res) => {
   try {
-    const { mainCategory } = req.params;
+    const { mainCategory } = req.query;
+    console.log("hererererere");
 
+    console.log(mainCategory);
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_CATEGORY_BY_MAINCATEROGY,
       { mainCategory }

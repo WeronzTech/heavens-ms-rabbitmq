@@ -279,8 +279,9 @@ export const resetPasswordManager = async (data) => {
 export const getAllManagers = async (data) => {
   try {
     const { propertyId, joinDate, status, name } = data;
+
     const filter = {};
-    if (propertyId) filter.propertyId = propertyId;
+    if (propertyId) filter.propertyId = { $in: [propertyId] };
     if (joinDate) filter.joinDate = joinDate;
     if (status) filter.status = status;
     if (name) filter.name = { $regex: name, $options: "i" };
@@ -301,6 +302,7 @@ export const getAllManagers = async (data) => {
 export const getManagerById = async (data) => {
   try {
     const { id } = data;
+
     const manager = await Manager.findById(id);
     if (!manager) {
       return { success: false, status: 404, message: "Manager not found." };

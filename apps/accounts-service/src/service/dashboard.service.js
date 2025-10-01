@@ -235,7 +235,7 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
     const lastMonthEnd = new Date(lastMonthYear, lastMonth, 0, 23, 59, 59, 999);
 
     const matchCondition = {
-      paymentDate: {
+      date: {
         $gte: lastMonthStart,
         $lte: currentMonthTillToday,
       },
@@ -245,14 +245,12 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
       matchCondition["property.id"] = new mongoose.Types.ObjectId(propertyId);
     }
 
-    // Aggregation for payment statistics
-    const paymentStats = await Expense.aggregate([
-      {
-        $match: matchCondition,
-      },
+    const expenseStats = await Expense.aggregate([
+      { $match: matchCondition },
       {
         $project: {
           amount: 1,
+          type: 1,
           date: 1,
           isCurrentMonth: {
             $and: [
@@ -270,29 +268,72 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
       },
       {
         $group: {
-          _id: null,
-          currentMonthReceived: {
+          _id: "$type",
+          currentMonthExpense: {
             $sum: { $cond: ["$isCurrentMonth", "$amount", 0] },
           },
-          lastMonthReceived: {
+          lastMonthExpense: {
             $sum: { $cond: ["$isLastMonth", "$amount", 0] },
           },
         },
       },
-      {
-        $project: {
-          _id: 0,
-          currentMonthReceived: 1,
-          lastMonthReceived: 1,
-        },
-      },
     ]);
+
+    // ✅ Initialize totals and always include pg, mess, others
+    const result = {
+      currentMonthExpense: 0,
+      lastMonthExpense: 0,
+      currentMonthPgExpense: 0,
+      lastMonthPgExpense: 0,
+      currentMonthMessExpense: 0,
+      lastMonthMessExpense: 0,
+      currentMonthOthersExpense: 0,
+      lastMonthOthersExpense: 0,
+    };
+
+    // Fill dynamic fields per type
+    expenseStats.forEach((item) => {
+      result.currentMonthExpense += item.currentMonthExpense;
+      result.lastMonthExpense += item.lastMonthExpense;
+
+      const typeKey = item._id?.toLowerCase();
+      if (typeKey === "pg") {
+        result.currentMonthPgExpense = item.currentMonthExpense;
+        result.lastMonthPgExpense = item.lastMonthExpense;
+      } else if (typeKey === "mess") {
+        result.currentMonthMessExpense = item.currentMonthExpense;
+        result.lastMonthMessExpense = item.lastMonthExpense;
+      } else {
+        result.currentMonthOthersExpense = item.currentMonthExpense;
+        result.lastMonthOthersExpense = item.lastMonthExpense;
+      }
+    });
+
+    // Compute totals difference and percentage
+    const rawDifference = result.currentMonthExpense - result.lastMonthExpense;
+    const difference = Math.abs(rawDifference);
+
+    let percentageChange = 0;
+    if (result.lastMonthExpense !== 0) {
+      percentageChange = Math.abs(
+        (rawDifference / result.lastMonthExpense) * 100
+      );
+    }
+
+    let trend = "neutral";
+    if (rawDifference > 0) trend = "increased";
+    else if (rawDifference < 0) trend = "decreased";
 
     return {
       success: true,
       status: 200,
       message: "Financial dashboard data retrieved successfully",
-      data: paymentStats,
+      data: {
+        ...result,
+        difference,
+        percentageChange: Number(percentageChange.toFixed(2)),
+        trend,
+      },
     };
   } catch (error) {
     console.error("Expense Summary Service Error:", error);

@@ -43,7 +43,7 @@ createResponder(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, async (data) => {
   return await getAllManagers(data);
 });
 
-createResponder(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, async (data) => {
+createResponder(CLIENT_PATTERN.MANAGER.GET_MANAGER_BY_ID, async (data) => {
   return await getManagerById(data);
 });
 
