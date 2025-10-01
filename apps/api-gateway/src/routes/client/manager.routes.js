@@ -7,7 +7,6 @@ import {
   resetPasswordManager,
   getAllManagers,
   editManager,
-  //   getManagerById,
   changeManagerStatus,
   deleteManager,
   getManagerById,

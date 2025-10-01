@@ -12,26 +12,6 @@ export const addPettyCash = async (data) => {
       property: requestedProperty,
     } = data;
 
-    // // Validate required fields
-    // if (!manager || !managerName) {
-    //     return {
-    //         success: false,
-    //         message: "Manager and managerName are required fields",
-    //         status: 400,
-    //         data: null
-    //     };
-    // }
-
-    // // Validate amount fields
-    // if (inHandAmount === undefined && inAccountAmount === undefined) {
-    //     return {
-    //         success: false,
-    //         message: "At least one amount field (inHandAmount or inAccountAmount) is required",
-    //         status: 400,
-    //         data: null
-    //     };
-    // }
-
     // Find the manager
     const client = await Manager.findById(manager);
     if (!client) {
@@ -44,8 +24,7 @@ export const addPettyCash = async (data) => {
     }
 
     // Get properties from manager
-    let properties =
-      client.property || client.propertyId || client.assignedProperty;
+    let properties = client.propertyId;
 
     // Ensure properties is an array
     if (!Array.isArray(properties)) {
@@ -137,9 +116,25 @@ export const addPettyCash = async (data) => {
   }
 };
 
-export const getPettyCash = async () => {
+export const getPettyCash = async (data) => {
   try {
-    const pettyCashRecords = await PettyCash.find().lean();
+    const { propertyId } = data;
+
+    let filter = {};
+
+    if (propertyId) {
+      // Step 1: get managers belonging to this property
+      const managers = await Manager.find({
+        propertyId: { $in: [new mongoose.Types.ObjectId(propertyId)] },
+      }).select("_id");
+
+      const managerIds = managers.map((m) => m._id);
+
+      // Step 2: filter petty cash by those manager IDs
+      filter.manager = { $in: managerIds };
+    }
+
+    const pettyCashRecords = await PettyCash.find(filter).lean();
 
     return {
       success: true,
@@ -160,7 +155,7 @@ export const getPettyCash = async () => {
 
 export const getPettyCashByManager = async (data) => {
   try {
-    const { managerId } = data; // extract managerId from the incoming data
+    const { managerId } = data;
 
     if (!managerId) {
       return {
@@ -178,15 +173,28 @@ export const getPettyCashByManager = async (data) => {
         success: true,
         status: 200,
         message: "No petty cash found for this manager",
-        data: { amount: 0, manager: managerId },
+        data: {
+          inHandAmount: 0,
+          inAccountAmount: 0,
+          total: 0,
+          manager: managerId,
+        },
       };
     }
+
+    const { inHandAmount = 0, inAccountAmount = 0, manager } = pettyCash;
+    const total = inHandAmount + inAccountAmount;
 
     return {
       success: true,
       status: 200,
       message: "Petty cash fetched successfully",
-      data: pettyCash,
+      data: {
+        inHandAmount,
+        inAccountAmount,
+        total,
+        manager,
+      },
     };
   } catch (error) {
     console.error("Petty cash service error:", error);
