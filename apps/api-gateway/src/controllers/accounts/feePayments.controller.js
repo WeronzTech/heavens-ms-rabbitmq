@@ -252,3 +252,22 @@ export const getWaveOffedPaymentsController = async (req, res) => {
     });
   }
 };
+
+export const getAllCashPaymentsController = async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
+      {propertyId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get Cash Payments Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};

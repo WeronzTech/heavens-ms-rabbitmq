@@ -1513,3 +1513,33 @@ export const getWaveOffedPayments = async (data) => {
     };
   }
 };
+
+export const getAllCashPayments = async ({ propertyId }) => {
+  try {
+    const CashPayments = await Payments.find({
+      paymentMethod: "Cash",
+      ...(propertyId && { "property.id": propertyId }), 
+    }).sort({ createdAt: -1 });
+
+    // Calculate total amount
+    const totalAmount = CashPayments.reduce(
+      (sum, payment) => sum + (payment.amount || 0),
+      0
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: "Cash payments fetched successfully",
+      totalAmount,
+    };
+  } catch (error) {
+    console.error("Get Cash Payments Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
