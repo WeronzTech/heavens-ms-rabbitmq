@@ -179,10 +179,11 @@ export const getNextDueDate = async (req, res) => {
 
 export const getAllAccountsPaymentController = async (req, res) => {
   try {
-    
+    const { propertyId } = req.query;
+
     const response = await sendRPCRequest(
-      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY, 
-      {} 
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY,
+      { propertyId } // pass propertyId to RPC request
     );
 
     if (response.success) {

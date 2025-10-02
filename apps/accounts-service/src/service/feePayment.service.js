@@ -1406,16 +1406,14 @@ export const getNextDueDate = async (data) => {
   }
 };
 
-export const getAllAccountsPayments = async () => {
+export const getAllAccountsPayments = async (data) => {
   try {
-    // 1️⃣ Fetch fee payments
-    const payments = await Payments.find().sort({ createdAt: -1 }).lean();
+    const { propertyId } = data || {}; // get propertyId from data
+    const filter = propertyId ? { "property.id": propertyId } : {};
 
-    // 2️⃣ Fetch expenses
-    const expenses = await Expense.find().sort({ createdAt: -1 }).lean();
-
-    // 3️⃣ Fetch commissions
-    const commissions = await Commission.find().sort({ createdAt: -1 }).lean();
+    const payments = await Payments.find(filter).sort({ createdAt: -1 }).lean();
+    const expenses = await Expense.find(filter).sort({ createdAt: -1 }).lean();
+    const commissions = await Commission.find(filter).sort({ createdAt: -1 }).lean();
 
     return {
       success: true,
@@ -1427,12 +1425,11 @@ export const getAllAccountsPayments = async () => {
       },
     };
   } catch (error) {
-    console.error("[ACCOUNTS] Error in getAllAccountsSummary:", error);
+    console.error("[ACCOUNTS] Error in getAllAccountsPayments:", error);
     return {
       success: false,
       status: 500,
-      message:
-        "An internal server error occurred while fetching all accounts summary.",
+      message: "An internal server error occurred while fetching all accounts summary.",
       error: error.message,
     };
   }

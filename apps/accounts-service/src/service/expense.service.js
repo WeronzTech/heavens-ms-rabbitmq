@@ -319,3 +319,28 @@ export const deleteCategory = async (data) => {
     };
   }
 };
+
+export const getPettyCashPaymentsByManager = async ({ managerId }) => {
+  try {
+   
+    const pettyCashPayments = await Expense.find({
+      handledBy: managerId,
+      paymentMethod: "Petty Cash",
+    }).sort({ createdAt: -1 });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Petty cash payments fetched successfully",
+      data: pettyCashPayments,
+    };
+  } catch (error) {
+    console.error("Get Petty Cash Payments by Manager Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
