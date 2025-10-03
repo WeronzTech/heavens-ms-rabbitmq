@@ -34,11 +34,11 @@ export const addPettyCashController = async (req, res) => {
 
 export const getPettyCashController = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const { propertyId, managerId } = req.query;
 
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH,
-      { propertyId }
+      { propertyId, managerId }
     );
 
     res.status(response?.status || 500).json(response);

@@ -116,23 +116,39 @@ export const addPettyCash = async (data) => {
   }
 };
 
-export const getPettyCash = async (data) => {
+export const getPettyCash = async (data = {}) => {
   try {
-    const { propertyId } = data;
-
+    const { propertyId, managerId } = data;
     let filter = {};
 
-    if (propertyId) {
-      // Step 1: get managers belonging to this property
+    if (propertyId && managerId) {
+      // both property + manager
+      const manager = await Manager.findOne({
+        _id: new mongoose.Types.ObjectId(managerId),
+        propertyId: new mongoose.Types.ObjectId(propertyId),
+      }).select("_id");
+
+      if (!manager) {
+        return {
+          success: false,
+          status: 404,
+          message: "Manager not found for this property",
+          data: [],
+        };
+      }
+      filter.manager = manager._id;
+    } else if (managerId) {
+      // only managerId
+      filter.manager = new mongoose.Types.ObjectId(managerId);
+    } else if (propertyId) {
+      // only propertyId → get all managers of this property
       const managers = await Manager.find({
         propertyId: { $in: [new mongoose.Types.ObjectId(propertyId)] },
       }).select("_id");
 
-      const managerIds = managers.map((m) => m._id);
-
-      // Step 2: filter petty cash by those manager IDs
-      filter.manager = { $in: managerIds };
+      filter.manager = { $in: managers.map((m) => m._id) };
     }
+    // else: no propertyId & no managerId → return all
 
     const pettyCashRecords = await PettyCash.find(filter).lean();
 

@@ -7,6 +7,7 @@ import {
   getAllCategoriesController,
   getAllExpensesController,
   getCategoryByMainCategoryController,
+  getExpenseAnalytics,
   getExpenseByIdController,
 } from "../../controllers/accounts/expense.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
@@ -26,6 +27,8 @@ expenseRoutes.get("/categories/by-main", getCategoryByMainCategoryController);
 expenseRoutes.get("/all", getAllExpensesController);
 
 expenseRoutes.get("/get-all", getAllCategoriesController);
+
+expenseRoutes.get("/analytics", getExpenseAnalytics);
 
 // expenseRoutes.put("/update/:id", updateExpense);
 

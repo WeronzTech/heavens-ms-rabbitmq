@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const expenseCategorySchema = new mongoose.Schema({
-  mainCategory: { type: String, required: true, unique: true },
+  mainCategory: { type: String, required: true },
   subCategory: { type: String, required: true, unique: true },
 });
 

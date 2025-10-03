@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
@@ -6,7 +7,7 @@ import ExpenseCategory from "../models/expenseCategory.model.js";
 
 export const addExpense = async (data) => {
   try {
-    const {
+    let {
       transactionId,
       property,
       paymentMethod,
@@ -14,8 +15,14 @@ export const addExpense = async (data) => {
       handledBy,
       pettyCashType,
       billImage,
+
       ...expenseData
     } = data;
+    console.log("data", data);
+
+    property = JSON.parse(property);
+
+    amount = Number(amount);
     console.log("data", property);
 
     // ✅ Required field validation
@@ -32,8 +39,19 @@ export const addExpense = async (data) => {
       return {
         success: false,
         status: 400,
-        message: "Missing required fields",
+        message: "Missing required fieldsss",
       };
+    }
+
+    if (transactionId) {
+      const existingExpense = await Expense.findOne({ transactionId });
+      if (existingExpense) {
+        return {
+          success: false,
+          status: 400,
+          message: `Transaction ID "${transactionId}" already exists`,
+        };
+      }
     }
 
     // ✅ Additional validation for petty cash type
@@ -51,7 +69,7 @@ export const addExpense = async (data) => {
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
         { managerId: handledBy }
       );
-
+      console.log(pettyCashResponse);
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
         return {
           success: false,
@@ -66,7 +84,8 @@ export const addExpense = async (data) => {
         return {
           success: false,
           status: 400,
-          message: "Insufficient in-hand petty cash balance",
+          message:
+            "In-hand petty cash balance too low to process this transaction",
         };
       }
 
@@ -74,19 +93,23 @@ export const addExpense = async (data) => {
         return {
           success: false,
           status: 400,
-          message: "Insufficient in-account petty cash balance",
+          message:
+            "In-account petty cash balance too low to process this transaction",
         };
       }
 
       // ✅ Deduct petty cash (send negative amount)
     }
 
-    const originalQuality = true;
-    const billImageURL = await uploadToFirebase(
-      billImage,
-      "expense-images",
-      originalQuality
-    );
+    // let billImageURL;
+    // if (billImage) {
+    //   const originalQuality = true;
+    //   billImageURL = await uploadToFirebase(
+    //     billImage,
+    //     "expense-images",
+    //     originalQuality
+    //   );
+    // }
 
     // ✅ Create expense in DB
     const expense = new Expense({
@@ -94,13 +117,23 @@ export const addExpense = async (data) => {
       property,
       handledBy,
       paymentMethod,
-      imageUrl: billImageURL,
+      // imageUrl: billImageURL,
       pettyCashType: paymentMethod === "Petty Cash" ? pettyCashType : undefined,
       amount,
       ...expenseData,
     });
 
     await expense.save();
+
+    if (billImage) {
+      uploadToFirebase(billImage, "expense-images", true)
+        .then(async (url) => {
+          await Expense.findByIdAndUpdate(expense._id, { imageUrl: url });
+        })
+        .catch((err) => {
+          console.error("Image upload failed:", err);
+        });
+    }
 
     if (pettyCashType === "inHand") {
       await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
@@ -135,11 +168,122 @@ export const addExpense = async (data) => {
   }
 };
 
-export const getAllExpenses = async () => {
+export const getAllExpenses = async (data) => {
   try {
-    // you can extend later (filters, pagination) using data
-    const expenses = await Expense.find().sort({ createdAt: -1 });
-    return { success: true, status: 200, data: expenses };
+    const {
+      propertyId,
+      type,
+      category,
+      paymentMethod,
+      month,
+      year,
+      search,
+      page,
+      limit,
+    } = data;
+    console.log("Filters:", data);
+
+    const query = {};
+
+    // filter by property
+    if (propertyId) {
+      query["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    // filter by type
+    if (type) {
+      query.type = type;
+    }
+
+    // filter by category
+    if (category) {
+      query.category = category;
+    }
+
+    // filter by paymentMethod
+    if (paymentMethod) {
+      query.paymentMethod = paymentMethod;
+    }
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { transactionId: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // filter by month/year
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+      query.date = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    } else if (year) {
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+
+      query.date = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+
+    // pagination
+    const skip = (page - 1) * limit;
+
+    // fetch data
+    const expenses = await Expense.find(query)
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // count total for frontend
+    const total = await Expense.countDocuments(query);
+
+    const totalAmountResult = await Expense.aggregate([
+      { $match: query },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+    ]);
+
+    const totalAmount = totalAmountResult[0]?.totalAmount || 0;
+
+    const yearQuery = {};
+    if (propertyId) {
+      yearQuery["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    const availableYears = await Expense.aggregate([
+      { $match: yearQuery },
+      {
+        $group: {
+          _id: { $year: "$date" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          year: "$_id",
+          _id: 0,
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      status: 200,
+      data: expenses,
+      totalAmount,
+      availableYears: availableYears.map((y) => y.year),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   } catch (error) {
     console.error("[ACCOUNTS] Error in getAllExpenses:", error);
     return {
@@ -315,6 +459,78 @@ export const deleteCategory = async (data) => {
       success: false,
       status: 500,
       message: "An internal server error occurred while deleting category.",
+      error: error.message,
+    };
+  }
+};
+
+export const getExpenseAnalytics = async (data) => {
+  try {
+    const { propertyId, year } = data;
+
+    const targetYear = year || new Date().getFullYear();
+
+    const match = {
+      date: {
+        $gte: new Date(targetYear, 0, 1),
+        $lte: new Date(targetYear, 11, 31, 23, 59, 59, 999),
+      },
+    };
+
+    if (propertyId) {
+      match["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    const analytics = await Expense.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { month: { $month: "$date" }, type: "$type" },
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.month",
+          totalExpense: { $sum: "$totalAmount" },
+          types: { $push: { type: "$_id.type", totalAmount: "$totalAmount" } },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const formatted = analytics.map((monthData) => {
+      const typesObj = monthData.types.reduce(
+        (acc, t) => {
+          acc[t.type] = t.totalAmount;
+          return acc;
+        },
+        { pg: 0, mess: 0, others: 0 }
+      );
+
+      const monthName = new Date(0, monthData._id - 1).toLocaleString("en", {
+        month: "long",
+      });
+
+      return {
+        monthYear: `${monthName} ${targetYear}`,
+        totalExpense: monthData.totalExpense,
+        pg: typesObj.pg || 0,
+        mess: typesObj.mess || 0,
+        others: typesObj.others || 0,
+      };
+    });
+
+    return {
+      success: true,
+      year: targetYear,
+      data: formatted,
+    };
+  } catch (error) {
+    console.error("[ANALYTICS] Error:", error);
+    return {
+      success: false,
+      message: "Failed to fetch expense analytics",
       error: error.message,
     };
   }

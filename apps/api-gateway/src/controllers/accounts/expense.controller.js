@@ -49,9 +49,31 @@ export const addExpenseController = async (req, res) => {
 // Get All Expenses
 export const getAllExpensesController = async (req, res) => {
   try {
+    const {
+      propertyId,
+      type,
+      category,
+      paymentMethod,
+      month,
+      year,
+      search,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
     const expenses = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_ALL_EXPENSES,
-      {}
+      {
+        propertyId,
+        type,
+        category,
+        paymentMethod,
+        month,
+        year,
+        search,
+        page,
+        limit,
+      }
     );
     res.status(expenses.status || 500).json(expenses);
   } catch (error) {
@@ -205,6 +227,28 @@ export const deleteCategoryController = async (req, res) => {
       success: false,
       status: 500,
       message: "An internal server error occurred while deleting category.",
+    });
+  }
+};
+
+export const getExpenseAnalytics = async (req, res) => {
+  try {
+    const { propertyId, year } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_ANALYTICS,
+      { propertyId,year }
+    );
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error in fetching expense analytics:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching the expense analytics.",
+      error: error.message,
     });
   }
 };

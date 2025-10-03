@@ -36,7 +36,7 @@ export const uploadToFirebase = async (
   if (!file) {
     throw new Error("No file provided");
   }
-
+  console.log(file);
   const uniqueName = `${uuidv4()}-${file.originalname}`;
   const destination = `${folderName}/${uniqueName}`;
   let bufferToUpload = file.buffer;
