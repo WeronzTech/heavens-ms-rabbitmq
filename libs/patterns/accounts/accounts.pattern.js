@@ -14,6 +14,8 @@ export const ACCOUNTS_PATTERN = {
     GET_NEXT_DUE_DATE: "get_next_due_date",
     GET_PAYMENT_SUMMARY: "get_payment_summary",
     GET_PAYMENTS_BY_USERID: "get_payments_by_userId",
+    GET_WAVEOFF_PAYMENTS: "get_waveoff_payments",
+    GET_ALL_CASH_PAYMENTS: "get_all_cash_payments",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",

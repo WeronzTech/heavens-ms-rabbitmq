@@ -49,6 +49,7 @@ const startServer = async () => {
     await import("./controllers/expense.controller.js");
     await import("./controllers/commission.controller.js");
     await import("./controllers/dashboard.controller.js");
+    await import("./controllers/voucher.controller.js");
     console.log("[ACCOUNTS] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

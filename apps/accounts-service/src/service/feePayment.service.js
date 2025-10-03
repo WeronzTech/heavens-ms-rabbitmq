@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
+import Voucher from "../models/voucher.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -1406,16 +1407,14 @@ export const getNextDueDate = async (data) => {
   }
 };
 
-export const getAllAccountsPayments = async () => {
+export const getAllAccountsPayments = async (data) => {
   try {
-    // 1️⃣ Fetch fee payments
-    const payments = await Payments.find().sort({ createdAt: -1 }).lean();
+    const { propertyId } = data || {}; // get propertyId from data
+    const filter = propertyId ? { "property.id": propertyId } : {};
 
-    // 2️⃣ Fetch expenses
-    const expenses = await Expense.find().sort({ createdAt: -1 }).lean();
-
-    // 3️⃣ Fetch commissions
-    const commissions = await Commission.find().sort({ createdAt: -1 }).lean();
+    const payments = await Payments.find(filter).sort({ createdAt: -1 }).lean();
+    const expenses = await Expense.find(filter).sort({ createdAt: -1 }).lean();
+    const commissions = await Commission.find(filter).sort({ createdAt: -1 }).lean();
 
     return {
       success: true,
@@ -1427,12 +1426,11 @@ export const getAllAccountsPayments = async () => {
       },
     };
   } catch (error) {
-    console.error("[ACCOUNTS] Error in getAllAccountsSummary:", error);
+    console.error("[ACCOUNTS] Error in getAllAccountsPayments:", error);
     return {
       success: false,
       status: 500,
-      message:
-        "An internal server error occurred while fetching all accounts summary.",
+      message: "An internal server error occurred while fetching all accounts summary.",
       error: error.message,
     };
   }
@@ -1474,6 +1472,93 @@ export const getFeePaymentsByUserId = async (data) => {
       success: false,
       status: 500,
       message: "Internal server error while fetching payments",
+      error: error.message,
+    };
+  }
+};
+
+export const getWaveOffedPayments = async (data) => {
+  try {
+    const query = { waveOffAmount: { $gt: 0 } };
+
+    // Extract propertyId from data
+    const { propertyId } = data || {};
+
+    if (propertyId) {
+      query["property.id"] = propertyId;
+    }
+
+    const waveOffedPayments = await Payments.find(query).lean();
+
+    const totalWaveOff = waveOffedPayments.reduce(
+      (sum, payment) => sum + (payment.waveOffAmount || 0),
+      0
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: "Wave-offed payments fetched successfully",
+      data: {
+        payments: waveOffedPayments,
+        totalWaveOff,
+      },
+    };
+  } catch (error) {
+    console.error("Service Error - getWaveOffedPayments:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
+export const getAllCashPayments = async ({ propertyId }) => {
+  try {
+    // Fetch all cash payments
+    const CashPayments = await Payments.find({
+      paymentMethod: "Cash",
+      ...(propertyId && { "property.id": propertyId }), // Payments model uses property.id
+    }).sort({ createdAt: -1 });
+
+    // Fetch all vouchers (filtering by propertyId from voucher model)
+    const Vouchers = await Voucher.find({
+      ...(propertyId && { propertyId }),
+    }).sort({ createdAt: -1 });
+
+    // Calculate total cash payments
+    const totalCashPayments = CashPayments.reduce(
+      (sum, payment) => sum + (payment.amount || 0),
+      0
+    );
+
+    // Calculate total vouchers
+    const totalVouchers = Vouchers.reduce(
+      (sum, voucher) => sum + (voucher.amount || 0),
+      0
+    );
+
+    // Net cash = cash payments - vouchers
+    const netCash = totalCashPayments - totalVouchers;
+
+    return {
+      success: true,
+      status: 200,
+      message: "Cash payments fetched successfully",
+      totalCashPayments,
+      totalVouchers,
+      netCash,
+      // cashPayments: CashPayments,
+      // vouchers: Vouchers,
+    };
+  } catch (error) {
+    console.error("Get Cash Payments Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
       error: error.message,
     };
   }

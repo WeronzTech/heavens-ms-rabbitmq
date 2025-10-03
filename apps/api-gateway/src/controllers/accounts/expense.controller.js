@@ -237,7 +237,7 @@ export const getExpenseAnalytics = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_ANALYTICS,
-      { propertyId,year }
+      { propertyId, year }
     );
 
     res.status(200).json(response);
