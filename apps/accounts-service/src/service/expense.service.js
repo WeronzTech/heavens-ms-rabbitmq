@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
@@ -322,11 +323,14 @@ export const deleteCategory = async (data) => {
 
 export const getPettyCashPaymentsByManager = async ({ managerId }) => {
   try {
-   
+    console.log("managerId received in service:", managerId);
+
     const pettyCashPayments = await Expense.find({
-      handledBy: managerId,
+      handledBy: new mongoose.Types.ObjectId(managerId), // cast properly
       paymentMethod: "Petty Cash",
     }).sort({ createdAt: -1 });
+
+    console.log("Fetched pettyCashPayments:", pettyCashPayments);
 
     return {
       success: true,

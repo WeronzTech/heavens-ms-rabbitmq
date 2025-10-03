@@ -16,7 +16,7 @@ const expenseSchema = new mongoose.Schema(
     },
     transactionId: { type: String, required: false },
     amount: { type: Number, required: true },
-    handledBy: { type: String, required: false },
+    handledBy: {type: mongoose.Schema.Types.ObjectId},
     date: { type: Date, required: true },
     property: {
       id: {
