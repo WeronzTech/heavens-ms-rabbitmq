@@ -43,13 +43,20 @@ createResponder(ACCOUNTS_PATTERN.EXPENSE.GET_ALL_CATEGORIES, async (data) => {
   return await getAllCategories(data);
 });
 
+createResponder(
+  ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_ANALYTICS,
+  async (data) => {
+    return await getExpenseAnalytics(data);
+  }
+);
+
 createResponder(ACCOUNTS_PATTERN.EXPENSE.DELETE_CATEGORY, async (data) => {
   return await deleteCategory(data);
 });
 
 createResponder(
-  ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_ANALYTICS,
+  ACCOUNTS_PATTERN.EXPENSE.GET_PETTYCASH_PAYMENTS_BY_MANAGER,
   async (data) => {
-    return await getExpenseAnalytics(data);
+    return await getPettyCashPaymentsByManager(data);
   }
 );

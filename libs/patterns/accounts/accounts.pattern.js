@@ -41,5 +41,9 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL_CATEGORIES: "get_all_categories",
     DELETE_CATEGORY: "delete_category",
     GET_EXPENSE_ANALYTICS: "get_expense_analytics",
+    GET_PETTYCASH_PAYMENTS_BY_MANAGER: "get_pettyCash_payments_by_manager",
+  },
+  VOUCHER: {
+    ADD_VOUCHER: "add_voucher",
   },
 };

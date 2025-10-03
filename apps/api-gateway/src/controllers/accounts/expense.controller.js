@@ -252,3 +252,27 @@ export const getExpenseAnalytics = async (req, res) => {
     });
   }
 };
+
+export const getPettyCashPaymentByManager = async (req, res) => {
+  try {
+    // Get propertyId from query params
+    const { managerId } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.GET_PETTYCASH_PAYMENTS_BY_MANAGER,
+      { managerId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error(
+      "RPC Get WaveOffed Payments by manager Controller Error:",
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
