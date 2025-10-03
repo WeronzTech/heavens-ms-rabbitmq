@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import mongoose from "mongoose";
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
@@ -560,6 +559,144 @@ export const getPettyCashPaymentsByManager = async ({ managerId }) => {
       success: false,
       status: 500,
       message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
+export const updateExpense = async (data) => {
+  try {
+    let {
+      expenseId,
+      transactionId,
+      property,
+      paymentMethod,
+      amount,
+      handledBy,
+      pettyCashType,
+      billImage,
+      ...expenseData
+    } = data;
+
+    if (!expenseId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Expense ID is required for update",
+      };
+    }
+
+    const existingExpense = await Expense.findById(expenseId);
+    if (!existingExpense) {
+      return {
+        success: false,
+        status: 404,
+        message: "Expense not found",
+      };
+    }
+
+    // Convert property safely
+    if (typeof property === "string") {
+      try {
+        property = JSON.parse(property);
+      } catch (err) {
+        return {
+          success: false,
+          status: 400,
+          message: "Invalid property format",
+        };
+      }
+    }
+
+    // Validate required fields
+    if (
+      !property?.id ||
+      !property?.name ||
+      !paymentMethod ||
+      !amount ||
+      !expenseData.title ||
+      !expenseData.type ||
+      !expenseData.category ||
+      !expenseData.date
+    ) {
+      return {
+        success: false,
+        status: 400,
+        message: "Missing required fields",
+      };
+    }
+
+    amount = Number(amount);
+
+    // ✅ If new bill image uploaded → delete old one and upload new
+    if (billImage) {
+      if (existingExpense.imageUrl) {
+        await deleteFromFirebase(existingExpense.imageUrl);
+      }
+      try {
+        const imageUrl = await uploadToFirebase(
+          billImage,
+          "expense-images",
+          true
+        );
+        existingExpense.imageUrl = imageUrl;
+      } catch (err) {
+        console.error("Image upload failed:", err);
+      }
+    }
+
+    // ✅ Petty cash adjustment logic
+    if (existingExpense.paymentMethod === "Petty Cash") {
+      const oldAmount = Number(existingExpense.amount);
+      const newAmount = Number(amount);
+      const difference = oldAmount - newAmount; // +ve = refund, -ve = deduct more
+
+      if (difference !== 0) {
+        if (existingExpense.pettyCashType === "inHand") {
+          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+            manager: handledBy,
+            pettyCashType: "inHand",
+            inHandAmount: difference, // refund or deduct
+          });
+        }
+
+        if (existingExpense.pettyCashType === "inAccount") {
+          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+            manager: handledBy,
+            pettyCashType: "inAccount",
+            inAccountAmount: difference, // refund or deduct
+          });
+        }
+      }
+    }
+
+    // ✅ Update fields
+    existingExpense.transactionId =
+      transactionId || existingExpense.transactionId;
+    existingExpense.property = property || existingExpense.property;
+    existingExpense.paymentMethod =
+      paymentMethod || existingExpense.paymentMethod;
+    existingExpense.amount = amount || existingExpense.amount;
+    existingExpense.handledBy = handledBy || existingExpense.handledBy;
+    existingExpense.pettyCashType =
+      paymentMethod === "Petty Cash" ? pettyCashType : undefined;
+
+    Object.assign(existingExpense, expenseData);
+
+    await existingExpense.save();
+
+    return {
+      success: true,
+      status: 200,
+      message: "Expense updated successfully with petty cash adjustment",
+      data: existingExpense,
+    };
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in updateExpense:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while updating expense.",
       error: error.message,
     };
   }

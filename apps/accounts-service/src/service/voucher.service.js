@@ -64,3 +64,61 @@ export const addVoucher = async (data) => {
       };
     }
   };
+
+  export const deleteVoucher = async (voucherId) => {
+    try {
+      const deletedVoucher = await Voucher.findByIdAndDelete(voucherId);
+  
+      if (!deletedVoucher) {
+        return {
+          success: false,
+          status: 404,
+          message: "Voucher not found.",
+        };
+      }
+  
+      return {
+        success: true,
+        status: 200,
+        message: "Voucher deleted successfully.",
+        data: deletedVoucher,
+      };
+    } catch (error) {
+      console.error("Delete Voucher Service Error:", error);
+      return {
+        success: false,
+        status: 500,
+        message: "Internal Server Error",
+        error: error.message,
+      };
+    }
+  };
+
+  export const getVoucherByProperty = async (propertyId) => {
+    try {
+      const vouchers = await Voucher.find({ propertyId });
+  
+      if (!vouchers || vouchers.length === 0) {
+        return {
+          success: false,
+          status: 404,
+          message: "No vouchers found for this property.",
+        };
+      }
+  
+      return {
+        success: true,
+        status: 200,
+        message: "Vouchers fetched successfully.",
+        data: vouchers,
+      };
+    } catch (error) {
+      console.error("Get Voucher By Property Service Error:", error);
+      return {
+        success: false,
+        status: 500,
+        message: "Internal Server Error",
+        error: error.message,
+      };
+    }
+  };

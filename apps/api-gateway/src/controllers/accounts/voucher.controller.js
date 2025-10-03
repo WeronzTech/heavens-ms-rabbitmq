@@ -29,3 +29,51 @@ export const addVoucherController = async (req, res) => {
     });
   }
 };
+
+export const deleteVoucherController = async (req, res) => {
+  try {
+    const { voucherId } = req.params;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.VOUCHER.DELETE_VOUCHER,
+       voucherId 
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in deleting Voucher:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while deleting Voucher.",
+    });
+  }
+};
+
+export const getVoucherByPropertyController = async (req, res) => {
+  try {
+    const { propertyId } = req.query;  // ✅ take from query
+
+    if (!propertyId) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: "Property ID is required in query.",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.VOUCHER.GET_VOUCHER_BY_PROPERTY,
+      propertyId   // ✅ pass only plain string
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in fetching vouchers by property:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching vouchers.",
+    });
+  }
+};

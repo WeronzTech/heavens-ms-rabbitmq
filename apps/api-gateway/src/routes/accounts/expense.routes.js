@@ -10,6 +10,7 @@ import {
   getExpenseAnalytics,
   getExpenseByIdController,
   getPettyCashPaymentByManager,
+  updateExpenseController,
 } from "../../controllers/accounts/expense.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 
@@ -31,7 +32,7 @@ expenseRoutes.get("/get-all", getAllCategoriesController);
 
 expenseRoutes.get("/analytics", getExpenseAnalytics);
 
-// expenseRoutes.put("/update/:id", updateExpense);
+expenseRoutes.put("/update/:expenseId", updateExpenseController);
 
 expenseRoutes.delete("/delete/:expenseId", deleteExpenseController);
 

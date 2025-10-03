@@ -42,8 +42,11 @@ export const ACCOUNTS_PATTERN = {
     DELETE_CATEGORY: "delete_category",
     GET_EXPENSE_ANALYTICS: "get_expense_analytics",
     GET_PETTYCASH_PAYMENTS_BY_MANAGER: "get_pettyCash_payments_by_manager",
+    UPDATE_EXPENSE: "update_expense"
   },
   VOUCHER: {
     ADD_VOUCHER: "add_voucher",
+    DELETE_VOUCHER: "delete_voucher",
+    GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property"
   },
 };
