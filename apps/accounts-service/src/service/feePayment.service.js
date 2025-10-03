@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
+import Voucher from "../models/voucher.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -1516,22 +1517,41 @@ export const getWaveOffedPayments = async (data) => {
 
 export const getAllCashPayments = async ({ propertyId }) => {
   try {
+    // Fetch all cash payments
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
-      ...(propertyId && { "property.id": propertyId }), 
+      ...(propertyId && { "property.id": propertyId }), // Payments model uses property.id
     }).sort({ createdAt: -1 });
 
-    // Calculate total amount
-    const totalAmount = CashPayments.reduce(
+    // Fetch all vouchers (filtering by propertyId from voucher model)
+    const Vouchers = await Voucher.find({
+      ...(propertyId && { propertyId }),
+    }).sort({ createdAt: -1 });
+
+    // Calculate total cash payments
+    const totalCashPayments = CashPayments.reduce(
       (sum, payment) => sum + (payment.amount || 0),
       0
     );
+
+    // Calculate total vouchers
+    const totalVouchers = Vouchers.reduce(
+      (sum, voucher) => sum + (voucher.amount || 0),
+      0
+    );
+
+    // Net cash = cash payments - vouchers
+    const netCash = totalCashPayments - totalVouchers;
 
     return {
       success: true,
       status: 200,
       message: "Cash payments fetched successfully",
-      totalAmount,
+      totalCashPayments,
+      totalVouchers,
+      netCash,
+      // cashPayments: CashPayments,
+      // vouchers: Vouchers,
     };
   } catch (error) {
     console.error("Get Cash Payments Service Error:", error);

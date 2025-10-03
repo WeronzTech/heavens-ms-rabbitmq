@@ -38,6 +38,7 @@ import commissionRoutes from "./routes/accounts/commission.routes.js";
 import accountDashboardRoutes from "./routes/accounts/accountDashbaord.routes.js";
 import expenseRoutes from "./routes/accounts/expense.routes.js";
 import carouselRoutes from "./routes/property/carousel.routes.js";
+import voucherRoutes from "./routes/accounts/voucher.routes.js";
 
 dotenv.config();
 const app = express();
@@ -101,6 +102,7 @@ app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes);
 app.use("/api/v2/expense", expenseRoutes);
 app.use("/api/v2/property/carousel", carouselRoutes);
+app.use("/api/v2/voucher", voucherRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
