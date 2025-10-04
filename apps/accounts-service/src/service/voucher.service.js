@@ -94,23 +94,34 @@ export const addVoucher = async (data) => {
     }
   };
 
-  export const getVoucherByProperty = async (propertyId) => {
+  export const getVoucherByProperty = async (data) => {
     try {
-      const vouchers = await Voucher.find({ propertyId });
+      let vouchers;
+  
+      // If propertyId is provided → filter, else fetch all
+      if (data && data.propertyId) {
+        vouchers = await Voucher.find({ propertyId: data.propertyId });
+      } else {
+        vouchers = await Voucher.find({});
+      }
   
       if (!vouchers || vouchers.length === 0) {
         return {
           success: false,
           status: 404,
-          message: "No vouchers found for this property.",
+          message: data?.propertyId
+            ? "No vouchers found for this property."
+            : "No vouchers found.",
         };
       }
   
       return {
         success: true,
         status: 200,
-        message: "Vouchers fetched successfully.",
-        data: vouchers,
+        message: data?.propertyId
+          ? "Vouchers fetched successfully for the property."
+          : "All vouchers fetched successfully.",
+          data: vouchers,
       };
     } catch (error) {
       console.error("Get Voucher By Property Service Error:", error);
@@ -122,3 +133,4 @@ export const addVoucher = async (data) => {
       };
     }
   };
+  

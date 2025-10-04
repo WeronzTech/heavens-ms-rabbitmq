@@ -8,7 +8,8 @@ const voucherSchema = new mongoose.Schema(
     amount: {type: Number , required: true},
     propertyName: {type: String },
     propertyId: { type: mongoose.Schema.Types.ObjectId }
-  }
+  },
+  { timestamps: true }
     
 );
 

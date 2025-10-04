@@ -67,3 +67,23 @@ export const checkUserCommission = (req, res) => {
     }
   );
 };
+export const getCommissionByPropertyController = async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+
+    // Map propertyId from query to "property" field expected by service
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.COMMISSION.GET_COMMISSION_BY_PROPERTY,
+      propertyId ? { property: propertyId } : {}
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in fetching commissions by property:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching commissions.",
+    });
+  }
+};

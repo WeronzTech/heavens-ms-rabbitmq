@@ -52,19 +52,12 @@ export const deleteVoucherController = async (req, res) => {
 
 export const getVoucherByPropertyController = async (req, res) => {
   try {
-    const { propertyId } = req.query;  // ✅ take from query
+    const { propertyId } = req.query;
 
-    if (!propertyId) {
-      return res.status(400).json({
-        success: false,
-        status: 400,
-        message: "Property ID is required in query.",
-      });
-    }
-
+    // If query is not given, send an empty object to fetch all
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.VOUCHER.GET_VOUCHER_BY_PROPERTY,
-      propertyId   // ✅ pass only plain string
+      propertyId ? { propertyId } : {}
     );
 
     res.status(response?.status || 500).json(response);
@@ -77,3 +70,4 @@ export const getVoucherByPropertyController = async (req, res) => {
     });
   }
 };
+
