@@ -110,7 +110,7 @@ app.use("/api/v2/voucher", voucherRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "OK" });
+  res.status(200).json({ status: "OK CI/CD is working fine." });
 });
 
 app.get("/", (_, res) => {
