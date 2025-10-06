@@ -1,0 +1,170 @@
+services:
+  # ===================================================================
+  #  1. Infrastructure Services
+  # ===================================================================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin123
+    ports:
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - heavens-ms-js-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - heavens-ms-js-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ===================================================================
+  #  2. Application Microservices (Using pre-built images)
+  # ===================================================================
+  api-gateway:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      auth-service: { condition: service_started }
+      client-service: { condition: service_started }
+      user-service: { condition: service_started }
+      property-service: { condition: service_started }
+      inventory-service: { condition: service_started }
+      socket-service: { condition: service_started }
+      notification-service: { condition: service_started }
+      accounts-service: { condition: service_started }
+
+  auth-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only auth-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+  client-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only client-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+  user-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only user-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+  property-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only property-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+  inventory-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only inventory-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+  socket-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only socket-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  notification-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only notification-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+  accounts-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    command: pm2-runtime ecosystem.config.cjs --only accounts-service
+    restart: unless-stopped
+    networks:
+      - heavens-ms-js-net
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+
+# ===================================================================
+#  3. Networks and Volumes
+# ===================================================================
+networks:
+  heavens-ms-js-net:
+    driver: bridge
+
+volumes:
+  rabbitmq-data:
+

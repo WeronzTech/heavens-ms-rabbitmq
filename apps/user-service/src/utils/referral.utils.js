@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import ReferralSettings from "../models/ReferralSettings.js";
+import ReferralSettings from "../models/referralSettings.js";
 
 export const generateReferralLink = (studentId, studentName) => {
   const encodedId = Buffer.from(studentId.toString()).toString("base64url");

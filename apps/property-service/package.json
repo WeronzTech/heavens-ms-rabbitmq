@@ -1,0 +1,9 @@
+{
+  "name": "property-service",
+  "version": "1.0.0",
+  "private": true,
+   "type": "module",
+  "scripts": {
+    "start": "nodemon src/index.js"
+  }
+}
