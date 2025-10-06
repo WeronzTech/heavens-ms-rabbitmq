@@ -23,6 +23,7 @@ export const createAddonBooking = async (data) => {
     const bookingData = {
       ...data,
       bookingDate: data.bookingDate || tomorrow,
+      deliveryDate: data.deliveryDate || tomorrow,
     };
     const { userId, addons } = bookingData;
     console.log("bookingData", bookingData);
@@ -90,7 +91,7 @@ export const createAddonBooking = async (data) => {
           status: 404,
           message: `Addon with ID ${item.addonId} not found.`,
         };
-      const totalPrice = addon.price * item.quantity;
+      const totalPrice = addon.discountedPrice * item.quantity;
       grandTotalPrice += totalPrice;
       processedAddons.push({ ...item, totalPrice });
     }
@@ -116,6 +117,7 @@ export const createAddonBooking = async (data) => {
       grandTotalPrice,
       razorpayOrderId,
       bookingDate: normalizeDate(bookingData.bookingDate),
+      deliveryDate: normalizeDate(bookingData.deliveryDate),
     });
 
     return {
@@ -173,7 +175,8 @@ export const verifyAddonBookingPayment = async (data) => {
       {
         razorpayPaymentId: razorpay_payment_id,
         razorpaySignature: razorpay_signature,
-        status: "Paid",
+        status: "Pending",
+        paymentStatus: "Paid",
         deliveredDate: null,
       },
       { new: true }
@@ -189,7 +192,7 @@ export const verifyAddonBookingPayment = async (data) => {
     if (propertyResponse.success && propertyResponse.data?.clientId) {
       userIdsToNotify.push(propertyResponse.data.clientId);
     }
-    await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
       userIds: userIdsToNotify,
       event: "new-addon-booking",
       data: finalizedBooking,

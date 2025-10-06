@@ -37,6 +37,8 @@ import agencyRoutes from "./routes/client/agency.routes.js";
 import commissionRoutes from "./routes/accounts/commission.routes.js";
 import accountDashboardRoutes from "./routes/accounts/accountDashbaord.routes.js";
 import expenseRoutes from "./routes/accounts/expense.routes.js";
+import attendanceRoutes from "./routes/property/attendance.route.js";
+import salaryRoutes from "./routes/accounts/staffSalaryHistory.routes.js";
 import carouselRoutes from "./routes/property/carousel.routes.js";
 import voucherRoutes from "./routes/accounts/voucher.routes.js";
 
@@ -101,6 +103,8 @@ app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes);
 app.use("/api/v2/expense", expenseRoutes);
+app.use("/api/v2/attendance", attendanceRoutes);
+app.use("/api/v2/staff-salary", salaryRoutes);
 app.use("/api/v2/property/carousel", carouselRoutes);
 app.use("/api/v2/voucher", voucherRoutes);
 
