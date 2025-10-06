@@ -39,4 +39,8 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL_CATEGORIES: "get_all_categories",
     DELETE_CATEGORY: "delete_category",
   },
+  SALARY: {
+    MANUAL_CREATE: "manual_add_salary",
+    GET_ALL: "get_all_salary_records",
+  },
 };
