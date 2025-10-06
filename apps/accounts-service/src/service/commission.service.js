@@ -7,11 +7,12 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 
 export const addCommission = async (data) => {
   try {
-    const { agent, agency, property, amount, userIds, paymentType } = data;
+    const { agent, agency,agencyName, property, amount, userIds, paymentType,remarks } = data;
     if (
       !agent ||
       !agent.name ||
       !agency ||
+      !agencyName ||
       !property ||
       !amount ||
       !paymentType

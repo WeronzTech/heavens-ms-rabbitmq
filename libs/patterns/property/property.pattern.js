@@ -55,5 +55,6 @@ export const PROPERTY_PATTERN = {
     ADD_CAROUSEL: "add_carousel",
     UPDATE_CAROUSEL: "update_carousel",
     DELETE_CAROUSEL: "delete_carousel",
+    GET_ALL_CAROUSEL: "get_all_carousel"
   }
 };

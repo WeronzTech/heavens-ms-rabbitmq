@@ -547,7 +547,22 @@ export const getAllPendingPayments = async (req, res) => {
     });
   }
 };
+export const getUsersByAgencyController = async (req, res) => {
+  try {
+    const { agency } = req.query;
 
+    const response = await sendRPCRequest(USER_PATTERN.USER.GET_USER_BY_AGENCY, 
+      { agency });
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("Error in getUsersByAgencyController:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users by agency",
+    });
+  }
+};
 const handleRPCAndRespond = async (res, pattern, data) => {
   try {
     const response = await sendRPCRequest(pattern, data);

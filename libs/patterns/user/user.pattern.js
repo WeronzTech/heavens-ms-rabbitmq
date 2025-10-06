@@ -25,6 +25,7 @@ export const USER_PATTERN = {
     HANDLE_BLOCK_STATUS: "handle_block_status",
     FETCH_USER_DATA: "fetch_user_data",
     GET_USERS_WITH_BIRTHDAY_TODAY: "get_users_with_birthday_today",
+    GET_USER_BY_AGENCY: "get_user_by_agency"
   },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",

@@ -3023,3 +3023,46 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
     };
   }
 };
+
+export const getUsersByAgencyService = async (data) => {
+  try {
+    const { agency } = data;
+     const agencyId = new mongoose.Types.ObjectId(agency)
+
+    if (!agency) {
+      return {
+        success: false,
+        status: 400,
+        message: "Agency is required.",
+      };
+    }
+
+
+
+    const users = await User.find({agency: agencyId}).lean();
+   
+
+    if (!users || users.length === 0) {
+      return {
+        success: false,
+        status: 404,
+        message: "No users found for the specified agency.",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Users fetched successfully.",
+      data: users,
+    };
+  } catch (error) {
+    console.error("Get Users by Agency Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};

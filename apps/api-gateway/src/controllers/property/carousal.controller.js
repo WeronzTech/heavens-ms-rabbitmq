@@ -99,3 +99,21 @@ export const addCarouselImagesController = async (req, res) => {
       });
     }
   };
+
+  export const getAllCarouselController = async (req, res) => {
+    try {
+      const response = await sendRPCRequest(
+        PROPERTY_PATTERN.CAROUSEL.GET_ALL_CAROUSEL,
+        {} 
+      );
+  
+      return res.status(response?.status || 500).json(response);
+    } catch (error) {
+      console.error("RPC Get All Carousel Controller Error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error in API Gateway",
+        error: error.message,
+      });
+    }
+  };
