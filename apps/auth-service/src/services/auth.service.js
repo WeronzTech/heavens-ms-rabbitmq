@@ -108,7 +108,6 @@ export const userLogin = async (loginData) => {
       USER_PATTERN.USER.GET_USER_BY_EMAIL,
       { email }
     );
-    console.log("UserResponse", userResponse);
 
     if (!userResponse.success) {
       return {
@@ -118,7 +117,6 @@ export const userLogin = async (loginData) => {
       };
     }
     const user = userResponse.data;
-    console.log("User", user);
 
     // 2. Validate password
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -195,7 +193,7 @@ export const userLogin = async (loginData) => {
       },
       { upsert: true, new: true }
     );
-    console.log("User here");
+
     // 7. Return success response
     return {
       success: true,
