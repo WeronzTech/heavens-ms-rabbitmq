@@ -12,6 +12,8 @@ import {
   getNextDueDate,
   getAllAccountsPaymentController,
   getUserPaymentsController,
+  getWaveOffedPaymentsController,
+  getAllCashPaymentsController,
 } from "../../controllers/accounts/feePayments.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
@@ -35,6 +37,12 @@ feePaymentRoutes.get("/get_all_payments", getAllAccountsPaymentController);
 
 feePaymentRoutes.get("/user-payments", isAuthenticated, getUserPaymentsController);
 
+feePaymentRoutes.get("/waveoff",getWaveOffedPaymentsController );
+
+feePaymentRoutes.get("/cashPayments",getAllCashPaymentsController );
+
 feePaymentRoutes.get("/:paymentId", getFeePaymentController);
+
+
 
 export default feePaymentRoutes;

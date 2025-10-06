@@ -14,6 +14,8 @@ export const ACCOUNTS_PATTERN = {
     GET_NEXT_DUE_DATE: "get_next_due_date",
     GET_PAYMENT_SUMMARY: "get_payment_summary",
     GET_PAYMENTS_BY_USERID: "get_payments_by_userId",
+    GET_WAVEOFF_PAYMENTS: "get_waveoff_payments",
+    GET_ALL_CASH_PAYMENTS: "get_all_cash_payments",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",
@@ -22,6 +24,7 @@ export const ACCOUNTS_PATTERN = {
     EDIT_COMMISSION: "edit_commission",
     DELETE_COMMISSION: "delete_commission",
     GET_ALL_COMMISSION_BY_USER: "get_all_commission_by_user",
+    GET_COMMISSION_BY_PROPERTY: "get_commission_by_property",
   },
   DASHBOARD: {
     GET_ACCOUNT_DASHBAORD_DATA_FOR_INCOME_SECTION:
@@ -38,6 +41,14 @@ export const ACCOUNTS_PATTERN = {
     GET_CATEGORY_BY_MAINCATEROGY: "get_category_by_main_category",
     GET_ALL_CATEGORIES: "get_all_categories",
     DELETE_CATEGORY: "delete_category",
+    GET_EXPENSE_ANALYTICS: "get_expense_analytics",
+    GET_PETTYCASH_PAYMENTS_BY_MANAGER: "get_pettyCash_payments_by_manager",
+    UPDATE_EXPENSE: "update_expense"
+  },
+  VOUCHER: {
+    ADD_VOUCHER: "add_voucher",
+    DELETE_VOUCHER: "delete_voucher",
+    GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property"
   },
   SALARY: {
     MANUAL_CREATE: "manual_add_salary",

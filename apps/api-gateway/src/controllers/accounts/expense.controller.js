@@ -49,9 +49,31 @@ export const addExpenseController = async (req, res) => {
 // Get All Expenses
 export const getAllExpensesController = async (req, res) => {
   try {
+    const {
+      propertyId,
+      type,
+      category,
+      paymentMethod,
+      month,
+      year,
+      search,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
     const expenses = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_ALL_EXPENSES,
-      {}
+      {
+        propertyId,
+        type,
+        category,
+        paymentMethod,
+        month,
+        year,
+        search,
+        page,
+        limit,
+      }
     );
     res.status(expenses.status || 500).json(expenses);
   } catch (error) {
@@ -135,7 +157,7 @@ export const addExpenseCategoryController = async (req, res) => {
     if (expenseCategory.status === 200) {
       res.status(200).json(expenseCategory);
     } else {
-      res.status(expense.status).json(expenseCategory);
+      res.status(expenseCategory.status).json(expenseCategory);
     }
   } catch (error) {
     console.error("Error in adding expenseCategory:", error);
@@ -150,8 +172,10 @@ export const addExpenseCategoryController = async (req, res) => {
 
 export const getCategoryByMainCategoryController = async (req, res) => {
   try {
-    const { mainCategory } = req.params;
+    const { mainCategory } = req.query;
+    console.log("hererererere");
 
+    console.log(mainCategory);
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_CATEGORY_BY_MAINCATEROGY,
       { mainCategory }
@@ -206,3 +230,98 @@ export const deleteCategoryController = async (req, res) => {
     });
   }
 };
+
+export const getExpenseAnalytics = async (req, res) => {
+  try {
+    const { propertyId, year } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_ANALYTICS,
+      { propertyId, year }
+    );
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error in fetching expense analytics:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching the expense analytics.",
+      error: error.message,
+    });
+  }
+};
+
+export const getPettyCashPaymentByManager = async (req, res) => {
+  try {
+    // Get propertyId from query params
+    const { managerId } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.GET_PETTYCASH_PAYMENTS_BY_MANAGER,
+      { managerId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error(
+      "RPC Get WaveOffed Payments by manager Controller Error:",
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const updateExpenseController = async (req, res) => {
+  try {
+    const { expenseId } = req.params; 
+    const {
+      transactionId,
+      property,
+      paymentMethod,
+      amount,
+      handledBy,
+      pettyCashType,
+      ...expenseData
+    } = req.body;
+
+    let billImage;
+    if (req.files?.billImage?.[0]) {
+      billImage = {
+        buffer: req.files.billImage[0].buffer.toString("base64"),
+        originalname: req.files.billImage[0].originalname,
+        mimetype: req.files.billImage[0].mimetype,
+      };
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.UPDATE_EXPENSE,
+      {
+        expenseId,
+        transactionId,
+        property,
+        paymentMethod,
+        amount,
+        handledBy,
+        pettyCashType,
+        billImage,
+        ...expenseData,
+      }
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in updating expense:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while updating expense.",
+    });
+  }
+};
+

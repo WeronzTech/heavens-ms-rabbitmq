@@ -5,7 +5,7 @@ const expenseSchema = new mongoose.Schema(
     title: { type: String, required: true },
     type: { type: String, required: true },
     category: { type: String, required: true },
-    otherReason: { type: String, default: "" },
+    description: { type: String, default: "" },
     paymentMethod: { type: String, required: true },
     pettyCashType: {
       type: String,
@@ -16,7 +16,7 @@ const expenseSchema = new mongoose.Schema(
     },
     transactionId: { type: String, required: false },
     amount: { type: Number, required: true },
-    handledBy: { type: String, required: false },
+    handledBy: mongoose.Schema.Types.ObjectId,
     date: { type: Date, required: true },
     property: {
       id: {
@@ -32,12 +32,11 @@ const expenseSchema = new mongoose.Schema(
     },
     kitchenId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
     },
-    actionPerformedBy: { type: String, required: true },
+    actionPerformedBy: { type: String, required: false },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Client",
     },
     imageUrl: {
       type: String,

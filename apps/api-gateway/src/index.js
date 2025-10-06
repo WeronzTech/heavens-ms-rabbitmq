@@ -39,6 +39,8 @@ import accountDashboardRoutes from "./routes/accounts/accountDashbaord.routes.js
 import expenseRoutes from "./routes/accounts/expense.routes.js";
 import attendanceRoutes from "./routes/property/attendance.route.js";
 import salaryRoutes from "./routes/accounts/staffSalaryHistory.routes.js";
+import carouselRoutes from "./routes/property/carousel.routes.js";
+import voucherRoutes from "./routes/accounts/voucher.routes.js";
 
 dotenv.config();
 const app = express();
@@ -48,7 +50,7 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.1.80:5173"],
+    origin: ["http://localhost:5173", "http://192.168.1.73:5173"],
     credentials: true,
   })
 );
@@ -76,6 +78,7 @@ app.use("/api/v2/auth/role", roleRoutes);
 app.use("/api/v2/client", clientRoutes);
 app.use("/api/v2/client/manager", managerRoutes);
 app.use("/api/v2/client/agency", agencyRoutes);
+app.use("/api/v2/client/pettyCash", pettyCashRoutes);
 app.use("/api/v2/inventory/mess", mealRoutes);
 app.use("/api/v2/inventory/mess-booking", messBookingRoutes);
 app.use("/api/v2/inventory/kitchen", kitchenRoutes);
@@ -99,10 +102,11 @@ app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
 app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/logs", propertyLogRoutes);
-app.use("/api/v2/pettycash", pettyCashRoutes);
 app.use("/api/v2/expense", expenseRoutes);
 app.use("/api/v2/attendance", attendanceRoutes);
 app.use("/api/v2/staff-salary", salaryRoutes);
+app.use("/api/v2/property/carousel", carouselRoutes);
+app.use("/api/v2/voucher", voucherRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

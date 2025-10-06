@@ -7,6 +7,7 @@ import {
   editCommission,
   deleteCommission,
   checkUserCommission,
+  getCommissionByProperty,
 } from "../service/commission.service.js";
 
 createResponder(ACCOUNTS_PATTERN.COMMISSION.ADD_COMMISSION, async (data) => {
@@ -34,5 +35,12 @@ createResponder(
   ACCOUNTS_PATTERN.COMMISSION.GET_ALL_COMMISSION_BY_USER,
   async (data) => {
     return await checkUserCommission(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.COMMISSION.GET_COMMISSION_BY_PROPERTY,
+  async (data) => {
+    return await getCommissionByProperty(data);
   }
 );

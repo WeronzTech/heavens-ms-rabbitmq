@@ -179,10 +179,11 @@ export const getNextDueDate = async (req, res) => {
 
 export const getAllAccountsPaymentController = async (req, res) => {
   try {
-    
+    const { propertyId } = req.query;
+
     const response = await sendRPCRequest(
-      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY, 
-      {} 
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY,
+      { propertyId } // pass propertyId to RPC request
     );
 
     if (response.success) {
@@ -226,6 +227,46 @@ export const getUserPaymentsController = async (req, res) => {
       success: false,
       status: 500,
       message: "An internal server error occurred while fetching user payments.",
+      error: error.message,
+    });
+  }
+};
+
+export const getWaveOffedPaymentsController = async (req, res) => {
+  try {
+    // Get propertyId from query params
+    const { propertyId } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
+      { propertyId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get WaveOffed Payments Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getAllCashPaymentsController = async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
+      {propertyId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get Cash Payments Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
       error: error.message,
     });
   }

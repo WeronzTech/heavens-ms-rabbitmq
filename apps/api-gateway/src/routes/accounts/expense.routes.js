@@ -7,7 +7,10 @@ import {
   getAllCategoriesController,
   getAllExpensesController,
   getCategoryByMainCategoryController,
+  getExpenseAnalytics,
   getExpenseByIdController,
+  getPettyCashPaymentByManager,
+  updateExpenseController,
 } from "../../controllers/accounts/expense.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 
@@ -27,11 +30,15 @@ expenseRoutes.get("/all", getAllExpensesController);
 
 expenseRoutes.get("/get-all", getAllCategoriesController);
 
-// expenseRoutes.put("/update/:id", updateExpense);
+expenseRoutes.get("/analytics", getExpenseAnalytics);
+
+expenseRoutes.put("/update/:expenseId", updateExpenseController);
 
 expenseRoutes.delete("/delete/:expenseId", deleteExpenseController);
 
 expenseRoutes.delete("/categories/:categoryId", deleteCategoryController);
+
+expenseRoutes.get("/pettycash-manager", getPettyCashPaymentByManager);
 
 expenseRoutes.get("/:expenseId", getExpenseByIdController);
 

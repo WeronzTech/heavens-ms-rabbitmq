@@ -177,6 +177,7 @@ export const getManagerById = async (req, res) => {
       .json({ success: false, status: 500, message: "Internal Server Error" });
   }
 };
+
 export const editManager = async (req, res) => {
   try {
     const updates = req.body;

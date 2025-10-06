@@ -56,4 +56,9 @@ export const PROPERTY_PATTERN = {
     GET_ATTENDANCE: "get_attendance",
     UPDATE_ATTENDANCE: "update_attendance",
   },
+  CAROUSEL: {
+    ADD_CAROUSEL: "add_carousel",
+    UPDATE_CAROUSEL: "update_carousel",
+    DELETE_CAROUSEL: "delete_carousel",
+  }
 };
