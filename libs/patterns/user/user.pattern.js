@@ -52,4 +52,10 @@ export const USER_PATTERN = {
     GET_USER_STATISTICS_FOR_ACCOUNTS_DASHBOARD:
       "get_user_statistics_for_accounts_dashboard",
   },
+  REFERRAL: {
+    GET_USER_REFERRAL_DETAILS: "user_referral_get_details",
+    COMPLETE_REFERRAL: "user_referral_complete",
+    GET_SETTINGS: "get_referral_settings",
+    UPDATE_SETTINGS: "update_referral_settings",
+  },
 };

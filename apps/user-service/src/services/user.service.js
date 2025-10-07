@@ -15,7 +15,6 @@ import {
   removeFromRoom,
 } from "./internal.service.js";
 import crypto from "crypto";
-import { handleReferralOnApproval } from "../services/referral.service.js";
 import {
   cleanUpdateData,
   getCompletedFields,
@@ -192,9 +191,9 @@ export const registerUser = async (data) => {
       password,
       stayDetails,
       messDetails,
-      referralLink,
       isHeavens,
       personalDetails,
+      referredByCode,
     } = data;
 
     let rentType;
@@ -258,7 +257,7 @@ export const registerUser = async (data) => {
       isVerified: false,
       isHeavens: isHeavens || false,
       personalDetails,
-      referralInfo: { referredByLink: referralLink || null },
+      referralInfo: { referredByCode: referredByCode || null },
     };
 
     // 6. Type-specific logic
@@ -699,7 +698,7 @@ export const approveUser = async (data) => {
     setImmediate(async () => {
       try {
         await Promise.all([
-          user.userType !== "MessOnly" && handleReferralOnApproval(user),
+          user.userType !== "MessOnly",
           emailService.sendApprovalEmail(updatedUser, verificationToken),
         ]);
       } catch (err) {

@@ -51,6 +51,7 @@ const startServer = async () => {
     console.log("[USER] Setting up RabbitMQ responders...");
     await import("./controllers/user.controller.js");
     await import("./controllers/reminderNote.controller.js");
+    await import("./controllers/referral.controller.js");
     console.log("[USER] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.
