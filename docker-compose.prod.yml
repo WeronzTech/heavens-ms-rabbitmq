@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   # ===================================================================
   #  1. Infrastructure Services
@@ -36,7 +38,7 @@ services:
     restart: unless-stopped
 
   # ===================================================================
-  #  2. Application Microservices (Using pre-built images)
+  #  2. Application Microservices with Health Checks for Zero Downtime
   # ===================================================================
   api-gateway:
     image: akhilbeliever001222/heavens-ms:latest
@@ -49,27 +51,41 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy }
-      auth-service: { condition: service_started }
-      client-service: { condition: service_started }
-      user-service: { condition: service_started }
-      property-service: { condition: service_started }
-      inventory-service: { condition: service_started }
-      socket-service: { condition: service_started }
-      notification-service: { condition: service_started }
-      accounts-service: { condition: service_started }
+      auth-service: { condition: service_healthy }
+      client-service: { condition: service_healthy }
+      user-service: { condition: service_healthy }
+      property-service: { condition: service_healthy }
+      inventory-service: { condition: service_healthy }
+      socket-service: { condition: service_healthy }
+      notification-service: { condition: service_healthy }
+      accounts-service: { condition: service_healthy }
 
   auth-service:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only auth-service
     restart: unless-stopped
+    expose:
+      - "5001"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -77,11 +93,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only client-service
     restart: unless-stopped
+    expose:
+      - "5002"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -89,11 +113,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only user-service
     restart: unless-stopped
+    expose:
+      - "5003"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -101,11 +133,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only property-service
     restart: unless-stopped
+    expose:
+      - "5004"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -113,11 +153,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only inventory-service
     restart: unless-stopped
+    expose:
+      - "5005"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -125,11 +173,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only socket-service
     restart: unless-stopped
+    expose:
+      - "5006"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -138,11 +194,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only notification-service
     restart: unless-stopped
+    expose:
+      - "5007"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -150,11 +214,19 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only accounts-service
     restart: unless-stopped
+    expose:
+      - "5008"
     networks:
       - heavens-ms-js-net
     env_file: ./.env
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -167,4 +239,3 @@ networks:
 
 volumes:
   rabbitmq-data:
-
