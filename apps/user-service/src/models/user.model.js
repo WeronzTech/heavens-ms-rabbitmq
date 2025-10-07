@@ -188,8 +188,12 @@ const userSchema = new mongoose.Schema(
       type: new mongoose.Schema(
         {
           isReferralProcessed: { type: Boolean, default: false },
-          referralLink: String,
-          referredByLink: String,
+          referralCode: {
+            type: String,
+            unique: true,
+            sparse: true,
+          },
+          referredByCode: { type: String },
           referralHistory: {
             referredUsers: [String],
             lastUsed: Date,
