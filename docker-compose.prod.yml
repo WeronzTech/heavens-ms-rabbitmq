@@ -1,8 +1,27 @@
-version: "3.8"
+version: '3.8'
+
+# ===================================================================
+#  YAML Anchor for Zero-Downtime Deployment Configuration
+# ===================================================================
+x-deploy-config: &deploy-config
+  deploy:
+    update_config:
+      parallelism: 1
+      order: start-first
+      failure_action: rollback
+      delay: 5s
+    rollback_config:
+      parallelism: 1
+      order: stop-first
+  healthcheck:
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 30s
 
 services:
   # ===================================================================
-  #  1. Infrastructure Services
+  #  1. Infrastructure Services (No changes here)
   # ===================================================================
   rabbitmq:
     image: rabbitmq:3-management
@@ -38,12 +57,16 @@ services:
     restart: unless-stopped
 
   # ===================================================================
-  #  2. Application Microservices with Health Checks for Zero Downtime
+  #  2. Application Microservices (UPDATED WITH ADVANCED DEPLOYMENT)
   # ===================================================================
   api-gateway:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only api-gateway
     restart: unless-stopped
+    <<: *deploy-config # Apply the zero-downtime config
+    healthcheck:
+      <<: *deploy-config.healthcheck # Inherit base healthcheck config
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"] # Specific test
     ports:
       - "8080:8080"
     networks:
@@ -51,12 +74,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -73,6 +90,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only auth-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
     expose:
       - "5001"
     networks:
@@ -80,12 +101,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -93,6 +108,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only client-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
     expose:
       - "5002"
     networks:
@@ -100,19 +119,21 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
+
+  # ... (The same pattern is applied to all other services)
+  # I've omitted them for brevity, but you should apply the
+  # `<<: *deploy-config` and updated `healthcheck` to all of them.
 
   user-service:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only user-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
     expose:
       - "5003"
     networks:
@@ -120,12 +141,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -133,6 +148,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only property-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
     expose:
       - "5004"
     networks:
@@ -140,12 +159,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -153,6 +166,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only inventory-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5005/health"]
     expose:
       - "5005"
     networks:
@@ -160,12 +177,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5005/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -173,6 +184,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only socket-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
     expose:
       - "5006"
     networks:
@@ -180,12 +195,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -194,6 +203,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only notification-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5007/health"]
     expose:
       - "5007"
     networks:
@@ -201,12 +214,6 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5007/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
 
@@ -214,6 +221,10 @@ services:
     image: akhilbeliever001222/heavens-ms:latest
     command: pm2-runtime ecosystem.config.cjs --only accounts-service
     restart: unless-stopped
+    <<: *deploy-config
+    healthcheck:
+      <<: *deploy-config.healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:5008/health"]
     expose:
       - "5008"
     networks:
@@ -221,14 +232,9 @@ services:
     env_file: ./.env
     environment:
       - NODE_ENV=production
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5008/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
+
 
 # ===================================================================
 #  3. Networks and Volumes
@@ -239,3 +245,4 @@ networks:
 
 volumes:
   rabbitmq-data:
+
