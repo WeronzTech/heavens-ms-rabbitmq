@@ -3,14 +3,22 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node apps/api-gateway/src/index.js",
     "dev": "nodemon apps/api-gateway/src/index.js",
-    "start:api-gateway": "nodemon apps/api-gateway/src/index.js",
-    "start:auth-service": "nodemon apps/auth-service/src/index.js",
-    "start:client-service": "nodemon apps/client-service/src/index.js",
-    "start:user-service": "nodemon apps/user-service/src/index.js",
+    "api-gateway": "nodemon apps/api-gateway/src/index.js",
+    "auth-service": "nodemon apps/auth-service/src/index.js",
+    "client-service": "nodemon apps/client-service/src/index.js",
+    "user-service": "nodemon apps/user-service/src/index.js",
+    "socket-service": "nodemon apps/socket-service/src/index.js",
+    "notification-service": "nodemon apps/notification-service/src/index.js",
+    "accounts-service": "nodemon apps/accounts-service/src/index.js",
+    "inventory-service": "nodemon apps/inventory-service/src/index.js",
+    "property-service": "nodemon apps/property-service/src/index.js",
     "start:all": "concurrently --names \"API-GATEWAY,USER,AUTH,CLIENT,PROPERTY,NOTIFICATION,ACCOUNTS,INVENTORY,SOCKET\" \"nodemon apps/api-gateway/src/index.js\" \"nodemon apps/user-service/src/index.js\" \"nodemon apps/auth-service/src/index.js\" \"nodemon apps/client-service/src/index.js\" \"nodemon apps/property-service/src/index.js\" \"nodemon apps/notification-service/src/index.js\" \"nodemon apps/accounts-service/src/index.js\" \"nodemon apps/inventory-service/src/index.js\" \"nodemon apps/socket-service/src/index.js\""
   },
   "keywords": [],

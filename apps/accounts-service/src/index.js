@@ -4,9 +4,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import cron from "node-cron";
+import cron from "node-cron";
 
 import { connect } from "../../../libs/common/rabbitMq.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { generateMonthlySalaries } from "./utils/cronAutomation.js";
 import { generateMonthlySalaries } from "./utils/cronAutomation.js";
 // ⛔️ REMOVED: Controller import is moved into the startup function.
 // import "./controllers/feePayment.controller.js";
@@ -33,6 +35,17 @@ app.use(helmet());
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK" });
 });
+
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    generateMonthlySalaries();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  }
+);
 
 cron.schedule(
   "0 0 * * *",

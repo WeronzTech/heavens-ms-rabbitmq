@@ -7,11 +7,12 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 
 export const addCommission = async (data) => {
   try {
-    const { agent, agency, property, amount, userIds, paymentType } = data;
+    const { agent, agency,agencyName, property, amount, userIds, paymentType,remarks } = data;
     if (
       !agent ||
       !agent.name ||
       !agency ||
+      !agencyName ||
       !property ||
       !amount ||
       !paymentType
@@ -319,3 +320,44 @@ export const checkUserCommission = async (data) => {
     };
   }
 };
+
+export const getCommissionByProperty = async (data) => {
+  try {
+    let commissions;
+
+    // If propertyId is provided → filter using correct field "property"
+    if (data && data.property) {
+      commissions = await Commission.find({ property: data.property });
+    } else {
+      commissions = await Commission.find({});
+    }
+
+    if (!commissions || commissions.length === 0) {
+      return {
+        success: false,
+        status: 404,
+        message: data?.property
+          ? "No commissions found for this property."
+          : "No commissions found.",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: data?.property
+        ? "Commissions fetched successfully for the property."
+        : "All commissions fetched successfully.",
+      data: commissions,
+    };
+  } catch (error) {
+    console.error("Get Commission By Property Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+

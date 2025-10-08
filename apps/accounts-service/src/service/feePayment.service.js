@@ -832,6 +832,8 @@ const processAndRecordPayment = async ({
   paymentMethod,
   transactionId = null,
   razorpayDetails = {},
+  waveOffAmount = 0, // New field
+  waveOffReason = null, // New field
 }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -846,54 +848,47 @@ const processAndRecordPayment = async ({
     }
     const user = userResponse.body.data;
 
-    let paymentForMonths = []; // Initialize for all types
+    let paymentForMonths = [];
 
-    // --- Logic for Daily and Mess users ---
     if (user.rentType === "daily" || user.rentType === "mess") {
       const pending = user.financialDetails.pendingAmount || 0;
-      if (amount < pending) {
+      const totalCredit = amount + waveOffAmount;
+
+      if (totalCredit < pending) {
         throw new Error(
-          `Payment amount must be at least the pending amount of ₹${pending}.`
+          `Payment plus wave-off must be at least the pending amount of ₹${pending}.`
         );
       }
-      user.financialDetails.pendingAmount -= amount;
+      user.financialDetails.pendingAmount -= totalCredit;
       if (user.financialDetails.pendingAmount <= 0) {
         user.paymentStatus = "paid";
       }
-    }
-    // --- Logic for Monthly Renters ---
-    else if (user.rentType === "monthly") {
+    } else if (user.rentType === "monthly") {
       const monthlyRent = user.financialDetails.monthlyRent || 0;
       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
 
-      // ✅ **NEW LOGIC: Dynamically calculate and add overdue rent**
       const { clearedTillMonth } = user.financialDetails;
       if (clearedTillMonth) {
         const today = moment();
-        const nextDueDate = moment(clearedTillMonth, "YYYY-MM").add(
+        const nextDueMonth = moment(clearedTillMonth, "YYYY-MM").add(
           1,
           "months"
         );
-
-        console.log("Before", user.financialDetails.pendingRent);
-        if (today.isAfter(nextDueDate)) {
-          const monthsOverdue = today.diff(nextDueDate, "months") + 1;
-          const overdueRent = monthsOverdue * monthlyRent;
-          console.log("Overdue rent:", overdueRent);
-          // Add the newly calculated overdue amount to any existing pending rent
-          user.financialDetails.pendingRent = overdueRent;
-          console.log("After", user.financialDetails.pendingRent);
+        if (today.isAfter(nextDueMonth)) {
+          const monthsDue = today.diff(nextDueMonth, "months") + 1;
+          user.financialDetails.pendingRent = monthsDue * monthlyRent;
         }
       }
-      // **END OF NEW LOGIC**
 
       const currentBalance = user.financialDetails.accountBalance || 0;
       const currentPendingRent = user.financialDetails.pendingRent || 0;
-      const totalAvailableAmount = amount + currentBalance;
+
+      // The total credit for this transaction includes payment, balance, and any wave-off
+      const totalAvailableAmount = amount + currentBalance + waveOffAmount;
 
       if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
         throw new Error(
-          `To clear your due, payment of ₹${amount} plus advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
+          `To clear your due, payment of ₹${amount} plus wave-off of ₹${waveOffAmount} and advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
         );
       }
 
@@ -949,6 +944,8 @@ const processAndRecordPayment = async ({
       room: user.stayDetails?.roomNumber || "N/A",
       rent: user.financialDetails?.monthlyRent || 0,
       amount: amount,
+      waveOffAmount: waveOffAmount,
+      waveOffReason: waveOffReason,
       accountBalance: user.financialDetails?.accountBalance || 0,
       dueAmount: user.financialDetails.pendingRent,
       paymentMethod,
@@ -1118,7 +1115,15 @@ export const verifyAndRecordOnlinePayment = async (data) => {
 };
 
 export const recordManualPayment = async (data) => {
-  const { userId, amount, paymentMethod, transactionId } = data;
+  const {
+    userId,
+    amount,
+    paymentMethod,
+    transactionId,
+    waveOffAmount,
+    waveOffReason,
+  } = data;
+
   if (!["Cash", "UPI", "Bank Transfer"].includes(paymentMethod)) {
     return {
       success: false,
@@ -1133,12 +1138,22 @@ export const recordManualPayment = async (data) => {
       message: "Transaction ID is required for UPI/Bank Transfer.",
     };
   }
+  // New validation for wave-off
+  if (waveOffAmount && !waveOffReason) {
+    return {
+      success: false,
+      status: 400,
+      message: "A reason is required when providing a wave-off amount.",
+    };
+  }
 
   return await processAndRecordPayment({
     userId,
     amount: Number(amount),
     paymentMethod,
     transactionId,
+    waveOffAmount: Number(waveOffAmount) || 0,
+    waveOffReason,
   });
 };
 

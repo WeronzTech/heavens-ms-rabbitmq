@@ -156,3 +156,24 @@ export const deleteCarousel = async (data) => {
     };
   }
 };
+export const getAllCarousel = async () => {
+  try {
+    // Only fetch carousel documents, no _id or propertyId casting unless provided
+    const carousels = await Carousel.find();
+
+    return {
+      success: true,
+      status: 200,
+      message: carousels.length ? "Carousel images fetched successfully" : "No carousel images found",
+      data: carousels,
+    };
+  } catch (error) {
+    console.error("Error in getAllCarousel Service:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching carousel images",
+      error: error.message,
+    };
+  }
+};

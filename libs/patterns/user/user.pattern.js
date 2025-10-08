@@ -26,6 +26,7 @@ export const USER_PATTERN = {
     FETCH_USER_DATA: "fetch_user_data",
     GET_USERS_WITH_BIRTHDAY_TODAY: "get_users_with_birthday_today",
     GET_USER_BY_AGENCY: "get_user_by_agency",
+    GET_USER_BY_AGENCY: "get_user_by_agency",
   },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",
@@ -52,8 +53,6 @@ export const USER_PATTERN = {
     GET_USERS_COUNTS: "get_users_counts",
     GET_USER_STATISTICS_FOR_ACCOUNTS_DASHBOARD:
       "get_user_statistics_for_accounts_dashboard",
-    GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD:
-      "get_user_deposit_statistics_for_accounts_dashboard",
   },
   REFERRAL: {
     GET_USER_REFERRAL_DETAILS: "user_referral_get_details",

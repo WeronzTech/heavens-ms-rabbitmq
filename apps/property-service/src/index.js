@@ -70,6 +70,7 @@ const startServer = async () => {
     await import("./controllers/internal.controller.js");
     await import("./controllers/dashboard.controller.js");
     await import("./controllers/maintenance.controller.js");
+    await import("./controllers/attendance.controller.js");
     await import("./controllers/carousal.controller.js")
     console.log("[PROPERTY] Responders are ready.");
 

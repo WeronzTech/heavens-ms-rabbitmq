@@ -276,3 +276,52 @@ export const getPettyCashPaymentByManager = async (req, res) => {
     });
   }
 };
+
+export const updateExpenseController = async (req, res) => {
+  try {
+    const { expenseId } = req.params; 
+    const {
+      transactionId,
+      property,
+      paymentMethod,
+      amount,
+      handledBy,
+      pettyCashType,
+      ...expenseData
+    } = req.body;
+
+    let billImage;
+    if (req.files?.billImage?.[0]) {
+      billImage = {
+        buffer: req.files.billImage[0].buffer.toString("base64"),
+        originalname: req.files.billImage[0].originalname,
+        mimetype: req.files.billImage[0].mimetype,
+      };
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.UPDATE_EXPENSE,
+      {
+        expenseId,
+        transactionId,
+        property,
+        paymentMethod,
+        amount,
+        handledBy,
+        pettyCashType,
+        billImage,
+        ...expenseData,
+      }
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in updating expense:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while updating expense.",
+    });
+  }
+};
+

@@ -39,6 +39,8 @@ import accountDashboardRoutes from "./routes/accounts/accountDashbaord.routes.js
 import expenseRoutes from "./routes/accounts/expense.routes.js";
 import attendanceRoutes from "./routes/property/attendance.route.js";
 import salaryRoutes from "./routes/accounts/staffSalaryHistory.routes.js";
+import attendanceRoutes from "./routes/property/attendance.route.js";
+import salaryRoutes from "./routes/accounts/staffSalaryHistory.routes.js";
 import carouselRoutes from "./routes/property/carousel.routes.js";
 import voucherRoutes from "./routes/accounts/voucher.routes.js";
 import referralRoutes from "./routes/user/referral.routes.js";
@@ -108,12 +110,16 @@ app.use("/api/v2/logs", propertyLogRoutes);
 app.use("/api/v2/expense", expenseRoutes);
 app.use("/api/v2/attendance", attendanceRoutes);
 app.use("/api/v2/staff-salary", salaryRoutes);
+app.use("/api/v2/attendance", attendanceRoutes);
+app.use("/api/v2/staff-salary", salaryRoutes);
 app.use("/api/v2/property/carousel", carouselRoutes);
 app.use("/api/v2/voucher", voucherRoutes);
+app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/referral", referralRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
+  res.status(200).json({ status: "OK CI/CD is working fine and running." });
   res.status(200).json({ status: "OK CI/CD is working fine and running." });
 });
 

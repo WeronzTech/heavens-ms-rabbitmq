@@ -3,16 +3,15 @@ import mongoose from "mongoose";
 const commissionSchema = new mongoose.Schema(
   {
     agent: {
-      name: {
         type: String,
         required: true,
         trim: true,
-      },
-      contact: {
-        type: String,
+    },
+    agencyName: { 
+        type : String , 
+        required:true,
         trim: true,
       },
-    },
     agency: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -32,6 +31,10 @@ const commissionSchema = new mongoose.Schema(
     },
     transactionId: {
       type: String,
+    },
+    remarks: {
+      type: String,
+      required:false
     },
     userIds: [
       {

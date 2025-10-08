@@ -1,6 +1,6 @@
 // src/routes/carousel.routes.js
 import express from "express";
-import { addCarouselImagesController, deleteCarouselController, updateCarouselImagesController } from "../../controllers/property/carousal.controller.js";
+import { addCarouselImagesController, deleteCarouselController, getAllCarouselController, updateCarouselImagesController } from "../../controllers/property/carousal.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 
@@ -12,6 +12,9 @@ carouselRoutes.post(
   upload.single("file"),
   addCarouselImagesController
 );
+carouselRoutes.get(
+  "/get", getAllCarouselController); 
+
 carouselRoutes.put(
     "/update/:id",
     isAuthenticated,
@@ -23,4 +26,6 @@ carouselRoutes.put(
     isAuthenticated,
     deleteCarouselController
   ); 
+
+
 export default carouselRoutes;
