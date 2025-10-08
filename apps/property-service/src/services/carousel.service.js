@@ -3,7 +3,7 @@ import Carousel from "../models/carousel.model.js";
 
 export const addCarouselImages = async (data) => {
   try {
-    const { file, title, userId, propertyId } = data;
+    const { file, title, userId, } = data;
 
     if (!file) {
       return {
@@ -13,13 +13,13 @@ export const addCarouselImages = async (data) => {
       };
     }
 
-    if (!propertyId) {
-      return {
-        success: false,
-        status: 400,
-        message: "Property ID is required",
-      };
-    }
+    // if (!propertyId) {
+    //   return {
+    //     success: false,
+    //     status: 400,
+    //     message: "Property ID is required",
+    //   };
+    // }
 
     if (!userId) {
       return {
@@ -35,7 +35,7 @@ export const addCarouselImages = async (data) => {
     // Save in DB
     const carousel = await Carousel.create({
       title: title || "Default Carousel",
-      propertyId,
+      // propertyId,
       image: imageUrl, // ✅ single image
       createdBy: userId,
     });
@@ -58,7 +58,7 @@ export const addCarouselImages = async (data) => {
 };
 export const updateCarouselImages = async (data) => {
   try {
-    const { carouselId, file, title, userId, propertyId } = data;
+    const { carouselId, file, title, userId, } = data;
 
     if (!carouselId) {
       return { success: false, status: 400, message: "Carousel ID is required" };
@@ -92,7 +92,6 @@ export const updateCarouselImages = async (data) => {
 
     // Update other fields
     carousel.title = title || carousel.title;
-    carousel.propertyId = propertyId || carousel.propertyId;
 
     await carousel.save();
 

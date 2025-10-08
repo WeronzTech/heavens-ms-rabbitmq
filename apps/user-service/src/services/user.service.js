@@ -3026,7 +3026,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
 export const getUsersByAgencyService = async (data) => {
   try {
     const { agency } = data;
-     const agencyId = new mongoose.Types.ObjectId(agency)
+    const agencyId = new mongoose.Types.ObjectId(agency);
 
     if (!agency) {
       return {
@@ -3036,10 +3036,7 @@ export const getUsersByAgencyService = async (data) => {
       };
     }
 
-
-
     const users = await User.find({agency: agencyId}).lean();
-   
 
     if (!users || users.length === 0) {
       return {

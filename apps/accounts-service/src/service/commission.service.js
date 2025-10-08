@@ -8,21 +8,21 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 export const addCommission = async (data) => {
   try {
     const { agent, agency,agencyName, property, amount, userIds, paymentType,remarks } = data;
-    if (
-      !agent ||
-      !agent.name ||
-      !agency ||
-      !agencyName ||
-      !property ||
-      !amount ||
-      !paymentType
-    ) {
-      return {
-        success: false,
-        status: 400,
-        message: "Missing required fields.",
-      };
-    }
+    // if (
+    //   !agent ||
+    //   !agent.name ||
+    //   !agency ||
+    //   !agencyName ||
+    //   !property ||
+    //   !amount ||
+    //   !paymentType
+    // ) {
+    //   return {
+    //     success: false,
+    //     status: 400,
+    //     message: "Missing required fields.",
+    //   };
+    // }
 
     if (userIds && userIds.length > 0) {
       const existingCommission = await Commission.findOne({
