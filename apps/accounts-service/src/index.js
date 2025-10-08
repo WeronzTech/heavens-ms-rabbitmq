@@ -3,10 +3,11 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
-// import cron from "node-cron";
+import cron from "node-cron";
 
 import { connect } from "../../../libs/common/rabbitMq.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { generateMonthlySalaries } from "./utils/cronAutomation.js";
 // ⛔️ REMOVED: Controller import is moved into the startup function.
 // import "./controllers/feePayment.controller.js";
 
@@ -33,6 +34,17 @@ app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK" });
 });
 
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    generateMonthlySalaries();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  }
+);
+
 // Global error handler
 app.use(errorHandler);
 
@@ -49,6 +61,8 @@ const startServer = async () => {
     await import("./controllers/expense.controller.js");
     await import("./controllers/commission.controller.js");
     await import("./controllers/dashboard.controller.js");
+    await import("./controllers/depositPayment.controller.js");
+    await import("./controllers/staffSalaryHistory.controller.js");
     await import("./controllers/voucher.controller.js");
     console.log("[ACCOUNTS] Responders are ready.");
 

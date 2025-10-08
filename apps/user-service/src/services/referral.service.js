@@ -1,116 +1,203 @@
+import User from "../models/user.model.js";
+import ReferralSettings from "../models/referralSettings.model.js";
 import mongoose from "mongoose";
-import {
-  extractStudentIdFromReferralLink,
-  generateReferralLink,
-  getReferralLevelAndRewardFromDB,
-} from "../utils/referral.utils.js";
+import crypto from "crypto";
 
-export const setupReferralForNewStudent = (student) => {
-  const referralLink = generateReferralLink(student._id, student.name);
-
-  student.referralInfo = {
-    referralLink: referralLink,
-    referralHistory: {
-      referredStudents: [],
-      lastUsed: null,
-    },
-    totalReferrals: 0,
-    referralEarnings: 0,
-    withdrawnAmount: 0,
-  };
+const generateUniqueReferralCode = async () => {
+  let referralCode;
+  let isUnique = false;
+  while (!isUnique) {
+    const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase();
+    referralCode = `HVNS-${randomPart}`;
+    const existingUser = await User.findOne({
+      "referralInfo.referralCode": referralCode,
+    });
+    if (!existingUser) {
+      isUnique = true;
+    }
+  }
+  return referralCode;
 };
 
-export const handleReferralIfUsed = async (referralLink, newStudentId) => {
-  const result = extractStudentIdFromReferralLink(referralLink);
-  const studentId = result?.studentId;
-  // console.log("studentID", studentId);
+export const getUserReferralDetails = async (data) => {
+  try {
+    const { userId } = data;
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Valid User ID is required.",
+      };
+    }
 
-  if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
-    console.log("Invalid or missing studentId");
-    return;
+    const user = await User.findById(userId, "referralInfo name");
+    if (!user) {
+      return { success: false, status: 404, message: "User not found." };
+    }
+
+    if (!user.referralInfo?.referralCode) {
+      user.referralInfo.referralCode = await generateUniqueReferralCode();
+      await user.save();
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Referral details retrieved successfully.",
+      data: user.referralInfo,
+    };
+  } catch (error) {
+    console.error("Get User Referral Details Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
   }
-
-  const [referrer, newStudent] = await Promise.all([
-    Student.findById(studentId),
-    Student.findById(newStudentId),
-  ]);
-
-  // console.log('referrer:', referrer);
-  // console.log('newStudent:', newStudent);
-
-  if (!referrer || !newStudent) {
-    console.log("Referrer or new student not found");
-    return;
-  }
-
-  if (studentId === newStudentId.toString()) {
-    console.log("Self-referral attempt blocked");
-    return;
-  }
-
-  // ✅ Optional: Prevent processing twice
-  if (newStudent.referralInfo?.isReferralProcessed) {
-    console.log("Referral already processed");
-    return;
-  }
-
-  const existingInfo = referrer.referralInfo || {};
-  const currentHistory = existingInfo.referralHistory || {
-    referredStudents: [],
-    lastUsed: null,
-  };
-
-  const updatedReferralHistory = {
-    referredStudents: [...currentHistory.referredStudents, newStudent.name],
-    lastUsed: new Date(),
-  };
-
-  const newTotalReferrals = (existingInfo.totalReferrals || 0) + 1;
-  const {reward, level} = await getReferralLevelAndRewardFromDB(
-    newTotalReferrals
-  );
-
-  referrer.referralInfo = {
-    ...existingInfo,
-    referralHistory: updatedReferralHistory,
-    totalReferrals: newTotalReferrals,
-    referralLink: existingInfo.referralLink || "",
-    referralEarnings: (existingInfo.referralEarnings || 0) + reward,
-    withdrawnAmount: existingInfo.withdrawnAmount || 0,
-    level,
-  };
-
-  referrer.markModified("referralInfo");
-
-  // ✅ Mark referral as processed on newStudent
-  newStudent.referralInfo = {
-    ...newStudent.referralInfo,
-    isReferralProcessed: true,
-  };
-  newStudent.markModified("referralInfo");
-
-  await Promise.all([referrer.save(), newStudent.save()]);
-  // console.log(newStudent)
-  // console.log("Referral processed and saved");
 };
 
-export const handleReferralOnApproval = async (student) => {
-  console.log(student);
-  if (student.referralInfo?.referredByLink) {
-    await handleReferralIfUsed(
-      student.referralInfo.referredByLink,
-      student._id
+export const completeReferral = async (data) => {
+  try {
+    const { newUserId } = data;
+    if (!newUserId) {
+      return {
+        success: false,
+        status: 400,
+        message: "New User ID is required to complete referral.",
+      };
+    }
+
+    const newUser = await User.findById(newUserId);
+    if (!newUser) {
+      return { success: false, status: 404, message: "New user not found." };
+    }
+
+    const { referredByCode, isReferralProcessed } = newUser.referralInfo || {};
+
+    if (isReferralProcessed) {
+      return {
+        success: true,
+        status: 200,
+        message: "Referral already processed.",
+      };
+    }
+
+    if (!referredByCode) {
+      return { success: true, status: 200, message: "No referral code used." };
+    }
+
+    const [referrer, settings] = await Promise.all([
+      User.findOne({ "referralInfo.referralCode": referredByCode }),
+      ReferralSettings.findOne().sort({ createdAt: -1 }),
+    ]);
+
+    if (!referrer) {
+      return {
+        success: false,
+        status: 404,
+        message: "Original referrer not found for the provided code.",
+      };
+    }
+
+    if (referrer._id.toString() === newUserId.toString()) {
+      return {
+        success: false,
+        status: 400,
+        message: "Self-referral is not allowed.",
+      };
+    }
+
+    const rewardAmount = settings ? settings.rewardAmount : 250;
+
+    referrer.referralInfo.totalReferrals =
+      (referrer.referralInfo.totalReferrals || 0) + 1;
+    referrer.referralInfo.referralEarnings =
+      (referrer.referralInfo.referralEarnings || 0) + rewardAmount;
+    referrer.referralInfo.referralHistory.referredUsers.push(newUser.name);
+    referrer.referralInfo.referralHistory.lastUsed = new Date();
+
+    newUser.referralInfo.isReferralProcessed = true;
+
+    await Promise.all([referrer.save(), newUser.save()]);
+
+    console.log(
+      `Referral complete! User ${referrer.name} earned ₹${rewardAmount} for referring ${newUser.name}.`
     );
+
+    return {
+      success: true,
+      status: 200,
+      message: "Referral completed successfully.",
+    };
+  } catch (error) {
+    console.error("Complete Referral Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
   }
+};
 
-  if (!student.referralInfo) student.referralInfo = {};
+export const getReferralSettings = async () => {
+  try {
+    let settings = await ReferralSettings.findOne();
 
-  if (!student.referralInfo.referralLink) {
-    student.referralInfo.referralLink = generateReferralLink(
-      student._id,
-      student.name
+    // If no settings exist, create a default one
+    if (!settings) {
+      settings = await ReferralSettings.create({ rewardAmount: 250 });
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Referral settings retrieved successfully.",
+      data: settings,
+    };
+  } catch (error) {
+    console.error("Get Referral Settings Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const upsertReferralSettings = async (data) => {
+  try {
+    const { rewardAmount } = data;
+    if (rewardAmount === undefined || typeof rewardAmount !== "number") {
+      return {
+        success: false,
+        status: 400,
+        message: "A valid 'rewardAmount' is required.",
+      };
+    }
+
+    // Find one and update, or create if it doesn't exist (upsert)
+    const settings = await ReferralSettings.findOneAndUpdate(
+      {}, // An empty filter will match the first document found
+      { $set: { rewardAmount } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-  }
 
-  //   student.markModified("referralInfo");
+    return {
+      success: true,
+      status: 200,
+      message: "Referral settings updated successfully.",
+      data: settings,
+    };
+  } catch (error) {
+    console.error("Upsert Referral Settings Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
 };

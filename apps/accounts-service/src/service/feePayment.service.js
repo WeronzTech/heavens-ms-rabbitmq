@@ -1414,7 +1414,9 @@ export const getAllAccountsPayments = async (data) => {
 
     const payments = await Payments.find(filter).sort({ createdAt: -1 }).lean();
     const expenses = await Expense.find(filter).sort({ createdAt: -1 }).lean();
-    const commissions = await Commission.find(filter).sort({ createdAt: -1 }).lean();
+    const commissions = await Commission.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
 
     return {
       success: true,
@@ -1430,7 +1432,8 @@ export const getAllAccountsPayments = async (data) => {
     return {
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching all accounts summary.",
+      message:
+        "An internal server error occurred while fetching all accounts summary.",
       error: error.message,
     };
   }
@@ -1559,6 +1562,49 @@ export const getAllCashPayments = async ({ propertyId }) => {
       success: false,
       status: 500,
       message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
+export const getLatestFeePaymentByUserId = async (data) => {
+  try {
+    const { userId } = data;
+
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: [],
+      };
+    }
+
+    const latestPayment = await Payments.findOne({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!latestPayment) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Latest payment fetched successfully",
+      data: latestPayment,
+    };
+  } catch (error) {
+    console.error("Error in getLatestFeePaymentByUserId:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching latest payment",
       error: error.message,
     };
   }

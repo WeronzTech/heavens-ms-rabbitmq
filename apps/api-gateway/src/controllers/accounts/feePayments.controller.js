@@ -192,11 +192,15 @@ export const getAllAccountsPaymentController = async (req, res) => {
       return res.status(response.status || 500).json(response);
     }
   } catch (error) {
-    console.error("[ACCOUNTS] Error in getAllAccountsPaymentController:", error);
+    console.error(
+      "[ACCOUNTS] Error in getAllAccountsPaymentController:",
+      error
+    );
     return res.status(500).json({
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching accounts summary.",
+      message:
+        "An internal server error occurred while fetching accounts summary.",
       error: error.message,
     });
   }
@@ -204,7 +208,6 @@ export const getAllAccountsPaymentController = async (req, res) => {
 
 export const getUserPaymentsController = async (req, res) => {
   try {
-  
     const userId = req.userAuth;
 
     if (!userId) {
@@ -216,7 +219,7 @@ export const getUserPaymentsController = async (req, res) => {
     }
 
     const response = await sendRPCRequest(
-      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID, 
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID,
       { userId }
     );
 
@@ -226,7 +229,8 @@ export const getUserPaymentsController = async (req, res) => {
     return res.status(500).json({
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching user payments.",
+      message:
+        "An internal server error occurred while fetching user payments.",
       error: error.message,
     });
   }
@@ -258,7 +262,7 @@ export const getAllCashPaymentsController = async (req, res) => {
     const { propertyId } = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
-      {propertyId }
+      { propertyId }
     );
 
     return res.status(response?.status || 500).json(response);
@@ -267,6 +271,36 @@ export const getAllCashPaymentsController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getLatestFeePaymentByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "User ID not found",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_PAYMENT_BY_USERID,
+      { userId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getUserPaymentsController:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching user payments.",
       error: error.message,
     });
   }

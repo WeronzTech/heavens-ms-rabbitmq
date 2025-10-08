@@ -1,15 +1,18 @@
 import amqp from "amqplib";
 import { v4 as uuidv4 } from "uuid";
-const RABBITMQ_URL = "amqp://admin:admin123@localhost:5672";
+const RABBITMQ_URL = "amqp://admin:admin123@rabbitmq:5672";
 
 // ✅ CHANGED: Only the connection and a dedicated listener channel are global.
 let connection;
 let listenerChannel;
+const MAX_INITIAL_ATTEMPTS = 10;
+let initialConnectionAttempts = 0;
 
 async function connect() {
   try {
     connection = await amqp.connect(RABBITMQ_URL);
     console.log("Connected to RabbitMQ");
+    initialConnectionAttempts = 0;
 
     connection.on("error", (err) => {
       console.error("[RabbitMQ] connection error", err);
@@ -34,6 +37,13 @@ async function connect() {
     });
   } catch (error) {
     console.error("Failed to connect to RabbitMQ, retrying...", error);
+    initialConnectionAttempts++;
+    if (initialConnectionAttempts >= MAX_INITIAL_ATTEMPTS) {
+      console.error(
+        `🔥🔥🔥 [RabbitMQ] Gave up after ${MAX_INITIAL_ATTEMPTS} attempts. Please check the RabbitMQ server or connection URL.`
+      );
+      return; // Stop retrying
+    }
     setTimeout(connect, 5000);
   }
 }

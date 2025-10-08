@@ -10,6 +10,8 @@ import {
   getCategoryByMainCategory,
   getExpenseAnalytics,
   getExpenseById,
+  getPettyCashPaymentsByManager,
+  updateExpense,
 } from "../service/expense.service.js";
 
 createResponder(ACCOUNTS_PATTERN.EXPENSE.ADD_EXPENSE, async (data) => {
@@ -60,3 +62,7 @@ createResponder(
     return await getPettyCashPaymentsByManager(data);
   }
 );
+
+createResponder(ACCOUNTS_PATTERN.EXPENSE.UPDATE_EXPENSE, async (data) => {
+  return await updateExpense(data);
+});

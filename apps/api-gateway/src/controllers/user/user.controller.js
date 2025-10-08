@@ -430,10 +430,10 @@ export const extendUserDays = async (req, res) => {
 export const createStatusRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, reason } = req.body;
+    const { type, reason, isInstantCheckout } = req.body;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.CREATE_STATUS_REQUEST,
-      { id, type, reason }
+      { id, type, reason, isInstantCheckout }
     );
 
     return res
@@ -456,11 +456,13 @@ export const getPendingStatusRequests = async (req, res) => {
     } = req.query;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_PENDING_STATUS_REQUESTS,
-      propertyId,
-      type,
-      userType,
-      sortBy,
-      sortOrder
+      {
+        propertyId,
+        type,
+        userType,
+        sortBy,
+        sortOrder,
+      }
     );
 
     return res
@@ -540,6 +542,45 @@ export const getAllPendingPayments = async (req, res) => {
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error("RPC Get All Fee Payments Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getUsersByAgencyController = async (req, res) => {
+  try {
+    const { agency } = req.query;
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_AGENCY,
+      { agency }
+    );
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("Error in getUsersByAgencyController:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users by agency",
+    });
+  }
+};
+
+export const getAllPendingDeposits = async (req, res) => {
+  try {
+    const { propertyId, search, userType, page = 1, limit = 10 } = req.query;
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.PAYMENT.GET_ALL_DEPOSIT_PENDING_USERS,
+      { propertyId, search, userType, page, limit }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get All Deposit Payments Controller Error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

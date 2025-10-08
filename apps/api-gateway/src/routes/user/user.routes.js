@@ -4,6 +4,7 @@ import {
   approveUser,
   createStatusRequest,
   extendUserDays,
+  getAllPendingDeposits,
   getAllPendingPayments,
   getCheckOutedUsersByRentType,
   getHeavensUserById,
@@ -11,6 +12,7 @@ import {
   getTodayCheckouts,
   getUnapprovedUsers,
   getUserIds,
+  getUsersByAgencyController,
   getUsersByRentType,
   getUserStatusRequests,
   getUsersWithBirthdayToday,
@@ -71,7 +73,9 @@ userRoutes.put("/:id/profile-completion", updateProfileCompletion);
 // User Management
 userRoutes.get("/", getUsersByRentType);
 userRoutes.get("/pending-payments", getAllPendingPayments);
+userRoutes.get("/pending-deposits", getAllPendingDeposits);
 userRoutes.get("/offBoarding", getCheckOutedUsersByRentType);
+userRoutes.get("/byAgency", getUsersByAgencyController);
 
 // userRoutes
 //   .route("/:id")

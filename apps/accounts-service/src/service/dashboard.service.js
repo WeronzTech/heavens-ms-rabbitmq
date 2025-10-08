@@ -3,6 +3,7 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Payments from "../models/feePayments.model.js";
 import Expense from "../models/expense.model.js";
+import Deposits from "../models/depositPayments.model.js";
 
 export const getAccountDashboardDataForIncomeSection = async (data) => {
   try {
@@ -341,6 +342,92 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
       success: false,
       status: 500,
       message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getAccountDashboardDataForDepositSection = async (data) => {
+  try {
+    const { propertyId } = data;
+
+    // 🧩 Base filter (for deposits collection)
+    const filter = { isRefund: false };
+    if (propertyId) {
+      filter.property = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    // 🗓️ Date range for current month
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
+
+    // 💰 Total deposits received (this month)
+    const monthlyDeposits = await Deposits.aggregate([
+      {
+        $match: {
+          ...filter,
+          paymentDate: { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amountPaid" },
+        },
+      },
+    ]);
+
+    const totalReceivedThisMonth =
+      monthlyDeposits.length > 0 ? monthlyDeposits[0].totalAmount : 0;
+
+    // 👥 Fetch user-related deposit statistics via RPC
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.DASHBOARD.GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
+      { propertyId }
+    );
+
+    if (!userResponse.success) {
+      return {
+        success: false,
+        status: 404,
+        message: "User stats not found for this property.",
+      };
+    }
+
+    const userStats = userResponse?.data || {};
+
+    // 🧮 Combine both deposit and user stats data
+    const combinedData = {
+      currentMonthNonRefundable: userStats.currentMonthNonRefundable || 0,
+      currentMonthRefundable: userStats.currentMonthRefundable || 0,
+      currentMonthPending: userStats.currentMonthPending || 0,
+      noOfCurrentMonthJoines: userStats.noOfCurrentMonthJoines || 0,
+      totalReceivedThisMonth,
+    };
+
+    // ✅ Final Response
+    return {
+      success: true,
+      status: 200,
+      message: propertyId
+        ? "Deposit dashboard data fetched successfully for property"
+        : "Deposit dashboard data fetched successfully for all properties",
+      data: combinedData,
+    };
+  } catch (error) {
+    console.error("Error in getAccountDashboardDataForDepositSection:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching deposit dashboard data",
       error: error.message,
     };
   }

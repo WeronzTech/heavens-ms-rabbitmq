@@ -17,6 +17,7 @@ import {
   getLatestPaymentsByUsers,
   getWaveOffedPayments,
   getAllCashPayments,
+  getLatestFeePaymentByUserId,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -98,7 +99,6 @@ createResponder(
   }
 );
 
-
 createResponder(
   ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
   async (data) => {
@@ -107,9 +107,15 @@ createResponder(
 );
 
 createResponder(
-  ACCOUNTS_PATTERN.FEE_PAYMENTS. GET_ALL_CASH_PAYMENTS,
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
   async (data) => {
     return await getAllCashPayments(data);
   }
 );
 
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_PAYMENT_BY_USERID,
+  async (data) => {
+    return await getLatestFeePaymentByUserId(data);
+  }
+);
