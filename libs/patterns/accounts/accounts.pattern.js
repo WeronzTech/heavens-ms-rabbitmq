@@ -55,7 +55,6 @@ export const ACCOUNTS_PATTERN = {
     GET_EXPENSE_ANALYTICS: "get_expense_analytics",
     GET_PETTYCASH_PAYMENTS_BY_MANAGER: "get_pettyCash_payments_by_manager",
     UPDATE_EXPENSE: "update_expense",
-    UPDATE_EXPENSE: "update_expense",
   },
   VOUCHER: {
     ADD_VOUCHER: "add_voucher",
@@ -67,9 +66,5 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL: "get_all_salary_records",
     DELETE_VOUCHER: "delete_voucher",
     GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property",
-  },
-  SALARY: {
-    MANUAL_CREATE: "manual_add_salary",
-    GET_ALL: "get_all_salary_records",
   },
 };
