@@ -31,6 +31,7 @@ export const ACCOUNTS_PATTERN = {
       "get_account_dashbaord_data_for_income_section",
     GET_ACCOUNT_DASHBAORD_DATA_FOR_EXPENESE_SECTION:
       "get_account_dashbaord_data_for_expense_section",
+    GET_GST_REPORT: "get_gst_report",  
   },
   EXPENSE: {
     ADD_EXPENSE: "add_expense",
