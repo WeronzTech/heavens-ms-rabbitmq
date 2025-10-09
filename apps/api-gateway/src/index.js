@@ -112,9 +112,7 @@ app.use("/api/v2/referral", referralRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
-  res
-    .status(200)
-    .json({ status: "OK CI/CD is working fine and running tester." });
+  res.status(200).json({ status: "OK CI/CD is working fine and running." });
 });
 
 app.get("/", (_, res) => {
