@@ -1,16 +1,11 @@
-import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
-import moment from "moment";
-
 export const generateMonthlySalaries = async () => {
   try {
-    const today = moment();
-    const currentMonthStart = today.clone().startOf("month").toDate();
-    const currentMonthEnd = today.clone().endOf("month").toDate();
+    const previousMonth = moment().subtract(1, "months");
+    const previousMonthStart = previousMonth.clone().startOf("month").toDate();
+    const previousMonthEnd = previousMonth.clone().endOf("month").toDate();
+    const daysInPreviousMonth = previousMonth.daysInMonth();
 
-    // Fetch active staff and managers from their respective services
+    // 1. Fetch all active staff and managers
     const [staffResponse, managerResponse] = await Promise.all([
       sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_ALL_STAFF, {}),
       sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, {}),
@@ -30,36 +25,69 @@ export const generateMonthlySalaries = async () => {
 
     if (employees.length === 0) {
       console.log(
-        "CRON JOB: No active staff or managers found. No salaries to generate."
+        "CRON JOB: No active employees found. No salaries to generate."
       );
       return { success: true, message: "No active employees found." };
     }
 
     let createdCount = 0;
     for (const employee of employees) {
+      // 2. Check if a salary record for this month already exists to prevent duplicates
       const existingRecord = await StaffSalaryHistory.findOne({
         employeeId: employee._id,
         date: {
-          $gte: currentMonthStart,
-          $lte: currentMonthEnd,
+          $gte: previousMonthStart,
+          $lte: previousMonthEnd,
         },
       });
 
-      if (!existingRecord) {
-        await StaffSalaryHistory.create({
-          employeeId: employee._id,
-          employeeType: employee.employeeType,
-          salary: employee.salary,
-          date: today.toDate(),
-          salaryPending: employee.salary,
-          status: "pending",
-          remarkType: "AUTOMATIC_GENERATION",
-        });
-        createdCount++;
+      if (existingRecord) {
+        continue; // Skip if already generated
       }
+
+      // 3. Fetch attendance for the employee for the previous month
+      const attendanceResponse = await sendRPCRequest(
+        PROPERTY_PATTERN.ATTENDANCE.GET_ATTENDANCE,
+        {
+          employeeId: employee._id,
+          startDate: previousMonth
+            .clone()
+            .startOf("month")
+            .format("YYYY-MM-DD"),
+          endDate: previousMonth.clone().endOf("month").format("YYYY-MM-DD"),
+        }
+      );
+
+      const attendanceRecords = attendanceResponse.success
+        ? attendanceResponse.data.data
+        : [];
+
+      // 4. Calculate payable days
+      const payableDays = attendanceRecords.reduce((count, record) => {
+        if (record.status === "Present" || record.status === "Paid Leave") {
+          return count + 1;
+        }
+        return count;
+      }, 0);
+
+      // 5. Calculate the pro-rata salary
+      const perDaySalary = employee.salary / daysInPreviousMonth;
+      const calculatedSalary = perDaySalary * payableDays;
+
+      // 6. Create the new salary history record
+      await StaffSalaryHistory.create({
+        employeeId: employee._id,
+        employeeType: employee.employeeType,
+        salary: calculatedSalary, // Use the calculated salary
+        date: moment().startOf("month").toDate(), // Record is for the 1st of the current month
+        salaryPending: calculatedSalary,
+        status: "pending",
+        remarkType: `AUTOMATIC_GENERATION (${payableDays}/${daysInPreviousMonth} days)`,
+      });
+      createdCount++;
     }
 
-    const logMessage = `CRON JOB: Successfully generated ${createdCount} new salary records for ${today.format(
+    const logMessage = `CRON JOB: Successfully generated ${createdCount} new salary records for ${previousMonth.format(
       "MMMM YYYY"
     )}.`;
     console.log(logMessage);
