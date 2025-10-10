@@ -1,3 +1,5 @@
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
 import { isAuthenticated } from "../middleware/isAuthenticated.js";
 import {
   addUser,
@@ -8,7 +10,7 @@ import {
 } from "../store/user.store.js";
 
 export const initializeSocketEvents = (io) => {
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     const token = socket?.handshake?.query?.token;
     const userId = socket?.handshake?.query?.userId;
     console.log("token", token);
@@ -33,15 +35,15 @@ export const initializeSocketEvents = (io) => {
 
     addUser(userId, socket.id);
     console.log(`User registered: ${userId} with socket ID: ${socket.id}`);
-    io.emit("onlineUsers", getOnlineUsers());
-    console.log("Current online users:", getOnlineUsers());
+    io.emit("onlineUsers", await getOnlineUsers());
+    console.log("Current online users:", await getOnlineUsers());
 
-    socket.on("private message", ({ recipientId, message }) => {
+    socket.on("private message", async ({ recipientId, message }) => {
       console.log(`Message from ${socket.id} to ${recipientId}: ${message}`);
-      const recipientSocketId = findSocketIdByUserId(recipientId);
+      const recipientSocketId = await findSocketIdByUserId(recipientId);
 
       if (recipientSocketId) {
-        const senderId = findUserIdBySocketId(socket.id);
+        const senderId = await findUserIdBySocketId(socket.id);
         io.to(recipientSocketId).emit("receive message", {
           senderId: senderId || "anonymous",
           message: message,
@@ -56,14 +58,52 @@ export const initializeSocketEvents = (io) => {
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on("user-booking-status", async (data) => {
+      try {
+        const { today } = data;
+        const currentUserId = await findUserIdBySocketId(socket.id);
+
+        if (!currentUserId) {
+          // Acknowledge with an error if the user isn't found in the store
+          return {
+            success: false,
+            message: "Authentication error: User not found for this socket.",
+          };
+        }
+
+        console.log(
+          `Received user-booking-status request for userId: ${currentUserId}`
+        );
+
+        const response = await sendRPCRequest(
+          INVENTORY_PATTERN.BOOKING.CHECK_NEXT_DAY_BOOKING,
+          {
+            userId: currentUserId,
+            today,
+          }
+        );
+
+        // Emit the response back to the requesting client
+        socket.emit("booking-status-response", response);
+      } catch (error) {
+        console.error("Error processing user-booking-status:", error);
+        const errorResponse = {
+          success: false,
+          message: "An error occurred while fetching booking status.",
+          error: error.message,
+        };
+        socket.emit("booking-status-response", errorResponse);
+      }
+    });
+
+    socket.on("disconnect", async () => {
       console.log(`Client disconnected: ${socket.id}`);
-      const disconnectedUserId = removeUserBySocketId(socket.id);
+      const disconnectedUserId = await removeUserBySocketId(socket.id);
 
       if (disconnectedUserId) {
         console.log(`User unregistered: ${disconnectedUserId}`);
-        io.emit("onlineUsers", getOnlineUsers());
-        console.log("Current online users:", getOnlineUsers());
+        io.emit("onlineUsers", await getOnlineUsers());
+        console.log("Current online users:", await getOnlineUsers());
       }
     });
   });
