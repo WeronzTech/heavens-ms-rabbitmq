@@ -33,7 +33,11 @@ const depositSchema = new mongoose.Schema(
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
     razorpaySignature: { type: String },
-    status: { type: String, enum: ["Paid", "Pending"], default: "Pending" },
+    status: {
+      type: String,
+      enum: ["Paid", "Pending", "Refunded"],
+      default: "Pending",
+    },
 
     // Refund Fields // isRefund = true
     handledBy: { type: String },

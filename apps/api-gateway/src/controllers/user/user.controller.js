@@ -118,10 +118,12 @@ export const verifyEmail = async (req, res) => {
 export const updateProfileCompletion = async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
+  const files = req.files;
 
   const response = await sendRPCRequest(USER_PATTERN.USER.UPDATE_PROFILE, {
     id,
     updateData,
+    files,
   });
   return res.status(response.status).json(response.body);
 };
@@ -532,11 +534,18 @@ export const handleBlockStatus = async (req, res) => {
 
 export const getAllPendingPayments = async (req, res) => {
   try {
-    const { propertyId, rentType, page = 1, limit = 10 } = req.query;
+    const {
+      propertyId,
+      rentType,
+      userType,
+      search,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.PAYMENT.GET_ALL_PAYMENT_PENDING_USERS,
-      { propertyId, rentType, page, limit }
+      { propertyId, rentType, userType, search, page, limit }
     );
 
     return res.status(response?.status || 500).json(response);

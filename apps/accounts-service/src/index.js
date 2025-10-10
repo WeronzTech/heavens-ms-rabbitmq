@@ -4,11 +4,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import cron from "node-cron";
-import cron from "node-cron";
 
 import { connect } from "../../../libs/common/rabbitMq.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import { generateMonthlySalaries } from "./utils/cronAutomation.js";
 import { generateMonthlySalaries } from "./utils/cronAutomation.js";
 // ⛔️ REMOVED: Controller import is moved into the startup function.
 // import "./controllers/feePayment.controller.js";

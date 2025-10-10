@@ -12,8 +12,6 @@ import {
   getExpenseById,
   getPettyCashPaymentsByManager,
   updateExpense,
-  getPettyCashPaymentsByManager,
-  updateExpense,
 } from "../service/expense.service.js";
 
 createResponder(ACCOUNTS_PATTERN.EXPENSE.ADD_EXPENSE, async (data) => {

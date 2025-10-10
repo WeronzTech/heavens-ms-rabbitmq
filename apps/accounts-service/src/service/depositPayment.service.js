@@ -120,6 +120,96 @@ const processAndRecordDepositPayment = async ({
   }
 };
 
+export const processAndRecordRefundPayment = async ({
+  userId,
+  amount,
+  paymentMethod,
+  paymentDate,
+  transactionId = null,
+  handledBy = "",
+  razorpayDetails = {},
+  remarks = "",
+}) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      { userId }
+    );
+    if (!userResponse.body.success) {
+      throw new Error(userResponse.message || "User not found.");
+    }
+    const user = userResponse.body.data;
+
+    const { stayDetails } = user;
+    const { refundableDeposit } = stayDetails;
+
+    const amountNumber = Number(amount);
+    const refundableNumber = Number(refundableDeposit);
+
+    if (amountNumber !== refundableNumber) {
+      throw new Error(
+        `Refund amount must exactly match the refundable deposit (${refundableNumber}).`
+      );
+    }
+
+    user.stayDetails.depositStatus = "refunded";
+    const status = "Refunded";
+
+    // Create the Payment Record
+    const newDeposit = new Deposits({
+      name: user.name,
+      userType: user.userType,
+      nonRefundableDeposit: user.stayDetails?.nonRefundableDeposit || 0,
+      refundableDeposit: user.stayDetails?.refundableDeposit || 0,
+      amountPaid: amount,
+      paymentMethod,
+      paymentDate,
+      handledBy,
+      transactionId,
+      status,
+      property: user.stayDetails?.propertyId,
+      userId: user._id,
+      remarks,
+      isRefund: true,
+      ...razorpayDetails,
+    });
+
+    await newDeposit.save({ session });
+
+    // Update user via RPC
+    const updateUserResponse = await sendRPCRequest(
+      USER_PATTERN.USER.UPDATE_USER,
+      {
+        userId,
+        userData: {
+          stayDetails: user.stayDetails,
+        },
+      }
+    );
+
+    if (!updateUserResponse.body.success) {
+      throw new Error("Failed to update user financial details.");
+    }
+
+    await session.commitTransaction();
+    return {
+      success: true,
+      status: 201,
+      message: "Refund recorded successfully.",
+      data: newDeposit,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Error during refund processing:", error);
+    return { success: false, status: 400, message: error.message };
+  } finally {
+    session.endSession();
+  }
+};
+
 export const initiateOnlineDepositPayment = async (data) => {
   try {
     const { userId, amount } = data;

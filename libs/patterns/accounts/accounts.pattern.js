@@ -17,6 +17,8 @@ export const ACCOUNTS_PATTERN = {
     GET_WAVEOFF_PAYMENTS: "get_waveoff_payments",
     GET_ALL_CASH_PAYMENTS: "get_all_cash_payments",
     GET_LATEST_PAYMENT_BY_USERID: "get_latest_payment_by_userId",
+    GET_FEE_PAYMENTS_ANALYTICS: "get_fee_payment_analytics",
+    GET_TRANSACTIONS_BY_USERID: "get_transactions_by_userId",
   },
   DEPOSIT_PAYMENTS: {
     INITIATE_ONLINE_DEPOSIT: "deposit_payment_initiate_online",
@@ -25,6 +27,7 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL_DEPOSIT_PAYMENTS: "get_all_deposit_payments",
     GET_LATEST_DEPOSIT_PAYMENT_BY_USERID:
       "get_latest_deposit_payment_by_userId",
+    RECORD_REFUND_PAYMENT: "record_refund_payment",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",
@@ -42,6 +45,8 @@ export const ACCOUNTS_PATTERN = {
       "get_account_dashbaord_data_for_expense_section",
     GET_ACCOUNT_DASHBAORD_DATA_FOR_DEPOSIT_SECTION:
       "get_account_dashbaord_data_for_deposit_section",
+    GET_MAIN_DASHBAORD_DATA_FOR_INCOME_AND_EXPENSE_SECTION:
+      "get_main_dashbaord_data_for_income_and_expense_section",
   },
   EXPENSE: {
     ADD_EXPENSE: "add_expense",

@@ -48,9 +48,9 @@ export const noteController = {
       console.log(id);
       const notes = await Note.find({ userId: id }).sort({ createdAt: -1 });
       console.log(notes);
-      res.json(notes);
+      return { status: 201, success: true, data: notes };
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      return { status: 500, success: false, message: error.message };
     }
   },
 

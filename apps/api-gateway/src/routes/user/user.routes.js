@@ -13,7 +13,6 @@ import {
   getUnapprovedUsers,
   getUserIds,
   getUsersByAgencyController,
-  getUsersByAgencyController,
   getUsersByRentType,
   getUserStatusRequests,
   getUsersWithBirthdayToday,
@@ -26,6 +25,7 @@ import {
   vacateUser,
   verifyEmail,
 } from "../../controllers/user/user.controller.js";
+import { upload } from "../../../../../libs/common/imageOperation.js";
 
 const userRoutes = express.Router();
 
@@ -51,25 +51,25 @@ userRoutes.put("/:id/extend", extendUserDays);
 userRoutes.get("/checkouts", getTodayCheckouts);
 
 // Profile
-userRoutes.put("/:id/profile-completion", updateProfileCompletion);
-// userRoutes.put(
-//   "/:id/profile-completion",
-//   upload.fields([
-//     {
-//       name: "profileImg",
-//       maxCount: 1,
-//     },
-//     {
-//       name: "aadharFront",
-//       maxCount: 1,
-//     },
-//     {
-//       name: "aadharBack",
-//       maxCount: 1,
-//     },
-//   ]),
-//   updateProfileCompletion
-// );
+// userRoutes.put("/:id/profile-completion", updateProfileCompletion);
+userRoutes.put(
+  "/:id/profile-completion",
+  upload.fields([
+    {
+      name: "profileImg",
+      maxCount: 1,
+    },
+    {
+      name: "aadharFront",
+      maxCount: 1,
+    },
+    {
+      name: "aadharBack",
+      maxCount: 1,
+    },
+  ]),
+  updateProfileCompletion
+);
 
 // User Management
 userRoutes.get("/", getUsersByRentType);
@@ -78,19 +78,19 @@ userRoutes.get("/pending-deposits", getAllPendingDeposits);
 userRoutes.get("/offBoarding", getCheckOutedUsersByRentType);
 userRoutes.get("/byAgency", getUsersByAgencyController);
 
-// userRoutes
-//   .route("/:id")
-//   .get(getHeavensUserById)
-//   .put(
-//     upload.fields([
-//       { name: "profileImg", maxCount: 1 },
-//       { name: "aadharFront", maxCount: 1 },
-//       { name: "aadharBack", maxCount: 1 },
-//     ]),
-//     adminUpdateUser
-//   );
+userRoutes
+  .route("/:id")
+  .get(getHeavensUserById)
+  .put(
+    upload.fields([
+      { name: "profileImg", maxCount: 1 },
+      { name: "aadharFront", maxCount: 1 },
+      { name: "aadharBack", maxCount: 1 },
+    ]),
+    adminUpdateUser
+  );
 
-userRoutes.route("/:id").get(getHeavensUserById).put(adminUpdateUser);
+// userRoutes.route("/:id").get(getHeavensUserById).put(adminUpdateUser);
 
 // Status Requests
 userRoutes

@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllDepositPayments,
   initiateOnlineDepositPayment,
+  processAndRecordRefundPayment,
   recordManualDepositPayment,
   verifyAndRecordOnlineDepositPayment,
 } from "../../controllers/accounts/depositPayments.controller.js";
@@ -14,6 +15,8 @@ depositPaymentRoutes.post(
   verifyAndRecordOnlineDepositPayment
 );
 depositPaymentRoutes.post("/record-manual", recordManualDepositPayment);
+
+depositPaymentRoutes.post("/record-refund", processAndRecordRefundPayment);
 
 depositPaymentRoutes.get("/", getAllDepositPayments);
 

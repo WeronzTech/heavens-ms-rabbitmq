@@ -834,6 +834,9 @@ const processAndRecordPayment = async ({
   razorpayDetails = {},
   waveOffAmount = 0, // New field
   waveOffReason = null, // New field
+  paymentDate,
+  collectedBy = "",
+  remarks = "",
 }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -940,6 +943,8 @@ const processAndRecordPayment = async ({
     // Create the Payment Record
     const newPayment = new Payments({
       name: user.name,
+      rentType: user.rentType,
+      userType: user.userType,
       contact: user.contact,
       room: user.stayDetails?.roomNumber || "N/A",
       rent: user.financialDetails?.monthlyRent || 0,
@@ -947,8 +952,11 @@ const processAndRecordPayment = async ({
       waveOffAmount: waveOffAmount,
       waveOffReason: waveOffReason,
       accountBalance: user.financialDetails?.accountBalance || 0,
-      dueAmount: user.financialDetails.pendingRent,
+      dueAmount:
+        user.financialDetails?.pendingRent ||
+        user.financialDetails?.pendingAmount,
       paymentMethod,
+      paymentDate,
       transactionId,
       paymentForMonths,
       status: "Paid",
@@ -957,6 +965,8 @@ const processAndRecordPayment = async ({
         name: user.stayDetails?.propertyName,
       },
       userId: user._id,
+      collectedBy,
+      remarks,
       ...razorpayDetails,
     });
 
@@ -976,6 +986,17 @@ const processAndRecordPayment = async ({
 
     if (!updateUserResponse.body.success) {
       throw new Error("Failed to update user financial details.");
+    }
+
+    const updateUserReferral = await sendRPCRequest(
+      USER_PATTERN.REFERRAL.COMPLETE_REFERRAL,
+      {
+        newUserId: userId,
+      }
+    );
+
+    if (!updateUserReferral?.success) {
+      throw new Error("Failed to update user referral.");
     }
 
     await session.commitTransaction();
@@ -1122,16 +1143,19 @@ export const recordManualPayment = async (data) => {
     transactionId,
     waveOffAmount,
     waveOffReason,
+    paymentDate,
+    collectedBy,
+    remarks,
   } = data;
 
-  if (!["Cash", "UPI", "Bank Transfer"].includes(paymentMethod)) {
+  if (!["Cash", "UPI", "Bank Transfer", "Card"].includes(paymentMethod)) {
     return {
       success: false,
       status: 400,
       message: "Invalid manual payment method.",
     };
   }
-  if (paymentMethod !== "Cash" && !transactionId) {
+  if (paymentMethod !== "Cash" && paymentMethod !== "Card" && !transactionId) {
     return {
       success: false,
       status: 400,
@@ -1154,38 +1178,108 @@ export const recordManualPayment = async (data) => {
     transactionId,
     waveOffAmount: Number(waveOffAmount) || 0,
     waveOffReason,
+    paymentDate,
+    collectedBy,
+    remarks,
   });
 };
 
 export const getAllFeePayments = async (data) => {
   try {
-    const { propertyId, rentType, page = 1, limit = 10 } = data;
+    const {
+      propertyId,
+      rentType,
+      userType,
+      page,
+      limit,
+      paymentMethod,
+      paymentMonth,
+      paymentYear,
+      search,
+    } = data;
 
     const filter = {};
+
+    // Filter by property
     if (propertyId) {
-      filter["property.id"] = propertyId;
+      filter["property.id"] = new mongoose.Types.ObjectId(propertyId);
     }
+
+    // Filter by rent type
     if (rentType) {
       filter.rentType = rentType.trim();
     }
 
+    if (userType) {
+      filter.userType = userType.trim();
+    }
+
+    // 🔹 Filter by payment method
+    if (paymentMethod) {
+      filter.paymentMethod = paymentMethod.trim();
+    }
+
+    // 🔹 Filter by payment month and year (based on paymentDate)
+    if (paymentMonth && paymentYear) {
+      const startDate = new Date(paymentYear, paymentMonth - 1, 1); // first day of month
+      const endDate = new Date(paymentYear, paymentMonth, 0, 23, 59, 59, 999); // last day of month
+      filter.paymentDate = { $gte: startDate, $lte: endDate };
+    }
+
+    // 🔹 Search by name or transactionId (case-insensitive)
+    if (search) {
+      const regex = new RegExp(search.trim(), "i");
+      filter.$or = [{ name: regex }, { transactionId: regex }];
+    }
+
     // Fields to select
     const projection =
-      "name rent paymentMethod transactionId paymentDate amount";
+      "name rent paymentMethod userType transactionId collectedBy paymentDate amount";
 
     // Query with pagination
     const payments = await Payments.find(filter, projection)
       .skip((page - 1) * limit)
       .limit(limit)
+      .sort({ paymentDate: -1, createdAt: -1 })
       .lean();
 
     // Get total count for pagination metadata
     const total = await Payments.countDocuments(filter);
 
+    const totalAgg = await Payments.aggregate([
+      { $match: filter },
+      { $group: { _id: null, totalReceived: { $sum: "$amount" } } },
+    ]);
+
+    const totalReceived = totalAgg.length > 0 ? totalAgg[0].totalReceived : 0;
+
+    const yearQuery = {};
+    if (propertyId) {
+      yearQuery["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    const availableYears = await Payments.aggregate([
+      { $match: yearQuery },
+      {
+        $group: {
+          _id: { $year: "$paymentDate" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          year: "$_id",
+          _id: 0,
+        },
+      },
+    ]);
+
     return {
       success: true,
       status: 200,
+      totalReceived,
       data: payments,
+      availableYears: availableYears.map((y) => y.year),
       pagination: {
         total,
         page,
@@ -1278,16 +1372,14 @@ export const getLatestPaymentsByUsers = async ({ userIds }) => {
         $group: {
           _id: "$userId",
           paymentDate: { $first: "$paymentDate" },
-          fullyClearedRentMonths: { $first: "$fullyClearedRentMonths" }, // take from latest doc
+          amount: { $first: "$amount" },
         },
       },
       {
         $project: {
           userId: "$_id",
           paymentDate: 1,
-          lastClearedMonth: {
-            $arrayElemAt: ["$fullyClearedRentMonths", -1], // last element of array
-          },
+          amount: 1,
           _id: 0,
         },
       },
@@ -1620,6 +1712,112 @@ export const getLatestFeePaymentByUserId = async (data) => {
       success: false,
       status: 500,
       message: "Internal server error while fetching latest payment",
+      error: error.message,
+    };
+  }
+};
+
+export const getFeePaymentsAnalytics = async (data) => {
+  try {
+    const { propertyId, rentType, year } = data;
+
+    // Default to current year if not provided
+    const targetYear = year || new Date().getFullYear();
+
+    // Build match conditions
+    const match = {
+      paymentDate: {
+        $gte: new Date(targetYear, 0, 1), // Jan 1st
+        $lte: new Date(targetYear, 11, 31, 23, 59, 59, 999), // Dec 31st
+      },
+    };
+
+    if (propertyId) {
+      match["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    if (rentType) {
+      match.rentType = rentType.trim();
+    }
+
+    // Aggregate payments by month
+    const analytics = await Payments.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { month: { $month: "$paymentDate" } },
+          totalReceived: { $sum: "$amount" },
+        },
+      },
+      { $sort: { "_id.month": 1 } },
+    ]);
+
+    // Format output: ["January 2025", "February 2025", ...]
+    const formatted = analytics.map((monthData) => {
+      const monthName = new Date(0, monthData._id.month - 1).toLocaleString(
+        "en",
+        {
+          month: "long",
+        }
+      );
+
+      return {
+        monthYear: `${monthName} ${targetYear}`,
+        totalReceived: monthData.totalReceived,
+      };
+    });
+
+    return {
+      success: true,
+      year: targetYear,
+      data: formatted,
+    };
+  } catch (error) {
+    console.error("[ANALYTICS] Error:", error);
+    return {
+      success: false,
+      message: "Failed to fetch payment analytics",
+      error: error.message,
+    };
+  }
+};
+
+export const getTransactionHistoryByUserId = async (data) => {
+  try {
+    const { userId } = data;
+
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: [],
+      };
+    }
+
+    const payments = await Payments.find({ userId }).lean();
+
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Payments fetched successfully",
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Error in transactions:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching transactions",
       error: error.message,
     };
   }

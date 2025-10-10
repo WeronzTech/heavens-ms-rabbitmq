@@ -4,6 +4,7 @@ import {
   getAllDepositPayments,
   getLatestDepositPaymentsByUsers,
   initiateOnlineDepositPayment,
+  processAndRecordRefundPayment,
   recordManualDepositPayment,
   verifyAndRecordOnlineDepositPayment,
 } from "../service/depositPayment.service.js";
@@ -40,5 +41,12 @@ createResponder(
   ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.GET_LATEST_DEPOSIT_PAYMENT_BY_USERID,
   async (data) => {
     return await getLatestDepositPaymentsByUsers(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.RECORD_REFUND_PAYMENT,
+  async (data) => {
+    return await processAndRecordRefundPayment(data);
   }
 );

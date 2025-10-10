@@ -52,6 +52,8 @@ export const USER_PATTERN = {
     GET_USERS_COUNTS: "get_users_counts",
     GET_USER_STATISTICS_FOR_ACCOUNTS_DASHBOARD:
       "get_user_statistics_for_accounts_dashboard",
+    GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD:
+      "get_user_deposit_statistics_for_accounts_dashboard",
   },
   REFERRAL: {
     GET_USER_REFERRAL_DETAILS: "user_referral_get_details",

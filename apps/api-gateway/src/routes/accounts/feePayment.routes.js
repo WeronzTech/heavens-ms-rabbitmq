@@ -15,6 +15,8 @@ import {
   getWaveOffedPaymentsController,
   getAllCashPaymentsController,
   getLatestFeePaymentByUserId,
+  getFeePaymentsAnalytics,
+  getTransactionHistoryByUserId,
 } from "../../controllers/accounts/feePayments.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
@@ -42,11 +44,18 @@ feePaymentRoutes.get(
   getUserPaymentsController
 );
 
+feePaymentRoutes.get(
+  "/transactionHistory/:userId",
+  getTransactionHistoryByUserId
+);
+
 feePaymentRoutes.get("/latestPayment/:userId", getLatestFeePaymentByUserId);
 
 feePaymentRoutes.get("/waveoff", getWaveOffedPaymentsController);
 
 feePaymentRoutes.get("/cashPayments", getAllCashPaymentsController);
+
+feePaymentRoutes.get("/analytics", getFeePaymentsAnalytics);
 
 feePaymentRoutes.get("/:paymentId", getFeePaymentController);
 

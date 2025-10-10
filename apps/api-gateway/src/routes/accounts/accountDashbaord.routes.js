@@ -3,10 +3,15 @@ import {
   getAccountDashboardDataForDepositSection,
   getAccountDashboardDataForExpenseSection,
   getAccountDashboardDataForIncomeSection,
+  getMonthlyIncomeExpenseSummaryForMainDashboard,
 } from "../../controllers/accounts/dashbaord.controller.js";
 
 const accountDashboardRoutes = express.Router();
 
+accountDashboardRoutes.get(
+  "/summary",
+  getMonthlyIncomeExpenseSummaryForMainDashboard
+);
 accountDashboardRoutes.get("/income", getAccountDashboardDataForIncomeSection);
 accountDashboardRoutes.get(
   "/expense",

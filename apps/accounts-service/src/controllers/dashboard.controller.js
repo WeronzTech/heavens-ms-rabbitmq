@@ -4,6 +4,7 @@ import {
   getAccountDashboardDataForDepositSection,
   getAccountDashboardDataForExpenseSection,
   getAccountDashboardDataForIncomeSection,
+  getMonthlyIncomeExpenseSummaryForMainDashboard,
 } from "../service/dashboard.service.js";
 
 createResponder(
@@ -24,5 +25,13 @@ createResponder(
   ACCOUNTS_PATTERN.DASHBOARD.GET_ACCOUNT_DASHBAORD_DATA_FOR_DEPOSIT_SECTION,
   async (data) => {
     return await getAccountDashboardDataForDepositSection(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.DASHBOARD
+    .GET_MAIN_DASHBAORD_DATA_FOR_INCOME_AND_EXPENSE_SECTION,
+  async (data) => {
+    return await getMonthlyIncomeExpenseSummaryForMainDashboard(data);
   }
 );

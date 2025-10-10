@@ -76,3 +76,11 @@ export const getAllDepositPayments = async (req, res) => {
     });
   }
 };
+
+export const processAndRecordRefundPayment = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.RECORD_REFUND_PAYMENT,
+    req.body
+  );
+};
