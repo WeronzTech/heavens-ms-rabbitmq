@@ -1,8 +1,10 @@
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import {
+  getAccountDashboardDataForDepositSection,
   getAccountDashboardDataForExpenseSection,
   getAccountDashboardDataForIncomeSection,
+  getMonthlyIncomeExpenseSummaryForMainDashboard,
   getGSTReport,
 } from "../service/dashboard.service.js";
 
@@ -21,8 +23,20 @@ createResponder(
 );
 
 createResponder(
-  ACCOUNTS_PATTERN.DASHBOARD.GET_GST_REPORT,
+  ACCOUNTS_PATTERN.DASHBOARD.GET_ACCOUNT_DASHBAORD_DATA_FOR_DEPOSIT_SECTION,
   async (data) => {
-    return await getGSTReport(data);
+    return await getAccountDashboardDataForDepositSection(data);
   }
 );
+
+createResponder(
+  ACCOUNTS_PATTERN.DASHBOARD
+    .GET_MAIN_DASHBAORD_DATA_FOR_INCOME_AND_EXPENSE_SECTION,
+  async (data) => {
+    return await getMonthlyIncomeExpenseSummaryForMainDashboard(data);
+  }
+);
+
+createResponder(ACCOUNTS_PATTERN.DASHBOARD.GET_GST_REPORT, async (data) => {
+  return await getGSTReport(data);
+});

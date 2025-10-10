@@ -29,7 +29,9 @@ import {
   getResidentCounts,
   getUsersWithBirthdayToday,
   getUserStatisticsForAccountDashboard,
+  getUserDepositStatisticsForAccountDashboard,
   getUsersByAgencyService,
+  getPendingDepositPayments,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -170,9 +172,20 @@ createResponder(
   }
 );
 
+createResponder(USER_PATTERN.USER.GET_USER_BY_AGENCY, async (data) => {
+  return await getUsersByAgencyService(data);
+});
+
 createResponder(
-  USER_PATTERN.USER.GET_USER_BY_AGENCY,
+  USER_PATTERN.PAYMENT.GET_ALL_DEPOSIT_PENDING_USERS,
   async (data) => {
-    return await getUsersByAgencyService(data);
+    return await getPendingDepositPayments(data);
+  }
+);
+
+createResponder(
+  USER_PATTERN.DASHBOARD.GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
+  async (data) => {
+    return await getUserDepositStatisticsForAccountDashboard(data);
   }
 );

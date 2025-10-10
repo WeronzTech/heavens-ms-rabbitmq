@@ -15,7 +15,6 @@ import messBookingRoutes from "./routes/inventory/mealBooking.route.js";
 import kitchenRoutes from "./routes/inventory/kitchen.routes.js";
 import inventoryLogRoutes from "./routes/inventory/inventoryLog.routes.js";
 import inventoryRoutes from "./routes/inventory/inventory.routes.js";
-import internalRoutes from "./routes/inventory/internal.routes.js";
 import categoryRoutes from "./routes/inventory/category.routes.js";
 import addonBookingRoutes from "./routes/inventory/addonBooking.route.js";
 import addonRoutes from "./routes/inventory/addon.route.js";
@@ -42,6 +41,8 @@ import salaryRoutes from "./routes/accounts/staffSalaryHistory.routes.js";
 import carouselRoutes from "./routes/property/carousel.routes.js";
 import voucherRoutes from "./routes/accounts/voucher.routes.js";
 import referralRoutes from "./routes/user/referral.routes.js";
+import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
+import reminderRoutes from "./routes/user/reminder.routes.js";
 
 dotenv.config();
 const app = express();
@@ -51,7 +52,11 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://hpanel.heavensliving.in","http://192.168.1.73:5173",],
+    origin: [
+      "http://localhost:5173",
+      "https://hpanel.heavensliving.in",
+      "http://192.168.1.80:5173",
+    ],
     credentials: true,
   })
 );
@@ -85,30 +90,32 @@ app.use("/api/v2/inventory/mess-booking", messBookingRoutes);
 app.use("/api/v2/inventory/kitchen", kitchenRoutes);
 app.use("/api/v2/inventory/inventorylogs", inventoryLogRoutes);
 app.use("/api/v2/inventory", inventoryRoutes);
-app.use("/api/v2/inventory/internal", internalRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
 app.use("/api/v2/property", propertyRoutes);
 app.use("/api/v2/property/dashboard", dashboardRoutes);
+app.use("/api/v2/property/staff", staffRoutes);
 app.use("/api/v2/user", userRoutes);
 app.use("/api/v2/user/logs", userLogRoutes);
-app.use("/api/v2/room", roomRoutes);
-app.use("/api/v2/staff", staffRoutes);
+app.use("/api/v2/property/room", roomRoutes);
 app.use("/api/v2/notification/push-notification", pushNotificationRoutes);
 app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
+app.use("/api/v2/depositPayments", depositPaymentRoutes);
 app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
 app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
-app.use("/api/v2/logs", propertyLogRoutes);
+app.use("/api/v2/property/logs", propertyLogRoutes);
 app.use("/api/v2/expense", expenseRoutes);
 app.use("/api/v2/attendance", attendanceRoutes);
 app.use("/api/v2/staff-salary", salaryRoutes);
+app.use("/api/v2/attendance", attendanceRoutes);
 app.use("/api/v2/property/carousel", carouselRoutes);
 app.use("/api/v2/voucher", voucherRoutes);
 app.use("/api/v2/referral", referralRoutes);
+app.use("/api/v2/reminder", reminderRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

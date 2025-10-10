@@ -63,9 +63,6 @@ createResponder(
   }
 );
 
-createResponder(
-  ACCOUNTS_PATTERN.EXPENSE.UPDATE_EXPENSE,
-  async (data) => {
-    return await updateExpense(data);
-  }
-);
+createResponder(ACCOUNTS_PATTERN.EXPENSE.UPDATE_EXPENSE, async (data) => {
+  return await updateExpense(data);
+});

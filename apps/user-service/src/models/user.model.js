@@ -170,6 +170,16 @@ const userSchema = new mongoose.Schema(
         reviewerComment: String,
         reviewedAt: Date,
         reviewedBy: String,
+
+        effectiveDate: Date,
+        isInstantCheckout: {
+          type: Boolean,
+          default: false,
+        },
+        isRefundEligible: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
     currentStatusRequest: {

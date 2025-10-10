@@ -1,3 +1,4 @@
+import { param } from "express-validator";
 import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../../libs/patterns/accounts/accounts.pattern.js";
 
@@ -97,10 +98,30 @@ export const recordManualPayment = (req, res) => {
 
 export const getAllFeePaymentsController = async (req, res) => {
   try {
-    const { propertyId, rentType, page = 1, limit = 10 } = req.query;
+    const {
+      propertyId,
+      rentType,
+      userType,
+      page = 1,
+      limit = 10,
+      paymentMethod,
+      paymentMonth,
+      paymentYear,
+      search,
+    } = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
-      { propertyId, rentType, page, limit }
+      {
+        propertyId,
+        rentType,
+        userType,
+        page,
+        limit,
+        paymentMethod,
+        paymentMonth,
+        paymentYear,
+        search,
+      }
     );
 
     return res.status(response?.status || 500).json(response);
@@ -192,11 +213,15 @@ export const getAllAccountsPaymentController = async (req, res) => {
       return res.status(response.status || 500).json(response);
     }
   } catch (error) {
-    console.error("[ACCOUNTS] Error in getAllAccountsPaymentController:", error);
+    console.error(
+      "[ACCOUNTS] Error in getAllAccountsPaymentController:",
+      error
+    );
     return res.status(500).json({
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching accounts summary.",
+      message:
+        "An internal server error occurred while fetching accounts summary.",
       error: error.message,
     });
   }
@@ -204,7 +229,6 @@ export const getAllAccountsPaymentController = async (req, res) => {
 
 export const getUserPaymentsController = async (req, res) => {
   try {
-  
     const userId = req.userAuth;
 
     if (!userId) {
@@ -216,7 +240,7 @@ export const getUserPaymentsController = async (req, res) => {
     }
 
     const response = await sendRPCRequest(
-      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID, 
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID,
       { userId }
     );
 
@@ -226,7 +250,8 @@ export const getUserPaymentsController = async (req, res) => {
     return res.status(500).json({
       success: false,
       status: 500,
-      message: "An internal server error occurred while fetching user payments.",
+      message:
+        "An internal server error occurred while fetching user payments.",
       error: error.message,
     });
   }
@@ -258,7 +283,7 @@ export const getAllCashPaymentsController = async (req, res) => {
     const { propertyId } = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
-      {propertyId }
+      { propertyId }
     );
 
     return res.status(response?.status || 500).json(response);
@@ -267,6 +292,87 @@ export const getAllCashPaymentsController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getLatestFeePaymentByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "User ID not found",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_PAYMENT_BY_USERID,
+      { userId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getUserPaymentsController:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching user payments.",
+      error: error.message,
+    });
+  }
+};
+
+export const getFeePaymentsAnalytics = async (req, res) => {
+  try {
+    const { propertyId, rentType, year } = req.query;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENTS_ANALYTICS,
+      { propertyId, rentType, year }
+    );
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error in fetching fee payments analytics:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching the fee payments analytics.",
+      error: error.message,
+    });
+  }
+};
+
+export const getTransactionHistoryByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "Unauthorized: User ID not found",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_TRANSACTIONS_BY_USERID,
+      { userId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in get transactions:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching user transactions.",
       error: error.message,
     });
   }

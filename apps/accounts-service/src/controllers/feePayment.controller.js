@@ -17,6 +17,9 @@ import {
   getLatestPaymentsByUsers,
   getWaveOffedPayments,
   getAllCashPayments,
+  getLatestFeePaymentByUserId,
+  getFeePaymentsAnalytics,
+  getTransactionHistoryByUserId,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -92,12 +95,11 @@ createResponder(
 );
 
 createResponder(
-  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID,
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_PAYMENT_BY_USERID,
   async (data) => {
-    return await getFeePaymentsByUserId(data);
+    return await getLatestFeePaymentByUserId(data);
   }
 );
-
 
 createResponder(
   ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
@@ -107,9 +109,36 @@ createResponder(
 );
 
 createResponder(
-  ACCOUNTS_PATTERN.FEE_PAYMENTS. GET_ALL_CASH_PAYMENTS,
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
   async (data) => {
     return await getAllCashPayments(data);
   }
 );
 
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_PAYMENT_BY_USERID,
+  async (data) => {
+    return await getLatestPaymentsByUsers(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENTS_ANALYTICS,
+  async (data) => {
+    return await getFeePaymentsAnalytics(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID,
+  async (data) => {
+    return await getFeePaymentsByUserId(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_TRANSACTIONS_BY_USERID,
+  async (data) => {
+    return await getTransactionHistoryByUserId(data);
+  }
+);

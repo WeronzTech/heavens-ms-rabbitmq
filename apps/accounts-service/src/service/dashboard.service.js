@@ -3,8 +3,9 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Payments from "../models/feePayments.model.js";
 import Expense from "../models/expense.model.js";
+import Deposits from "../models/depositPayments.model.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
-import ExcelJS from "exceljs"
+import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import fs from "fs";
 import path from "path";
@@ -128,14 +129,19 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
 
       // Calculate total amount needed based on rent type
       let totalAmountNeed = 0;
+      let totalPendingAmount = 0;
       if (rentType === "monthly") {
         totalAmountNeed = userStat.totalMonthlyRent;
+        totalPendingAmount = userStat.totalPendingAmount;
       } else if (rentType === "mess") {
         totalAmountNeed = userStat.totalMessAmount;
+        totalPendingAmount = userStat.totalPendingAmount;
       } else if (rentType === "daily") {
-        const daysInMonth = getDaysInMonth(currentMonth, currentYear);
-        const dailyRate = userStat.totalDailyAmount / daysInMonth;
-        totalAmountNeed = dailyRate * currentDay;
+        // const daysInMonth = getDaysInMonth(currentMonth, currentYear);
+        // const dailyRate = userStat.totalDailyAmount / daysInMonth;
+        // totalAmountNeed = dailyRate * currentDay;
+        totalAmountNeed = userStat.totalDailyAmount;
+        totalPendingAmount = userStat.totalPendingAmount;
       }
 
       const percentageReceived =
@@ -175,10 +181,7 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
         percentageReceived: Math.round(percentageReceived * 100) / 100,
         comparisonPercentage: Math.round(comparisonPercentage * 100) / 100,
         comparisonAmount: comparisonAmount,
-        pendingAmount: Math.max(
-          0,
-          totalAmountNeed - paymentStat.currentMonthReceived
-        ),
+        pendingAmount: totalPendingAmount,
         isIncrease: isIncrease,
         userCount: userStat.userCount,
       };
@@ -200,11 +203,6 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
     };
   }
 };
-
-// Helper functions (same as above)
-function getDaysInMonth(month, year) {
-  return new Date(year, month, 0).getDate();
-}
 
 export const getAccountDashboardDataForExpenseSection = async (data) => {
   try {
@@ -342,6 +340,287 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
     };
   } catch (error) {
     console.error("Expense Summary Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getAccountDashboardDataForDepositSection = async (data) => {
+  try {
+    const { propertyId } = data;
+
+    // 🧩 Base filter (for deposits collection)
+    const filter = { isRefund: false };
+    if (propertyId) {
+      filter.property = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    // 🗓️ Date range for current month
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
+
+    // 💰 Total deposits received (this month)
+    const monthlyDeposits = await Deposits.aggregate([
+      {
+        $match: {
+          ...filter,
+          paymentDate: { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amountPaid" },
+        },
+      },
+    ]);
+
+    const totalReceivedThisMonth =
+      monthlyDeposits.length > 0 ? monthlyDeposits[0].totalAmount : 0;
+
+    // 👥 Fetch user-related deposit statistics via RPC
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.DASHBOARD.GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
+      { propertyId }
+    );
+
+    if (!userResponse.success) {
+      return {
+        success: false,
+        status: 404,
+        message: "User stats not found for this property.",
+      };
+    }
+
+    const userStats = userResponse?.data || {};
+
+    // 🧮 Combine both deposit and user stats data
+    const combinedData = {
+      currentMonthNonRefundable: userStats.currentMonthNonRefundable || 0,
+      currentMonthRefundable: userStats.currentMonthRefundable || 0,
+      currentMonthPending: userStats.currentMonthPending || 0,
+      noOfCurrentMonthJoines: userStats.noOfCurrentMonthJoines || 0,
+      totalReceivedThisMonth,
+    };
+
+    // ✅ Final Response
+    return {
+      success: true,
+      status: 200,
+      message: propertyId
+        ? "Deposit dashboard data fetched successfully for property"
+        : "Deposit dashboard data fetched successfully for all properties",
+      data: combinedData,
+    };
+  } catch (error) {
+    console.error("Error in getAccountDashboardDataForDepositSection:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching deposit dashboard data",
+      error: error.message,
+    };
+  }
+};
+
+export const getMonthlyIncomeExpenseSummaryForMainDashboard = async (data) => {
+  try {
+    const { propertyId, year } = data;
+    const selectedYear = year || new Date().getFullYear();
+
+    const propertyMatch = propertyId
+      ? { "property.id": new mongoose.Types.ObjectId(propertyId) }
+      : {};
+
+    // -------------------------------------
+    // 🔹 STEP 1: Get available years from all collections
+    // -------------------------------------
+    const getYears = async (Model, dateField) => {
+      const years = await Model.aggregate([
+        { $match: propertyMatch },
+        {
+          $project: {
+            year: { $year: `$${dateField}` },
+          },
+        },
+        { $group: { _id: null, years: { $addToSet: "$year" } } },
+      ]);
+      return years[0]?.years || [];
+    };
+
+    const [paymentYears, depositYears, expenseYears, salaryYears] =
+      await Promise.all([
+        getYears(Payments, "paymentDate"),
+        getYears(Deposits, "paymentDate"),
+        getYears(Expense, "date"),
+        getYears(StaffSalaryHistory, "date"),
+      ]);
+
+    // Merge and sort years
+    const availableYears = Array.from(
+      new Set([
+        ...paymentYears,
+        ...depositYears,
+        ...expenseYears,
+        ...salaryYears,
+      ])
+    ).sort((a, b) => b - a); // descending order
+
+    // -------------------------------------
+    // 🔹 STEP 2: Aggregate month-wise data for selected year
+    // -------------------------------------
+    const incomeMatch = {
+      ...propertyMatch,
+      paymentDate: {
+        $gte: new Date(`${selectedYear}-01-01T00:00:00.000Z`),
+        $lte: new Date(`${selectedYear}-12-31T23:59:59.999Z`),
+      },
+    };
+
+    const paymentIncome = await Payments.aggregate([
+      { $match: incomeMatch },
+      {
+        $project: {
+          amount: 1,
+          month: { $month: "$paymentDate" },
+          year: { $year: "$paymentDate" },
+        },
+      },
+      {
+        $group: {
+          _id: { month: "$month", year: "$year" },
+          totalIncome: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const depositIncome = await Deposits.aggregate([
+      { $match: incomeMatch },
+      {
+        $project: {
+          amount: 1,
+          month: { $month: "$paymentDate" },
+          year: { $year: "$paymentDate" },
+        },
+      },
+      {
+        $group: {
+          _id: { month: "$month", year: "$year" },
+          totalIncome: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const combinedIncome = {};
+    [...paymentIncome, ...depositIncome].forEach((entry) => {
+      const key = `${entry._id.month}-${entry._id.year}`;
+      combinedIncome[key] =
+        (combinedIncome[key] || 0) + (entry.totalIncome || 0);
+    });
+
+    const expenseMatch = {
+      ...propertyMatch,
+      date: {
+        $gte: new Date(`${selectedYear}-01-01T00:00:00.000Z`),
+        $lte: new Date(`${selectedYear}-12-31T23:59:59.999Z`),
+      },
+    };
+
+    const expenseData = await Expense.aggregate([
+      { $match: expenseMatch },
+      {
+        $project: {
+          amount: 1,
+          month: { $month: "$date" },
+          year: { $year: "$date" },
+        },
+      },
+      {
+        $group: {
+          _id: { month: "$month", year: "$year" },
+          totalExpense: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const staffSalaryData = await StaffSalaryHistory.aggregate([
+      { $match: expenseMatch },
+      {
+        $project: {
+          amount: 1,
+          month: { $month: "$date" },
+          year: { $year: "$date" },
+        },
+      },
+      {
+        $group: {
+          _id: { month: "$month", year: "$year" },
+          totalExpense: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const combinedExpense = {};
+    [...expenseData, ...staffSalaryData].forEach((entry) => {
+      const key = `${entry._id.month}-${entry._id.year}`;
+      combinedExpense[key] =
+        (combinedExpense[key] || 0) + (entry.totalExpense || 0);
+    });
+
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const result = [];
+
+    for (let month = 1; month <= 12; month++) {
+      const key = `${month}-${selectedYear}`;
+      const totalIncome = combinedIncome[key] || 0;
+      const totalExpense = combinedExpense[key] || 0;
+
+      if (totalIncome > 0 || totalExpense > 0) {
+        result.push({
+          monthYear: `${months[month - 1]} ${selectedYear}`,
+          totalIncome,
+          totalExpense,
+        });
+      }
+    }
+
+    // -------------------------------------
+    // 🔹 FINAL RESPONSE
+    // -------------------------------------
+    return {
+      success: true,
+      year: selectedYear,
+      availableYears,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Dashboard Income/Expense Summary Error:", error);
     return {
       success: false,
       status: 500,
