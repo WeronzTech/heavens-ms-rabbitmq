@@ -83,6 +83,20 @@ export const initializeSocketEvents = (io) => {
           }
         );
 
+        const breakfastBooking = response.data.bookingDetails.find(
+          (booking) => booking.mealType === "Breakfast"
+        );
+
+        // Now you can safely access the status property of that object
+        // It's good practice to check if a booking was actually found
+        const breakfastStatus = breakfastBooking
+          ? breakfastBooking.status
+          : "Not Booked";
+
+        console.log(
+          "Response from booking service (Breakfast Status):",
+          breakfastStatus
+        );
         // Emit the response back to the requesting client
         socket.emit("booking-status-response", response);
       } catch (error) {

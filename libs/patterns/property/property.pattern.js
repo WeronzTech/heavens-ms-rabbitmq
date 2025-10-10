@@ -26,7 +26,6 @@ export const PROPERTY_PATTERN = {
     GET_STAFF_BY_PROPERTYID: "get_staff_by_propertyId",
     ADD_STAFF: "add_staff",
     UPDATE_STAFF: "update_staff",
-    UPDATE_STAFF: "update_staff",
   },
   PROPERTY_LOG: {
     GET_ACTIVITY_LOG: "get_activity_log",
@@ -60,6 +59,6 @@ export const PROPERTY_PATTERN = {
     ADD_CAROUSEL: "add_carousel",
     UPDATE_CAROUSEL: "update_carousel",
     DELETE_CAROUSEL: "delete_carousel",
-    GET_ALL_CAROUSEL: "get_all_carousel"
-  }
+    GET_ALL_CAROUSEL: "get_all_carousel",
+  },
 };
