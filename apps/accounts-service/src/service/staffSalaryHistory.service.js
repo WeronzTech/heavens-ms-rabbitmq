@@ -5,15 +5,15 @@ import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.
 
 export const manualAddSalary = async (data) => {
   try {
-    const { employeeId, employeeType, salary, date, paidBy } = data;
-    if (!employeeId || !employeeType || !salary || !date || !paidBy) {
-      return {
-        success: false,
-        status: 400,
-        message:
-          "Missing required fields: employeeId, employeeType, salary, date, paidBy.",
-      };
-    }
+    const { employeeId, employeeType,employeeName, salary, date, paidBy,propertyId,paymentMethod } = data;
+    // if (!employeeId || !employeeType || !salary || !date || employeeName || propertyId) {
+    //   return {
+    //     success: false,
+    //     status: 400,
+    //     message:
+    //       "Missing required fields: employeeId, employeeType, salary, date, paidBy,employeeName, propertyId.",
+    //   };
+    // }
 
     const newSalaryRecord = await StaffSalaryHistory.create({
       ...data,
@@ -44,6 +44,7 @@ export const getAllSalaryRecords = async (filters) => {
     const query = {};
 
     if (employeeId) query.employeeId = employeeId;
+
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
@@ -53,19 +54,31 @@ export const getAllSalaryRecords = async (filters) => {
 
     if (propertyId) {
       const [staffResponse, managerResponse] = await Promise.all([
-        sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID, {
-          propertyId,
-        }),
+        sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID, { propertyId }),
         sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, { propertyId }),
       ]);
 
-      const staffIds = (staffResponse.data || [])
+      // ✅ Ensure both RPC responses are arrays
+      const staffData = Array.isArray(staffResponse?.data)
+        ? staffResponse.data
+        : Array.isArray(staffResponse?.data?.data)
+        ? staffResponse.data.data
+        : [];
+
+      const managerData = Array.isArray(managerResponse?.data)
+        ? managerResponse.data
+        : Array.isArray(managerResponse?.data?.data)
+        ? managerResponse.data.data
+        : [];
+
+      const staffIds = staffData
         .filter((s) => s.status === "Active")
         .map((s) => s._id);
 
-      const managerIds = (managerResponse.data || [])
+      const managerIds = managerData
         .filter((m) => m.status === "Active")
         .map((m) => m._id);
+
       const employeeIds = [...staffIds, ...managerIds];
 
       if (employeeIds.length === 0) {
@@ -76,13 +89,14 @@ export const getAllSalaryRecords = async (filters) => {
           data: [],
         };
       }
+
       query.employeeId = { $in: employeeIds };
     }
 
     const records = await StaffSalaryHistory.find(query)
       .populate({
         path: "employeeId",
-        select: "name staffId managerId", // Select identifiers
+        select: "name staffId managerId",
       })
       .populate("paidBy", "name")
       .sort({ date: -1 });

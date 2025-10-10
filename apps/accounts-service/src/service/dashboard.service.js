@@ -4,7 +4,7 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Payments from "../models/feePayments.model.js";
 import Expense from "../models/expense.model.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
-import ExcelJS from "exceljs";
+import ExcelJS from "exceljs"
 import jsPDF from "jspdf";
 import fs from "fs";
 import path from "path";

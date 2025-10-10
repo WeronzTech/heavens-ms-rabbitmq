@@ -5,6 +5,7 @@ const staffSalaryHistorySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
+  employeeName: {type: String , required:true},
   employeeType: {
     type: String,
     required: true,
@@ -27,9 +28,18 @@ const staffSalaryHistorySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: false,
   },
+  paymentMethod: { type: String, required: true },
   remarkType: {
     type: String,
     enum: ["AUTOMATIC_GENERATION", "MANUAL_ADDITION", "PAYMENT"],
+    required: false,
+  },
+  propertyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  kitchenId: {
+    type: mongoose.Schema.Types.ObjectId,
     required: false,
   },
 });
