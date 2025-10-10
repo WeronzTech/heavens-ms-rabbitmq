@@ -45,17 +45,6 @@ cron.schedule(
   }
 );
 
-cron.schedule(
-  "0 0 * * *",
-  () => {
-    generateMonthlySalaries();
-  },
-  {
-    scheduled: true,
-    timezone: "Asia/Kolkata",
-  }
-);
-
 // Global error handler
 app.use(errorHandler);
 

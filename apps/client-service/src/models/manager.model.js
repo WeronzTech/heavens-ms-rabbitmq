@@ -20,6 +20,7 @@ const managerSchema = new mongoose.Schema(
     gender: { type: String, required: false },
     address: { type: String, required: false },
     salary: { type: Number, required: true },
+    advanceSalary: { type: Number, default: 0 },
     photo: { type: String, required: false },
     aadhaarImage: { type: String, required: true },
     propertyId: [

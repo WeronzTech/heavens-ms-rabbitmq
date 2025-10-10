@@ -55,11 +55,11 @@ export const sendNotification = async ({ data }) => {
     const { title, description, userId, file } = data;
 
     let imageUrl = "";
-    if (file.notificationImage && file.notificationImage[0].buffer) {
+    if (file?.notificationImage && file?.notificationImage[0].buffer) {
       const imageFile = {
-        buffer: Buffer.from(file.notificationImage[0].buffer, "base64"),
-        mimetype: file.notificationImage[0].mimetype,
-        originalname: file.notificationImage[0].originalname,
+        buffer: Buffer.from(file?.notificationImage[0]?.buffer, "base64"),
+        mimetype: file?.notificationImage[0]?.mimetype,
+        originalname: file?.notificationImage[0]?.originalname,
       };
       imageUrl = await uploadToFirebase(imageFile, "notification");
     }
