@@ -1,6 +1,6 @@
 import express from "express";
 import {
-   addPushNotificationController,
+  addPushNotificationController,
   deletePushNotificationController,
   getPushNotificationsController,
   sendPushNotificationController,
@@ -8,17 +8,16 @@ import {
 } from "../../controllers/notification/pushNotification.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 
-
 const pushNotificationRoutes = express.Router();
 
 pushNotificationRoutes.post(
   "/add",
-  upload.single("pushNotifications"),
+  upload.fields([{ name: "pushNotifications", maxCount: 1 }]),
   addPushNotificationController
 );
 pushNotificationRoutes.put(
   "/:id",
-  upload.single("pushNotifications"),
+  upload.fields([{ name: "pushNotifications", maxCount: 1 }]),
   updatePushNotificationController
 );
 pushNotificationRoutes.delete("/:id", deletePushNotificationController);

@@ -17,6 +17,7 @@ export const registerManager = async (req, res) => {
     } = req.body;
 
     const files = req.files;
+    console.log("Files", files);
 
     const manager = await sendRPCRequest(
       CLIENT_PATTERN.MANAGER.REGISTER_MANAGER,
