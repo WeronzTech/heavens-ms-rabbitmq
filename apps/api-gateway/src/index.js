@@ -51,7 +51,11 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://hpanel.heavensliving.in"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:8082",
+      "https://hpanel.heavensliving.in",
+    ],
     credentials: true,
   })
 );

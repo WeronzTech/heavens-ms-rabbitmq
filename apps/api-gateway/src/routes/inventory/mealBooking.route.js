@@ -7,6 +7,7 @@ import {
   getUserBookings,
   updateBookingStatus,
   checkNextDayBooking,
+  createManualMealBookings,
 } from "../../controllers/inventory/mealBooking.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 
@@ -17,6 +18,10 @@ messBookingRoutes
   .get(isAuthenticated, checkNextDayBooking);
 
 messBookingRoutes.route("/").post(isAuthenticated, createMealBooking);
+
+messBookingRoutes
+  .route("/manual")
+  .post(isAuthenticated, createManualMealBookings);
 
 messBookingRoutes.route("/property").get(isAuthenticated, getBookingByProperty);
 

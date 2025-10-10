@@ -8,8 +8,13 @@ export const addAlertNotification = async ({ data }) => {
     const { title, description, userId, file } = data;
 
     let imageUrl = "";
-    if (file) {
-      imageUrl = await uploadToFirebase(file, "alertNotificationImage");
+    if (file.alertNotificationImage && file.alertNotificationImage[0].buffer) {
+      const imageFile = {
+        buffer: Buffer.from(file.alertNotificationImage[0].buffer, "base64"),
+        mimetype: file.alertNotificationImage[0].mimetype,
+        originalname: file.alertNotificationImage[0].originalname,
+      };
+      imageUrl = await uploadToFirebase(imageFile, "notification");
     }
 
     const formattedId = userId?.toUpperCase();

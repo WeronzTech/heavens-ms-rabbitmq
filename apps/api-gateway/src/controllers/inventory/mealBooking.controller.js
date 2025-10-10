@@ -1,6 +1,18 @@
 import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 import { INVENTORY_PATTERN } from "../../../../../libs/patterns/inventory/inventory.pattern.js";
 
+const handleRPCAndRespond = async (res, pattern, data) => {
+  try {
+    const response = await sendRPCRequest(pattern, data);
+    return res.status(response.status || 500).json(response);
+  } catch (error) {
+    console.error(`API Gateway Error in ${pattern}:`, error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error in API Gateway." });
+  }
+};
+
 const createMealBooking = async (req, res) => {
   try {
     const response = await sendRPCRequest(
@@ -169,6 +181,13 @@ const checkNextDayBooking = async (req, res) => {
     });
   }
 };
+
+export const createManualMealBookings = (req, res) =>
+  handleRPCAndRespond(
+    res,
+    INVENTORY_PATTERN.BOOKING.MANUAL_CREATE_BOOKINGS,
+    req.body
+  );
 
 export {
   createMealBooking,

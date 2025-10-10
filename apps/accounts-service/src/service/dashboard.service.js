@@ -9,7 +9,6 @@ import jsPDF from "jspdf";
 import fs from "fs";
 import path from "path";
 
-
 export const getAccountDashboardDataForIncomeSection = async (data) => {
   try {
     const { propertyId } = data;
@@ -352,7 +351,6 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
   }
 };
 
-
 /**
  * Get GST report data and optionally export as Excel or PDF
  * @param {Object} options - Options for export
@@ -363,7 +361,8 @@ export const getGSTReport = async ({ format } = {}) => {
   try {
     // Ensure "downloads" folder exists
     const downloadDir = path.join(process.cwd(), "downloads");
-    if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
+    if (!fs.existsSync(downloadDir))
+      fs.mkdirSync(downloadDir, { recursive: true });
 
     // 1️⃣ Fetch all data in parallel
     const [feePayments, expenses, salaries] = await Promise.all([
@@ -386,8 +385,14 @@ export const getGSTReport = async ({ format } = {}) => {
     const allExpenses = [...expenses, ...salaryAsExpense];
 
     // 4️⃣ Totals
-    const totalIncome = feePayments.reduce((sum, f) => sum + (f.amount || 0), 0);
-    const totalExpense = allExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalIncome = feePayments.reduce(
+      (sum, f) => sum + (f.amount || 0),
+      0
+    );
+    const totalExpense = allExpenses.reduce(
+      (sum, e) => sum + (e.amount || 0),
+      0
+    );
     const netProfit = totalIncome - totalExpense;
 
     // 5️⃣ Structure report data
@@ -414,7 +419,9 @@ export const getGSTReport = async ({ format } = {}) => {
     }
 
     // 7️⃣ Prepare file path
-    const fileName = `GST_Report_${Date.now()}.${format === "pdf" ? "pdf" : "xlsx"}`;
+    const fileName = `GST_Report_${Date.now()}.${
+      format === "pdf" ? "pdf" : "xlsx"
+    }`;
     const filePath = path.join(downloadDir, fileName);
 
     // 8️⃣ Export as Excel
@@ -431,7 +438,14 @@ export const getGSTReport = async ({ format } = {}) => {
 
       // Fee Payments
       sheet.addRow(["FEE PAYMENTS"]);
-      sheet.addRow(["Name", "Contact", "Room", "Amount", "Payment Method", "Date"]);
+      sheet.addRow([
+        "Name",
+        "Contact",
+        "Room",
+        "Amount",
+        "Payment Method",
+        "Date",
+      ]);
       reportData.feePayments.forEach((f) => {
         sheet.addRow([
           f.name,
@@ -439,14 +453,23 @@ export const getGSTReport = async ({ format } = {}) => {
           f.room,
           f.amount,
           f.paymentMethod,
-          f.paymentDate ? new Date(f.paymentDate).toISOString().split("T")[0] : "",
+          f.paymentDate
+            ? new Date(f.paymentDate).toISOString().split("T")[0]
+            : "",
         ]);
       });
       sheet.addRow([]);
 
       // Expenses
       sheet.addRow(["EXPENSES"]);
-      sheet.addRow(["Title", "Category", "Payment Method", "Amount", "Date", "Property Name"]);
+      sheet.addRow([
+        "Title",
+        "Category",
+        "Payment Method",
+        "Amount",
+        "Date",
+        "Property Name",
+      ]);
       reportData.allExpenses.forEach((e) => {
         sheet.addRow([
           e.title,
@@ -485,13 +508,16 @@ export const getGSTReport = async ({ format } = {}) => {
       doc.text("FEE PAYMENTS", 20, (y += 10));
       doc.setFontSize(11);
       reportData.feePayments.forEach((f) => {
-        if (y > 280) { // new page if needed
+        if (y > 280) {
+          // new page if needed
           doc.addPage();
           y = 20;
         }
         doc.text(
           `${f.name || "-"} | ₹${f.amount || 0} | ${f.paymentMethod || "-"} | ${
-            f.paymentDate ? new Date(f.paymentDate).toISOString().split("T")[0] : "-"
+            f.paymentDate
+              ? new Date(f.paymentDate).toISOString().split("T")[0]
+              : "-"
           }`,
           20,
           (y += 6)
@@ -509,7 +535,9 @@ export const getGSTReport = async ({ format } = {}) => {
           y = 20;
         }
         doc.text(
-          `${e.title || "-"} | ₹${e.amount || 0} | ${e.paymentMethod || "-"} | ${
+          `${e.title || "-"} | ₹${e.amount || 0} | ${
+            e.paymentMethod || "-"
+          } | ${
             e.date ? new Date(e.date).toISOString().split("T")[0] : "-"
           } | ${e.property?.name || "-"}`,
           20,

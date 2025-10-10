@@ -11,7 +11,7 @@ const notificationRoutes = express.Router();
 notificationRoutes.post("/save-fcm-token", saveFcmTokenController);
 notificationRoutes.post(
   "/",
-  upload.single("notificationImage"),
+  upload.fields([{ name: "notificationImage", maxCount: 1 }]),
   sendNotificationController
 );
 notificationRoutes.get("/", getNotificationLogsController);

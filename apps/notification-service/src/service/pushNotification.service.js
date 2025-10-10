@@ -18,8 +18,13 @@ export const addPushNotification = async (data) => {
     } = data;
 
     let imageUrl = "";
-    if (file) {
-      imageUrl = await uploadToFirebase(file, "pushNotifications");
+    if (file.pushNotifications && file.pushNotifications[0].buffer) {
+      const imageFile = {
+        buffer: Buffer.from(file.pushNotifications[0].buffer, "base64"),
+        mimetype: file.pushNotifications[0].mimetype,
+        originalname: file.pushNotifications[0].originalname,
+      };
+      imageUrl = await uploadToFirebase(imageFile, "notification");
     }
 
     const newNotification = await PushNotification.create({
@@ -70,9 +75,13 @@ export const updatePushNotification = async (data) => {
       workerOnly,
     };
 
-    if (file) {
-      const imageUrl = await uploadToFirebase(file, "pushNotifications");
-      updateData.imageUrl = imageUrl;
+    if (file.pushNotifications && file.pushNotifications[0].buffer) {
+      const imageFile = {
+        buffer: Buffer.from(file.pushNotifications[0].buffer, "base64"),
+        mimetype: file.pushNotifications[0].mimetype,
+        originalname: file.pushNotifications[0].originalname,
+      };
+      updateData.imageUrl = await uploadToFirebase(imageFile, "notification");
     }
 
     const updated = await PushNotification.findByIdAndUpdate(id, updateData, {
@@ -152,7 +161,11 @@ export const sendPushNotification = async ({ data }) => {
 
     const notification = await PushNotification.findById(id);
     if (!notification) {
-      return { success: false, status: 404, message: "Push notification not found" };
+      return {
+        success: false,
+        status: 404,
+        message: "Push notification not found",
+      };
     }
 
     const {
@@ -175,7 +188,7 @@ export const sendPushNotification = async ({ data }) => {
     // Fetch user IDs
     const userResp = await getUserIds(params.toString());
     const userArray = userResp?.data || userResp; // normalize
-    
+
     if (!Array.isArray(userArray) || userArray.length === 0) {
       return {
         success: true,
@@ -229,7 +242,9 @@ export const sendPushNotification = async ({ data }) => {
     return {
       success: true,
       status: 200,
-      message: `Push notification sent successfully to ${sentCount} device${sentCount !== 1 ? "s" : ""}.`,
+      message: `Push notification sent successfully to ${sentCount} device${
+        sentCount !== 1 ? "s" : ""
+      }.`,
     };
   } catch (error) {
     console.error("RPC Send Push Notification Error:", error);
