@@ -54,8 +54,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      "https://hpanel.heavensliving.in",
       "http://192.168.1.80:5173",
-      "http://192.168.1.73:5173",
     ],
     credentials: true,
   })
@@ -99,7 +99,7 @@ app.use("/api/v2/property/staff", staffRoutes);
 app.use("/api/v2/user", userRoutes);
 app.use("/api/v2/user/logs", userLogRoutes);
 app.use("/api/v2/property/room", roomRoutes);
-app.use("/api/v2/pushNotification", pushNotificationRoutes);
+app.use("/api/v2/notification/push-notification", pushNotificationRoutes);
 app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/alertNotification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
@@ -119,8 +119,9 @@ app.use("/api/v2/reminder", reminderRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "OK CI/CD is working fine and running." });
-  res.status(200).json({ status: "OK CI/CD is working fine and running." });
+  res
+    .status(200)
+    .json({ status: "OK CI/CD is working fine and running tester." });
 });
 
 app.get("/", (_, res) => {

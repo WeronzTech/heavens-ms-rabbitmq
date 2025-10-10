@@ -5,6 +5,10 @@ import Payments from "../models/feePayments.model.js";
 import Expense from "../models/expense.model.js";
 import Deposits from "../models/depositPayments.model.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
+import ExcelJS from "exceljs";
+import jsPDF from "jspdf";
+import fs from "fs";
+import path from "path";
 
 export const getAccountDashboardDataForIncomeSection = async (data) => {
   try {
@@ -621,6 +625,223 @@ export const getMonthlyIncomeExpenseSummaryForMainDashboard = async (data) => {
       success: false,
       status: 500,
       message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Get GST report data and optionally export as Excel or PDF
+ * @param {Object} options - Options for export
+ * @param {string} options.format - 'excel' | 'pdf' | undefined
+ * @returns {Object} - GST report data and optionally file path
+ */
+export const getGSTReport = async ({ format } = {}) => {
+  try {
+    // Ensure "downloads" folder exists
+    const downloadDir = path.join(process.cwd(), "downloads");
+    if (!fs.existsSync(downloadDir))
+      fs.mkdirSync(downloadDir, { recursive: true });
+
+    // 1️⃣ Fetch all data in parallel
+    const [feePayments, expenses, salaries] = await Promise.all([
+      Payments.find({}),
+      Expense.find({}),
+      StaffSalaryHistory.find({}),
+    ]);
+
+    // 2️⃣ Convert salaries to expense-like objects
+    const salaryAsExpense = salaries.map((sal) => ({
+      title: `Salary - ${sal.employeeType}`,
+      category: "Salary",
+      paymentMethod: "N/A",
+      amount: sal.salary || 0,
+      date: sal.date,
+      property: sal.property || {},
+    }));
+
+    // 3️⃣ Merge actual expenses + salaries
+    const allExpenses = [...expenses, ...salaryAsExpense];
+
+    // 4️⃣ Totals
+    const totalIncome = feePayments.reduce(
+      (sum, f) => sum + (f.amount || 0),
+      0
+    );
+    const totalExpense = allExpenses.reduce(
+      (sum, e) => sum + (e.amount || 0),
+      0
+    );
+    const netProfit = totalIncome - totalExpense;
+
+    // 5️⃣ Structure report data
+    const reportData = {
+      feePayments,
+      allExpenses,
+      summary: {
+        totalIncome,
+        totalExpense,
+        netProfit,
+        incomeCount: feePayments.length,
+        expenseCount: allExpenses.length,
+      },
+    };
+
+    // 6️⃣ If no export requested, return data only
+    if (!format) {
+      return {
+        success: true,
+        status: 200,
+        message: "GST report fetched successfully",
+        data: reportData,
+      };
+    }
+
+    // 7️⃣ Prepare file path
+    const fileName = `GST_Report_${Date.now()}.${
+      format === "pdf" ? "pdf" : "xlsx"
+    }`;
+    const filePath = path.join(downloadDir, fileName);
+
+    // 8️⃣ Export as Excel
+    if (format === "excel") {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("GST Report");
+
+      // Summary Section
+      sheet.addRow(["GST REPORT SUMMARY"]);
+      sheet.addRow(["Total Income", reportData.summary.totalIncome]);
+      sheet.addRow(["Total Expense", reportData.summary.totalExpense]);
+      sheet.addRow(["Net Profit", reportData.summary.netProfit]);
+      sheet.addRow([]);
+
+      // Fee Payments
+      sheet.addRow(["FEE PAYMENTS"]);
+      sheet.addRow([
+        "Name",
+        "Contact",
+        "Room",
+        "Amount",
+        "Payment Method",
+        "Date",
+      ]);
+      reportData.feePayments.forEach((f) => {
+        sheet.addRow([
+          f.name,
+          f.contact,
+          f.room,
+          f.amount,
+          f.paymentMethod,
+          f.paymentDate
+            ? new Date(f.paymentDate).toISOString().split("T")[0]
+            : "",
+        ]);
+      });
+      sheet.addRow([]);
+
+      // Expenses
+      sheet.addRow(["EXPENSES"]);
+      sheet.addRow([
+        "Title",
+        "Category",
+        "Payment Method",
+        "Amount",
+        "Date",
+        "Property Name",
+      ]);
+      reportData.allExpenses.forEach((e) => {
+        sheet.addRow([
+          e.title,
+          e.category,
+          e.paymentMethod,
+          e.amount,
+          e.date ? new Date(e.date).toISOString().split("T")[0] : "",
+          e.property?.name || "",
+        ]);
+      });
+
+      await workbook.xlsx.writeFile(filePath);
+    }
+
+    // 9️⃣ Export as PDF (using jsPDF)
+    if (format === "pdf") {
+      const doc = new jsPDF();
+      let y = 20;
+
+      // Title
+      doc.setFontSize(18);
+      doc.text("GST Report", 80, y);
+      y += 10;
+
+      // Summary
+      doc.setFontSize(14);
+      doc.text("SUMMARY", 20, (y += 10));
+      doc.setFontSize(12);
+      doc.text(`Total Income: ₹${totalIncome}`, 20, (y += 8));
+      doc.text(`Total Expense: ₹${totalExpense}`, 20, (y += 8));
+      doc.text(`Net Profit: ₹${netProfit}`, 20, (y += 8));
+
+      // Fee Payments
+      y += 12;
+      doc.setFontSize(14);
+      doc.text("FEE PAYMENTS", 20, (y += 10));
+      doc.setFontSize(11);
+      reportData.feePayments.forEach((f) => {
+        if (y > 280) {
+          // new page if needed
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(
+          `${f.name || "-"} | ₹${f.amount || 0} | ${f.paymentMethod || "-"} | ${
+            f.paymentDate
+              ? new Date(f.paymentDate).toISOString().split("T")[0]
+              : "-"
+          }`,
+          20,
+          (y += 6)
+        );
+      });
+
+      // Expenses
+      y += 12;
+      doc.setFontSize(14);
+      doc.text("EXPENSES", 20, (y += 10));
+      doc.setFontSize(11);
+      reportData.allExpenses.forEach((e) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(
+          `${e.title || "-"} | ₹${e.amount || 0} | ${
+            e.paymentMethod || "-"
+          } | ${
+            e.date ? new Date(e.date).toISOString().split("T")[0] : "-"
+          } | ${e.property?.name || "-"}`,
+          20,
+          (y += 6)
+        );
+      });
+
+      // Save PDF to file
+      const pdfData = doc.output();
+      fs.writeFileSync(filePath, Buffer.from(pdfData, "binary"));
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "GST report exported successfully",
+      data: reportData,
+      filePath,
+    };
+  } catch (error) {
+    console.error("Error in getGSTReport:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to fetch/export GST report",
       error: error.message,
     };
   }

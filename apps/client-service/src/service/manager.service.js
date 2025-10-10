@@ -5,6 +5,7 @@ import {
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import Manager from "../models/manager.model.js";
+import bcrypt from "bcrypt";
 
 export const registerManager = async (data) => {
   try {
@@ -34,19 +35,19 @@ export const registerManager = async (data) => {
 
     // Directly handle file data from the payload
     if (files) {
-      if (files.photo && files.photo.buffer) {
+      if (files.photo && files.photo[0].buffer) {
         const photoFile = {
-          buffer: Buffer.from(files.photo.buffer, "base64"),
-          mimetype: files.photo.mimetype,
-          originalname: files.photo.originalname,
+          buffer: Buffer.from(files.photo[0].buffer, "base64"),
+          mimetype: files.photo[0].mimetype,
+          originalname: files.photo[0].originalname,
         };
         photoUrl = await uploadToFirebase(photoFile, "staff-photos");
       }
-      if (files.aadharImage && files.aadharImage.buffer) {
+      if (files.aadharImage && files.aadharImage[0].buffer) {
         const aadharFile = {
-          buffer: Buffer.from(files.aadharImage.buffer, "base64"),
-          mimetype: files.aadharImage.mimetype,
-          originalname: files.aadharImage.originalname,
+          buffer: Buffer.from(files.aadharImage[0].buffer, "base64"),
+          mimetype: files.aadharImage[0].mimetype,
+          originalname: files.aadharImage[0].originalname,
         };
         aadharUrl = await uploadToFirebase(aadharFile, "staff-documents");
       }

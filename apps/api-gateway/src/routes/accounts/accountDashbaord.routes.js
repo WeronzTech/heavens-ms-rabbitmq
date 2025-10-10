@@ -4,6 +4,7 @@ import {
   getAccountDashboardDataForExpenseSection,
   getAccountDashboardDataForIncomeSection,
   getMonthlyIncomeExpenseSummaryForMainDashboard,
+  getGSTReportController,
 } from "../../controllers/accounts/dashbaord.controller.js";
 
 const accountDashboardRoutes = express.Router();
@@ -21,5 +22,7 @@ accountDashboardRoutes.get(
   "/deposit",
   getAccountDashboardDataForDepositSection
 );
+
+accountDashboardRoutes.get("/gst-report", getGSTReportController);
 
 export default accountDashboardRoutes;

@@ -9,7 +9,7 @@ const alertNotificationRoutes = express.Router();
 
 alertNotificationRoutes.post(
   "/",
-  upload.single("alertNotificationImage"),
+  upload.fields([{ name: "alertNotificationImage", maxCount: 1 }]),
   addAlertNotificationController
 );
 alertNotificationRoutes.get("/", getAlertNotificationsController);

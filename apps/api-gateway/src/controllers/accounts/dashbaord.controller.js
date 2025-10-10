@@ -46,6 +46,22 @@ export const getAccountDashboardDataForExpenseSection = async (req, res) => {
       error: error.message,
     });
   }
+}; 
+
+export const getGSTReportController = async (req, res) => {
+  try {
+    // You can pass query params if needed, e.g., startDate, endDate
+    const response = await sendRPCRequest(ACCOUNTS_PATTERN.DASHBOARD.GET_GST_REPORT, {});
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC Get GST report Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
 };
 
 export const getAccountDashboardDataForDepositSection = async (req, res) => {

@@ -2059,23 +2059,23 @@ export const getTodayCheckouts = async (data) => {
 
       if (propertyId && propertyId !== "null") {
         const kitchenIds = users
-          .map((u) => u.messDetails?.kitchenId)
-          .filter(Boolean);
+          ?.map((u) => u.messDetails?.kitchenId)
+          ?.filter(Boolean);
 
         if (kitchenIds.length > 0) {
           const accessibleKitchens = await getAccessibleKitchens(propertyId);
-          const accessibleKitchenIds = accessibleKitchens.map((k) =>
+          const accessibleKitchenIds = accessibleKitchens.data?.map((k) =>
             k._id.toString()
           );
-          filteredUsers = users.filter((u) =>
-            accessibleKitchenIds.includes(u.messDetails?.kitchenId?.toString())
+          filteredUsers = users?.filter((u) =>
+            accessibleKitchenIds?.includes(u.messDetails?.kitchenId?.toString())
           );
         } else {
           filteredUsers = [];
         }
       }
 
-      return filteredUsers.map((user) => {
+      return filteredUsers?.map((user) => {
         const mess = user.messDetails || {};
         return {
           _id: user._id,

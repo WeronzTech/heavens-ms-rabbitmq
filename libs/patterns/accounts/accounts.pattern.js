@@ -47,6 +47,7 @@ export const ACCOUNTS_PATTERN = {
       "get_account_dashbaord_data_for_deposit_section",
     GET_MAIN_DASHBAORD_DATA_FOR_INCOME_AND_EXPENSE_SECTION:
       "get_main_dashbaord_data_for_income_and_expense_section",
+    GET_GST_REPORT: "get_gst_report",
   },
   EXPENSE: {
     ADD_EXPENSE: "add_expense",

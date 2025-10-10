@@ -35,7 +35,7 @@ app.get("/health", (_, res) => {
 });
 
 cron.schedule(
-  "0 0 * * *",
+  "0 0 1 * *",
   () => {
     generateMonthlySalaries();
   },

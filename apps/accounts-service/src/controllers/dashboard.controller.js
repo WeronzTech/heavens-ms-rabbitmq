@@ -5,6 +5,7 @@ import {
   getAccountDashboardDataForExpenseSection,
   getAccountDashboardDataForIncomeSection,
   getMonthlyIncomeExpenseSummaryForMainDashboard,
+  getGSTReport,
 } from "../service/dashboard.service.js";
 
 createResponder(
@@ -35,3 +36,7 @@ createResponder(
     return await getMonthlyIncomeExpenseSummaryForMainDashboard(data);
   }
 );
+
+createResponder(ACCOUNTS_PATTERN.DASHBOARD.GET_GST_REPORT, async (data) => {
+  return await getGSTReport(data);
+});

@@ -355,3 +355,64 @@ export const checkNextDayBooking = async (data) => {
     return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
+
+export const createManualMealBookings = async (data) => {
+  try {
+    const { count, propertyId, kitchenId, mealType, bookingDate, menuId } =
+      data;
+
+    if (
+      !count ||
+      count <= 0 ||
+      !propertyId ||
+      !kitchenId ||
+      !mealType ||
+      !bookingDate ||
+      !menuId
+    ) {
+      return {
+        success: false,
+        status: 400,
+        message:
+          "Count, propertyId, kitchenId, mealType, menuId, and bookingDate are required.",
+      };
+    }
+
+    // 2. Create booking documents in a loop
+    const bookingPromises = [];
+    const normalizedDate = normalizeDate(bookingDate);
+
+    for (let i = 0; i < count; i++) {
+      const newBookingData = {
+        userId: new mongoose.Types.ObjectId(), // Use a new random ObjectId
+        propertyId,
+        kitchenId,
+        bookingDate: normalizedDate,
+        mealType,
+        menuId,
+        status: "Pending",
+        remarks: "Manual booking created by kitchen staff",
+      };
+      // Using .create() triggers the 'save' hook for each document
+      bookingPromises.push(MealBooking.create(newBookingData));
+    }
+
+    // 3. Insert all bookings in a single database operation for efficiency
+    const createdBookings = await Promise.all(bookingPromises);
+
+    return {
+      success: true,
+      status: 201,
+      message: `${createdBookings.length} manual bookings created successfully.`,
+      data: { count: createdBookings.length },
+    };
+  } catch (error) {
+    console.error("Error creating manual meal bookings:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
