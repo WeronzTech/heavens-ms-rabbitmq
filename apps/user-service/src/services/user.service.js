@@ -513,7 +513,7 @@ export const approveUser = async (data) => {
     kitchenName,
     updatedBy,
   } = data;
-
+  console.log(data);
   try {
     const user = await User.findById(id).lean();
     // console.log(user);
@@ -860,9 +860,6 @@ export const verifyEmail = async (data) => {
 export const updateProfileCompletion = async (data) => {
   const { id, updateData, files } = data;
 
-  // console.log(updateData);
-  // console.log("Files", files);
-
   let photoUrl = null;
   let aadharFrontUrl = null;
   let aadharBackUrl = null;
@@ -935,19 +932,26 @@ export const updateProfileCompletion = async (data) => {
     };
   } catch (error) {
     console.error("Profile update error:", error);
-    const status =
-      error.message.includes("Invalid") ||
-      error.message.includes("Missing") ||
-      error.message.includes("already")
-        ? 400
-        : 500;
+
+    const msg = error.message.toLowerCase();
+
+    const isValidationError =
+      msg.includes("invalid") ||
+      msg.includes("missing") ||
+      msg.includes("already") ||
+      msg.includes("must") ||
+      msg.includes("cannot") ||
+      msg.includes("required");
+
+    const status = isValidationError ? 400 : 500;
 
     return {
       status,
       body: {
         success: false,
-        error:
-          status === 400 ? error.message : "Server error during profile update",
+        error: isValidationError
+          ? error.message
+          : "Server error during profile update",
       },
     };
   }
@@ -1174,7 +1178,9 @@ export const getUsersByRentType = async (data) => {
   try {
     const { rentType, propertyId, page, limit, search, status, joinDate } =
       data;
+    console.log("hererererere");
 
+    console.log(propertyId);
     // Convert and validate pagination parameters
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
@@ -1215,9 +1221,27 @@ export const getUsersByRentType = async (data) => {
     // Property filter
     if (propertyId && propertyId !== "null") {
       if (rentType === "mess") {
-        const accessibleKitchens = await getAccessibleKitchens(propertyId);
-        const kitchenIds = accessibleKitchens.map((k) => k._id.toString());
-        queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+        const accessibleKitchensResponse = await getAccessibleKitchens({
+          propertyId,
+        });
+
+        // Check if the request was successful and data exists
+        if (
+          accessibleKitchensResponse.success &&
+          accessibleKitchensResponse.data
+        ) {
+          const kitchenIds = accessibleKitchensResponse.data.map((k) =>
+            k._id.toString()
+          );
+          queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+        } else {
+          // Handle the error case - maybe return empty array or throw error
+          console.error(
+            "Failed to fetch accessible kitchens:",
+            accessibleKitchensResponse.message
+          );
+          queryConditions["messDetails.kitchenId"] = { $in: [] }; // No kitchens accessible
+        }
       } else {
         queryConditions["stayDetails.propertyId"] = propertyId;
       }
@@ -1264,17 +1288,6 @@ export const getUsersByRentType = async (data) => {
           { createdAt: { $gte: startDate, $lte: endDate } },
           { "stayDetails.joinDate": { $gte: startDate, $lte: endDate } },
         ];
-
-        console.log("Date filter range:", {
-          createdAt: {
-            gte: startDate.toISOString(),
-            lte: endDate.toISOString(),
-          },
-          joinDate: {
-            gte: startDate.toISOString(),
-            lte: endDate.toISOString(),
-          },
-        });
       } catch (err) {
         console.error("Error parsing joinDate:", joinDate, err);
       }
@@ -1296,9 +1309,14 @@ export const getUsersByRentType = async (data) => {
       "messDetails.messStartDate": 1,
       "messDetails.messEndDate": 1,
       "messDetails.rent": 1,
+      "messDetails.noOfDays": 1,
       "financialDetails.totalAmount": 1,
       "financialDetails.pendingAmount": 1,
       "financialDetails.fines": 1,
+      "stayDetails.nonRefundableDeposit": 1,
+      "stayDetails.refundableDeposit": 1,
+      "stayDetails.depositStatus": 1,
+      "stayDetails.depositAmountPaid": 1,
       "stayDetails.roomNumber": 1,
       "stayDetails.propertyName": 1,
       "stayDetails.joinDate": 1,
@@ -1313,6 +1331,13 @@ export const getUsersByRentType = async (data) => {
       createdAt: 1,
     };
 
+    if (rentType !== "daily" && rentType !== "mess") {
+      projection["stayDetails.nonRefundableDeposit"] = 1;
+      projection["stayDetails.refundableDeposit"] = 1;
+      projection["stayDetails.depositStatus"] = 1;
+      projection["stayDetails.depositAmountPaid"] = 1;
+    }
+
     // Get total count for pagination metadata
     const totalCount = await User.countDocuments(queryConditions);
     const skip = (pageNumber - 1) * limitNumber;
@@ -1326,16 +1351,14 @@ export const getUsersByRentType = async (data) => {
       .limit(limitNumber)
       .lean();
 
-    console.log(users);
     // Format response
     const formattedUsers = users.map((user) => {
       const fines = user.financialDetails?.fines || [];
-
       const outstandingFines = fines
         .filter((fine) => !fine.paid)
         .reduce((sum, fine) => sum + (fine.amount || 0), 0);
 
-      return {
+      const formatted = {
         _id: user._id,
         name: user.name,
         email: user.email,
@@ -1348,6 +1371,7 @@ export const getUsersByRentType = async (data) => {
         paymentStatus: user.paymentStatus,
         kitchenName: user.messDetails?.kitchenName,
         mealType: user.messDetails?.mealType,
+        noOfDaysMess: user.messDetails?.noOfDays,
         totalAmount: user.financialDetails?.totalAmount,
         pendingAmount: user.financialDetails?.pendingAmount,
         roomNumber: user.stayDetails?.roomNumber,
@@ -1367,6 +1391,17 @@ export const getUsersByRentType = async (data) => {
         messEndDate: user.messDetails?.messEndDate,
         noOfDaysForMessOnly: user.messDetails?.noOfDays,
       };
+
+      // 👉 Add deposit-related fields only if NOT 'daily' or 'mess'
+      if (rentType !== "daily" && rentType !== "mess") {
+        formatted.depositAmount =
+          (user.stayDetails?.nonRefundableDeposit || 0) +
+          (user.stayDetails?.refundableDeposit || 0);
+        formatted.depositPaid = user.stayDetails?.depositAmountPaid;
+        formatted.depositStatus = user.stayDetails?.depositStatus;
+      }
+
+      return formatted;
     });
 
     return {
@@ -1718,8 +1753,8 @@ export const rejoinUser = async (data) => {
         ...user.stayDetails,
         propertyId,
         propertyName,
-        sharingType: roomAssignment.body.room.sharingType,
-        roomNumber: roomAssignment.body.room.roomNo,
+        sharingType: roomAssignment.body?.room?.sharingType,
+        roomNumber: roomAssignment.body?.room?.roomNo,
         roomId,
         rent,
         nonRefundableDeposit,
@@ -2248,7 +2283,7 @@ export const extendUserDays = async (data) => {
 
 export const createStatusRequest = async (data) => {
   try {
-    const { id, type, reason } = data;
+    const { id, type, reason, isInstantCheckout } = data;
 
     // Validate request type
     const allowedTypes = ["checked_in", "on_leave", "checked_out"];
@@ -2259,7 +2294,7 @@ export const createStatusRequest = async (data) => {
       };
     }
 
-    // Always fetch current request status
+    // Fetch user
     const user = await User.findById(id).select(
       "paymentStatus stayDetails.depositStatus currentStatus currentStatusRequest"
     );
@@ -2280,7 +2315,7 @@ export const createStatusRequest = async (data) => {
       };
     }
 
-    // Check if there's already a pending request for any type
+    // Prevent duplicate pending requests
     if (user.currentStatusRequest?.status === "pending") {
       return {
         status: 400,
@@ -2301,13 +2336,13 @@ export const createStatusRequest = async (data) => {
           status: 400,
           body: {
             error:
-              "Cannot request checkout while payment or deposit is pending",
+              "Cannot request checkout while payment or deposit is pending.",
           },
         };
       }
     }
 
-    // Create the new request
+    // 🧩 Base new request object
     const newRequest = {
       type,
       reason: reason || "",
@@ -2315,6 +2350,26 @@ export const createStatusRequest = async (data) => {
       requestedAt: new Date(),
     };
 
+    if (type === "checked_out") {
+      const requestedAt = new Date();
+
+      if (isInstantCheckout === true) {
+        // Case 1: Instant checkout
+        newRequest.isInstantCheckout = true;
+        newRequest.effectiveDate = null;
+        newRequest.isRefundEligible = false;
+      } else {
+        // Case 2: Scheduled checkout (30 days later)
+        const effectiveDate = new Date(requestedAt);
+        effectiveDate.setDate(effectiveDate.getDate() + 30);
+
+        newRequest.isInstantCheckout = false;
+        newRequest.effectiveDate = effectiveDate;
+        newRequest.isRefundEligible = false;
+      }
+    }
+
+    // Save request
     const updatedUser = await User.findByIdAndUpdate(
       id,
       {
@@ -2367,7 +2422,8 @@ export const getPendingStatusRequests = async (data) => {
       },
       {
         $sort: {
-          [`statusRequests.${sortBy}`]: sortOrder === "asc" ? 1 : -1,
+          [`statusRequests.${sortBy || "createdAt"}`]:
+            sortOrder === "asc" ? 1 : -1,
         },
       },
       {
@@ -2383,12 +2439,46 @@ export const getPendingStatusRequests = async (data) => {
           propertyId: "$stayDetails.propertyId",
           propertyName: "$stayDetails.propertyName",
           roomNumber: "$stayDetails.roomNumber",
+          refundableDeposit: "$stayDetails.refundableDeposit",
           request: "$statusRequests",
         },
       },
     ];
 
-    const results = await User.aggregate(aggregation);
+    let results = await User.aggregate(aggregation);
+
+    // 🔹 Process each user's latest pending request
+    const todayUTC = new Date();
+    todayUTC.setUTCHours(0, 0, 0, 0);
+
+    for (const record of results) {
+      const userId = record._id;
+      const latestRequest = record.request; // since we already sort by createdAt desc, this is latest
+
+      if (
+        latestRequest?.type === "checked_out" &&
+        latestRequest?.effectiveDate
+      ) {
+        const effective = new Date(latestRequest.effectiveDate);
+        effective.setUTCHours(0, 0, 0, 0);
+
+        if (effective.getTime() <= todayUTC.getTime()) {
+          // ✅ eligible for refund
+          await User.updateOne(
+            {
+              _id: userId,
+              "statusRequests._id": latestRequest._id,
+            },
+            {
+              $set: { "statusRequests.$.isRefundEligible": true },
+            }
+          );
+
+          // Also reflect in returned data
+          record.request.isRefundEligible = true;
+        }
+      }
+    }
 
     return {
       status: 200,
@@ -2733,7 +2823,14 @@ export const updateUser = async (data) => {
 
 export const getAllPaymentPendingUsers = async (data) => {
   try {
-    const { propertyId, rentType, page = 1, limit = 10 } = data;
+    const {
+      propertyId,
+      rentType,
+      userType,
+      search,
+      page = 1,
+      limit = 10,
+    } = data;
 
     const query = {
       paymentStatus: "pending",
@@ -2748,6 +2845,15 @@ export const getAllPaymentPendingUsers = async (data) => {
       query.rentType = rentType;
     }
 
+    if (userType) {
+      query.userType = userType;
+    }
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query.$or = [{ name: regex }, { contact: regex }];
+    }
+
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
@@ -2759,9 +2865,11 @@ export const getAllPaymentPendingUsers = async (data) => {
     };
 
     if (rentType === "monthly") {
+      projection["userType"] = 1;
       projection["stayDetails.joinDate"] = 1;
       projection["financialDetails.monthlyRent"] = 1;
       projection["financialDetails.pendingRent"] = 1;
+      projection["financialDetails.clearedTillMonth"] = 1;
     } else if (rentType === "daily") {
       projection["stayDetails.checkInDate"] = 1;
       projection["stayDetails.checkOutDate"] = 1;
@@ -2779,10 +2887,36 @@ export const getAllPaymentPendingUsers = async (data) => {
       User.countDocuments(query),
     ]);
 
+    let totalPending = 0;
+    if (rentType === "monthly") {
+      const agg = await User.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: null,
+            totalPending: { $sum: "$financialDetails.pendingRent" },
+          },
+        },
+      ]);
+      totalPending = agg[0]?.totalPending || 0;
+    } else if (["daily", "mess"].includes(rentType)) {
+      const agg = await User.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: null,
+            totalPending: { $sum: "$financialDetails.pendingAmount" },
+          },
+        },
+      ]);
+      totalPending = agg[0]?.totalPending || 0;
+    }
+
     if (!users.length) {
       return {
         success: true,
         status: 200,
+        totalPending: 0,
         data: [],
         pagination: { total: 0, page: pageNum, limit: limitNum, pages: 0 },
       };
@@ -2801,8 +2935,8 @@ export const getAllPaymentPendingUsers = async (data) => {
     if (paymentsResponse?.success && Array.isArray(paymentsResponse.data)) {
       paymentsResponse.data.forEach((p) => {
         paymentsMap[p.userId] = {
-          lastPaidDate: p.lastPaidDate,
-          rentClearedMonth: p.rentClearedMonth,
+          lastPaidDate: p.paymentDate,
+          amountPaid: p.amount,
         };
       });
     }
@@ -2816,9 +2950,11 @@ export const getAllPaymentPendingUsers = async (data) => {
         roomNumber: u.stayDetails?.roomNumber || null,
 
         ...(rentType === "monthly" && {
+          userType: u.userType,
           joinDate: u.stayDetails?.joinDate || null,
           monthlyRent: u.financialDetails?.monthlyRent || null,
           pendingRent: u.financialDetails?.pendingRent || null,
+          rentClearedMonth: u.financialDetails?.clearedTillMonth || null,
         }),
         ...(rentType === "daily" && {
           checkInDate: u.stayDetails?.checkInDate || null,
@@ -2835,13 +2971,14 @@ export const getAllPaymentPendingUsers = async (data) => {
 
         // merged from accounts service
         lastPaidDate: paymentInfo.lastPaidDate || null,
-        rentClearedMonth: paymentInfo.rentClearedMonth || null,
+        lastPaidAmount: paymentInfo.amountPaid || null,
       };
     });
 
     return {
       success: true,
       status: 200,
+      totalPending,
       data: formattedUsers,
       pagination: {
         total,
@@ -2940,7 +3077,10 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
   try {
     const { propertyId } = data;
 
-    const matchCondition = {};
+    const matchCondition = {
+      isApproved: true,
+      isVacated: false,
+    };
     if (propertyId) {
       matchCondition.$or = [
         { "stayDetails.propertyId": new mongoose.Types.ObjectId(propertyId) },
@@ -2964,7 +3104,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
       });
     }
 
-    // Aggregate users by rent type
+    // ✅ Aggregate users by rentType with pending amount calculation
     const userStats = await User.aggregate([
       {
         $match: matchCondition,
@@ -2972,6 +3112,8 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
       {
         $group: {
           _id: "$rentType",
+          userCount: { $sum: 1 },
+
           totalMonthlyRent: {
             $sum: {
               $cond: [
@@ -2999,7 +3141,44 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
               ],
             },
           },
-          userCount: { $sum: 1 },
+
+          // ✅ New field: totalPendingAmount
+          totalPendingAmount: {
+            $sum: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $and: [
+                        { $eq: ["$rentType", "monthly"] },
+                        { $eq: ["$paymentStatus", "pending"] },
+                      ],
+                    },
+                    then: "$financialDetails.pendingRent",
+                  },
+                  {
+                    case: {
+                      $and: [
+                        { $eq: ["$rentType", "daily"] },
+                        { $eq: ["$paymentStatus", "pending"] },
+                      ],
+                    },
+                    then: "$financialDetails.pendingAmount",
+                  },
+                  {
+                    case: {
+                      $and: [
+                        { $eq: ["$rentType", "mess"] },
+                        { $eq: ["$paymentStatus", "pending"] },
+                      ],
+                    },
+                    then: "$financialDetails.pendingAmount",
+                  },
+                ],
+                default: 0,
+              },
+            },
+          },
         },
       },
     ]);
@@ -3054,6 +3233,400 @@ export const getUsersByAgencyService = async (data) => {
     };
   } catch (error) {
     console.error("Get Users by Agency Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getUsersForMakingPayment = async (data) => {
+  try {
+    const { rentType, propertyId } = data;
+
+    // Base query conditions
+    const queryConditions = {
+      isApproved: true,
+      isVacated: false,
+    };
+
+    // Rent Type filter
+    if (rentType) {
+      if (rentType === "mess") {
+        queryConditions.userType = "messOnly";
+      } else {
+        queryConditions.rentType = rentType;
+        queryConditions.userType = { $in: ["student", "worker", "dailyRent"] };
+      }
+    }
+
+    // Property filter
+    if (propertyId && propertyId !== "null") {
+      if (rentType === "mess") {
+        const accessibleKitchens = await getAccessibleKitchens(propertyId);
+        const kitchenIds = accessibleKitchens.map((k) => k._id.toString());
+        queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+      } else {
+        queryConditions["stayDetails.propertyId"] = propertyId;
+      }
+    }
+
+    // Projection to reduce data transfer
+    const projection = {
+      name: 1,
+      userType: 1,
+      rentType: 1,
+      paymentStatus: 1,
+      "messDetails.kitchenName": 1,
+      "messDetails.mealType": 1,
+      "messDetails.messStartDate": 1,
+      "messDetails.messEndDate": 1,
+      "messDetails.rent": 1,
+      "financialDetails.totalAmount": 1,
+      "financialDetails.pendingAmount": 1,
+      "financialDetails.fines": 1,
+      "stayDetails.nonRefundableDeposit": 1,
+      "stayDetails.refundableDeposit": 1,
+      "stayDetails.depositStatus": 1,
+      "stayDetails.depositAmountPaid": 1,
+      "stayDetails.roomNumber": 1,
+      "stayDetails.propertyName": 1,
+      "stayDetails.joinDate": 1,
+      "stayDetails.checkInDate": 1,
+      "stayDetails.checkOutDate": 1,
+      "stayDetails.noOfDays": 1,
+      "stayDetails.sharingType": 1,
+      "stayDetails.dailyRent": 1,
+      "financialDetails.monthlyRent": 1,
+      "financialDetails.pendingRent": 1,
+      "financialDetails.nextDueDate": 1,
+      createdAt: 1,
+    };
+
+    // Fetch users
+    const users = await User.find(queryConditions)
+      .select(projection)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .lean();
+
+    // Format response
+    const formattedUsers = users.map((user) => {
+      const fines = user.financialDetails?.fines || [];
+
+      const outstandingFines = fines
+        .filter((fine) => !fine.paid)
+        .reduce((sum, fine) => sum + (fine.amount || 0), 0);
+
+      return {
+        _id: user._id,
+        name: user.name,
+        userType: user.userType,
+        rentType: user.rentType,
+        currentStatus: user.currentStatus,
+        paymentStatus: user.paymentStatus,
+        kitchenName: user.messDetails?.kitchenName,
+        mealType: user.messDetails?.mealType,
+        totalAmount: user.financialDetails?.totalAmount,
+        pendingAmount: user.financialDetails?.pendingAmount,
+        nonRefundableDeposit: user.stayDetails?.nonRefundableDeposit,
+        refundableDeposit: user.stayDetails?.nonRefundableDeposit,
+        depositAmount:
+          user.stayDetails?.nonRefundableDeposit +
+          user.stayDetails?.refundableDeposit,
+        depositPaid: user.stayDetails?.depositAmountPaid,
+        depositStatus: user.stayDetails?.depositStatus,
+        roomNumber: user.stayDetails?.roomNumber,
+        propertyName: user.stayDetails?.propertyName,
+        sharingType: user.stayDetails?.sharingType,
+        rent: user.stayDetails?.dailyRent || user.messDetails?.rent,
+        monthlyRent: user.financialDetails?.monthlyRent,
+        pendingRent: user.financialDetails?.pendingRent,
+        nextDueDate: user.financialDetails?.nextDueDate,
+        fines,
+        outstandingFines,
+        joinedDate: user.stayDetails?.joinDate,
+        checkInDate: user.stayDetails?.checkInDate,
+        checkOutDate: user.stayDetails?.checkOutDate,
+        noOfDays: user.stayDetails?.noOfDays,
+        messStartDate: user.messDetails?.messStartDate,
+        messEndDate: user.messDetails?.messEndDate,
+        noOfDaysForMessOnly: user.messDetails?.noOfDays,
+      };
+    });
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        data: formattedUsers,
+      },
+    };
+  } catch (error) {
+    console.error(
+      "Error fetching users by rentType for making payment:",
+      error
+    );
+    return {
+      status: 500,
+      body: {
+        success: false,
+        error: "Server error while fetching users",
+      },
+    };
+  }
+};
+
+export const getUserDepositStatisticsForAccountDashboard = async (data) => {
+  try {
+    const { propertyId } = data;
+
+    // 🗓️ Current month date range
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
+
+    // 🧮 Base filter (property + current month joinDate)
+    const matchCondition = {
+      rentType: "monthly",
+      "stayDetails.joinDate": { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
+    };
+
+    if (propertyId) {
+      matchCondition["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
+        propertyId
+      );
+    }
+
+    // ✅ Get all current-month users
+    const users = await User.find(matchCondition)
+      .select(
+        "stayDetails.nonRefundableDeposit stayDetails.refundableDeposit stayDetails.depositStatus stayDetails.joinDate"
+      )
+      .lean();
+
+    if (!users?.length) {
+      return {
+        success: true,
+        status: 200,
+        message: "No users joined this month",
+        data: {
+          currentMonthNonRefundable: 0,
+          currentMonthRefundable: 0,
+          currentMonthPending: 0,
+          noOfCurrentMonthJoines: 0,
+        },
+      };
+    }
+
+    // 🧩 Initialize totals
+    let currentMonthNonRefundable = 0;
+    let currentMonthRefundable = 0;
+    let currentMonthPending = 0;
+    let noOfCurrentMonthJoines = users.length;
+
+    // 🔹 Loop through and calculate
+    for (const user of users) {
+      const stay = user.stayDetails;
+      if (!stay) continue;
+
+      currentMonthNonRefundable += stay.nonRefundableDeposit || 0;
+      currentMonthRefundable += stay.refundableDeposit || 0;
+
+      // Count pending only for current-month users
+      if (stay.depositStatus === "pending") {
+        currentMonthPending +=
+          (stay.nonRefundableDeposit || 0) + (stay.refundableDeposit || 0);
+      }
+    }
+
+    // ✅ Return formatted response
+    return {
+      success: true,
+      status: 200,
+      message: "User deposit statistics (current month) fetched successfully",
+      data: {
+        currentMonthNonRefundable,
+        currentMonthRefundable,
+        currentMonthPending,
+        noOfCurrentMonthJoines,
+      },
+    };
+  } catch (error) {
+    console.error(
+      "User Service - getUserDepositStatisticsForAccountDashboard Error:",
+      error
+    );
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getPendingDepositPayments = async (data) => {
+  try {
+    const { propertyId, search, userType, page = 1, limit = 10 } = data;
+
+    const query = {
+      "stayDetails.depositStatus": "pending",
+      isVacated: { $ne: true },
+      rentType: "monthly",
+    };
+
+    // Filter by property
+    if (propertyId && mongoose.Types.ObjectId.isValid(propertyId)) {
+      query["stayDetails.propertyId"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    // Filter by userType (student / worker)
+    if (userType) {
+      query.userType = userType;
+    }
+
+    // Search filter (name or contact)
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query.$or = [{ name: regex }, { contact: regex }];
+    }
+
+    // Pagination setup
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Projection fields
+    const projection = {
+      name: 1,
+      contact: 1,
+      userType: 1,
+      "stayDetails.joinDate": 1,
+      "stayDetails.nonRefundableDeposit": 1,
+      "stayDetails.refundableDeposit": 1,
+      "stayDetails.depositAmountPaid": 1,
+    };
+
+    // Fetch filtered users
+    const [users, total] = await Promise.all([
+      User.find(query).select(projection).skip(skip).limit(limitNum).lean(),
+      User.countDocuments(query),
+    ]);
+
+    const matchStage = {
+      isVacated: false,
+      isApproved: true,
+    };
+
+    // ✅ Apply property filter if provided
+    if (propertyId && mongoose.Types.ObjectId.isValid(propertyId)) {
+      matchStage["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
+        propertyId
+      );
+    }
+
+    const totals = await User.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalNonRefundable: { $sum: "$stayDetails.nonRefundableDeposit" },
+          totalRefundable: { $sum: "$stayDetails.refundableDeposit" },
+        },
+      },
+    ]);
+
+    const totalNonRefundable = totals[0]?.totalNonRefundable || 0;
+    const totalRefundable = totals[0]?.totalRefundable || 0;
+
+    if (!users.length) {
+      return {
+        success: true,
+        status: 200,
+        totalNonRefundable,
+        totalRefundable,
+        data: [],
+        totalPendingAmount: 0,
+        pagination: { total: 0, page: pageNum, limit: limitNum, pages: 0 },
+      };
+    }
+
+    // Collect userIds for accounts service
+    const userIds = users.map((u) => u._id.toString());
+
+    // 🔥 Call Accounts service to get latest payments
+    const depositsResponse = await sendRPCRequest(
+      ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.GET_LATEST_DEPOSIT_PAYMENT_BY_USERID,
+      { userIds }
+    );
+
+    const depositsMap = {};
+    if (depositsResponse?.success && Array.isArray(depositsResponse.data)) {
+      depositsResponse.data.forEach((p) => {
+        depositsMap[p.userId] = {
+          lastPaidDate: p.paymentDate,
+          amountPaid: p.amountPaid,
+          dueAmount: p.dueAmount,
+        };
+      });
+    }
+
+    // Flatten & merge payment info + calculate pending deposit
+    let totalPendingAmount = 0;
+
+    const formattedUsers = users.map((u) => {
+      const depositInfo = depositsMap[u._id.toString()] || {};
+      const stay = u.stayDetails || {};
+
+      const nonRefundable = stay.nonRefundableDeposit || 0;
+      const refundable = stay.refundableDeposit || 0;
+      const paid = stay.depositAmountPaid || 0;
+
+      const totalDeposit = nonRefundable + refundable;
+      const pendingDeposit = totalDeposit - paid;
+
+      totalPendingAmount += pendingDeposit;
+
+      return {
+        name: u.name,
+        userType: u.userType,
+        contact: u.contact,
+        joinDate: stay.joinDate || null,
+        totalDeposit,
+        pendingDeposit,
+        lastPaidDate: depositInfo.lastPaidDate || null,
+        amountPaid: depositInfo.amountPaid || null,
+        dueAmount: depositInfo.dueAmount || null,
+      };
+    });
+
+    // ✅ Final response
+    return {
+      success: true,
+      status: 200,
+      totalNonRefundable,
+      totalRefundable,
+      totalPendingAmount,
+      data: formattedUsers,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    };
+  } catch (error) {
+    console.error("Get Pending Deposit Payments Service Error:", error);
     return {
       success: false,
       status: 500,

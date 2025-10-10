@@ -16,6 +16,18 @@ export const ACCOUNTS_PATTERN = {
     GET_PAYMENTS_BY_USERID: "get_payments_by_userId",
     GET_WAVEOFF_PAYMENTS: "get_waveoff_payments",
     GET_ALL_CASH_PAYMENTS: "get_all_cash_payments",
+    GET_LATEST_PAYMENT_BY_USERID: "get_latest_payment_by_userId",
+    GET_FEE_PAYMENTS_ANALYTICS: "get_fee_payment_analytics",
+    GET_TRANSACTIONS_BY_USERID: "get_transactions_by_userId",
+  },
+  DEPOSIT_PAYMENTS: {
+    INITIATE_ONLINE_DEPOSIT: "deposit_payment_initiate_online",
+    VERIFY_ONLINE_DEPOSIT: "deposit_payment_verify_online",
+    RECORD_MANUAL_DEPOSIT: "deposit_payment_record_manual",
+    GET_ALL_DEPOSIT_PAYMENTS: "get_all_deposit_payments",
+    GET_LATEST_DEPOSIT_PAYMENT_BY_USERID:
+      "get_latest_deposit_payment_by_userId",
+    RECORD_REFUND_PAYMENT: "record_refund_payment",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",
@@ -31,7 +43,11 @@ export const ACCOUNTS_PATTERN = {
       "get_account_dashbaord_data_for_income_section",
     GET_ACCOUNT_DASHBAORD_DATA_FOR_EXPENESE_SECTION:
       "get_account_dashbaord_data_for_expense_section",
-    GET_GST_REPORT: "get_gst_report",  
+    GET_ACCOUNT_DASHBAORD_DATA_FOR_DEPOSIT_SECTION:
+      "get_account_dashbaord_data_for_deposit_section",
+    GET_MAIN_DASHBAORD_DATA_FOR_INCOME_AND_EXPENSE_SECTION:
+      "get_main_dashbaord_data_for_income_and_expense_section",
+    GET_GST_REPORT: "get_gst_report",
   },
   EXPENSE: {
     ADD_EXPENSE: "add_expense",
@@ -44,15 +60,17 @@ export const ACCOUNTS_PATTERN = {
     DELETE_CATEGORY: "delete_category",
     GET_EXPENSE_ANALYTICS: "get_expense_analytics",
     GET_PETTYCASH_PAYMENTS_BY_MANAGER: "get_pettyCash_payments_by_manager",
-    UPDATE_EXPENSE: "update_expense"
+    UPDATE_EXPENSE: "update_expense",
   },
   VOUCHER: {
     ADD_VOUCHER: "add_voucher",
     DELETE_VOUCHER: "delete_voucher",
-    GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property"
+    GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property",
   },
   SALARY: {
     MANUAL_CREATE: "manual_add_salary",
     GET_ALL: "get_all_salary_records",
+    DELETE_VOUCHER: "delete_voucher",
+    GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property",
   },
 };

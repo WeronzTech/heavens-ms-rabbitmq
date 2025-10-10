@@ -1,6 +1,7 @@
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import {
   addRoom,
+  confirmRoomAssignment,
   deleteRoom,
   getAllHeavensRooms,
   getAvailableRoomsByProperty,

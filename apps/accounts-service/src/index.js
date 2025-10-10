@@ -45,6 +45,17 @@ cron.schedule(
   }
 );
 
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    generateMonthlySalaries();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  }
+);
+
 // Global error handler
 app.use(errorHandler);
 
@@ -61,6 +72,7 @@ const startServer = async () => {
     await import("./controllers/expense.controller.js");
     await import("./controllers/commission.controller.js");
     await import("./controllers/dashboard.controller.js");
+    await import("./controllers/depositPayment.controller.js");
     await import("./controllers/staffSalaryHistory.controller.js");
     await import("./controllers/voucher.controller.js");
     console.log("[ACCOUNTS] Responders are ready.");

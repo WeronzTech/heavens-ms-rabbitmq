@@ -11,7 +11,7 @@ export const assignRoomToUser = async ({ userId, roomId, userType }) => {
 };
 
 export const removeFromRoom = async ({ userId, roomId }) => {
-  return sendRPCRequest(PROPERTY_PATTERN.ROOM.CONFIRM_ASSIGNMENT, {
+  return sendRPCRequest(PROPERTY_PATTERN.ROOM.REMOVE_ASSIGNMENT, {
     userId,
     roomId,
   });

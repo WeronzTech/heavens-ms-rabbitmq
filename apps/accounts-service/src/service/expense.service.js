@@ -15,7 +15,6 @@ export const addExpense = async (data) => {
       handledBy,
       pettyCashType,
       billImage,
-
       ...expenseData
     } = data;
     console.log("data", data);
@@ -126,7 +125,7 @@ export const addExpense = async (data) => {
     await expense.save();
 
     if (billImage) {
-      uploadToFirebase(billImage, "expense-images", true)
+      uploadToFirebase(billImage, "expense-images", false)
         .then(async (url) => {
           await Expense.findByIdAndUpdate(expense._id, { imageUrl: url });
         })

@@ -3,8 +3,7 @@ import { USER_PATTERN } from "../../../../../libs/patterns/user/user.pattern.js"
 
 export const createNote = async (req, res) => {
   try {
-    const { userId, content, isReminder, reminderDate } = req.body;
-    const createdBy = req.headers["x-user-id"];
+    const { userId, content, isReminder, reminderDate, createdBy } = req.body;
 
     const response = await sendRPCRequest(
       USER_PATTERN.REMINDER_NOTE.CREATE_NOTE,

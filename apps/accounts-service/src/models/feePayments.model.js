@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 const paymentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    rentType: { type: String, required: true },
+    userType: { type: String, required: true },
     contact: { type: String, required: true },
     room: { type: String, required: true },
     rent: { type: Number, required: true },
@@ -15,7 +17,7 @@ const paymentSchema = new mongoose.Schema(
     remainingBalance: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
-      enum: ["Cash", "UPI", "Bank Transfer", "Razorpay"],
+      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay"],
       required: true,
     },
     transactionId: {
