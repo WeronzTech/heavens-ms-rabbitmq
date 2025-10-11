@@ -150,10 +150,11 @@ export const getBookingByProperty = async (data) => {
     const enrichedData = await Promise.all(
       bookingsData.map(async (booking) => {
         try {
-          const userServiceResponse = await axios.get(
-            `${process.env.USER_SERVICE_URL}/user/${booking.userId}`
+          const userServiceResponse = await sendRPCRequest(
+            USER_PATTERN.USER.GET_USER_BY_ID,
+            { userId }
           );
-          const userDetails = userServiceResponse.data;
+          const userDetails = userServiceResponse.body.data;
           return {
             ...booking,
             userName: userDetails?.name || "N/A",
@@ -304,6 +305,12 @@ export const checkNextDayBooking = async (data) => {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
+    console.log(
+      "-------------------------Checking bookings for date:",
+      startOfDay,
+      endOfDay,
+      today
+    );
 
     const bookings = await MealBooking.find({
       userId,
