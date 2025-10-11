@@ -136,6 +136,7 @@ export const getBookingByProperty = async (data) => {
     if (mealType) query.mealType = mealType;
     if (mealCategory) query.mealCategory = mealCategory;
     if (status) query.status = status;
+    console.log("Query", query);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [bookingsData, total] = await Promise.all([
@@ -152,8 +153,9 @@ export const getBookingByProperty = async (data) => {
         try {
           const userServiceResponse = await sendRPCRequest(
             USER_PATTERN.USER.GET_USER_BY_ID,
-            { userId }
+            { userId: booking.userId }
           );
+          console.log("userServiceResponse", userServiceResponse);
           const userDetails = userServiceResponse.body.data;
           return {
             ...booking,
