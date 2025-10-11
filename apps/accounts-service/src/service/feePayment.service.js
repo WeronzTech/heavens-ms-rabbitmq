@@ -10,6 +10,7 @@ import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
 import Voucher from "../models/voucher.model.js";
+import { createAccountLog } from "./accountsLog.service.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -971,6 +972,16 @@ const processAndRecordPayment = async ({
     });
 
     await newPayment.save({ session });
+
+    await createAccountLog({
+      logType: "Fee Payment",
+      action: "Payment",
+      description: `Fee payment of ₹${amount} received from ${user.name}.`,
+      amount: amount,
+      propertyId: user.stayDetails?.propertyId,
+      performedBy: collectedBy || "System",
+      referenceId: newPayment._id,
+    });
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
