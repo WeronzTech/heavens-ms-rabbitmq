@@ -43,6 +43,7 @@ import voucherRoutes from "./routes/accounts/voucher.routes.js";
 import referralRoutes from "./routes/user/referral.routes.js";
 import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
 import reminderRoutes from "./routes/user/reminder.routes.js";
+import logRoutes from "./routes/accounts/accountsLog.routes.js";
 
 dotenv.config();
 const app = express();
@@ -55,7 +56,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://hpanel.heavensliving.in",
-      "http://192.168.1.80:5173",
+      "http://localhost:8082",
     ],
     credentials: true,
   })
@@ -116,6 +117,7 @@ app.use("/api/v2/property/carousel", carouselRoutes);
 app.use("/api/v2/voucher", voucherRoutes);
 app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/reminder", reminderRoutes);
+app.use("/api/v2/accounts-log", logRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

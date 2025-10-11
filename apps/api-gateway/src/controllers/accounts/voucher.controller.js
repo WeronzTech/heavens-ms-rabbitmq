@@ -36,7 +36,7 @@ export const deleteVoucherController = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.VOUCHER.DELETE_VOUCHER,
-       voucherId 
+      { voucherId, deletedBy: req.userAuth }
     );
 
     res.status(response?.status || 500).json(response);
@@ -70,4 +70,3 @@ export const getVoucherByPropertyController = async (req, res) => {
     });
   }
 };
-

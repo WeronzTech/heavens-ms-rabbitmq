@@ -2,6 +2,7 @@ import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import { createAccountLog } from "./accountsLog.service.js";
 
 // export const manualAddSalary = async (data) => {
 //   try {
@@ -71,6 +72,16 @@ export const manualAddSalary = async (data) => {
         transactionId,
       });
 
+      await createAccountLog({
+        logType: "Salary",
+        action: "Payment",
+        description: `Advance salary of ₹${advanceSalary} paid to ${employeeName}`,
+        amount: -advanceSalary, // Negative as it's an outflow
+        propertyId: data.propertyId,
+        performedBy: data.paidBy,
+        referenceId: newSalaryRecord._id,
+      });
+
       const updatePayload = {
         id: employeeId,
         updates: { $inc: { advanceSalary } },
@@ -99,6 +110,16 @@ export const manualAddSalary = async (data) => {
         salaryPending: salary,
         status: "pending",
         remarkType: "MANUAL_ADDITION",
+      });
+
+      await createAccountLog({
+        logType: "Salary",
+        action: "Create",
+        description: `Manually added salary record of ₹${salary} for ${employeeName}`,
+        amount: -salary,
+        propertyId: data.propertyId,
+        performedBy: data.paidBy,
+        referenceId: newSalaryRecord._id,
       });
       return {
         success: true,

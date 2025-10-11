@@ -16,7 +16,7 @@ export const getActivityLogs = async (req, res) => {
 
     return res
       .status(response?.status || 500)
-      .json(response?.body || { error: "Invalid RPC response" });
+      .json(response || { error: "Invalid RPC response" });
   } catch (error) {
     console.error("[API-GATEWAY] getActivityLogsHandler error:", error);
     return res.status(500).json({ error: "Failed to fetch activity logs" });
