@@ -129,7 +129,7 @@ export const deleteExpenseController = async (req, res) => {
 
     const expense = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.DELETE_EXPENSE,
-      { expenseId }
+      { expenseId, deletedBy: req.userAuth }
     );
     res.status(expense.status || 500).json(expense);
   } catch (error) {
@@ -279,7 +279,7 @@ export const getPettyCashPaymentByManager = async (req, res) => {
 
 export const updateExpenseController = async (req, res) => {
   try {
-    const { expenseId } = req.params; 
+    const { expenseId } = req.params;
     const {
       transactionId,
       property,
@@ -324,4 +324,3 @@ export const updateExpenseController = async (req, res) => {
     });
   }
 };
-

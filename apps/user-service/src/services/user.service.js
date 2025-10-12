@@ -39,6 +39,7 @@ import {
 import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 
 export const fetchUserData = async (data) => {
   try {
@@ -706,6 +707,16 @@ export const approveUser = async (data) => {
       } catch (err) {
         console.error("Post-approval async error:", err);
       }
+    });
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
+
+    userIdsToNotify.push(updatedUser._id);
+
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "approval-status",
+      data: updatedUser,
     });
 
     return {
@@ -2558,6 +2569,17 @@ export const respondToStatusRequest = async (data) => {
     }
 
     await user.save();
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
+
+    userIdsToNotify.push(user._id);
+
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "current-status",
+      data: user,
+    });
+
     return {
       status: 200,
       body: {

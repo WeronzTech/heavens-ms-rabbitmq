@@ -52,6 +52,8 @@ const startServer = async () => {
     await import("./controllers/user.controller.js");
     await import("./controllers/reminderNote.controller.js");
     await import("./controllers/referral.controller.js");
+    await import("./controllers/userLog.controller.js");
+    await import("./controllers/internal.controller.js");
     console.log("[USER] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

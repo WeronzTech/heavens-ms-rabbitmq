@@ -4,6 +4,7 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
 import ExpenseCategory from "../models/expenseCategory.model.js";
+import { createAccountLog } from "./accountsLog.service.js";
 
 export const addExpense = async (data) => {
   try {
@@ -123,6 +124,16 @@ export const addExpense = async (data) => {
     });
 
     await expense.save();
+
+    await createAccountLog({
+      logType: "Expense",
+      action: "Create",
+      description: `Expense '${expense.title}' for ₹${expense.amount} created.`,
+      amount: -expense.amount, // Negative as it's an outflow
+      propertyId: expense.property.id,
+      performedBy: data.handledBy || "System",
+      referenceId: expense._id,
+    });
 
     if (billImage) {
       uploadToFirebase(billImage, "expense-images", false)
@@ -333,6 +344,16 @@ export const deleteExpense = async (data) => {
     if (!expense) {
       return { success: false, status: 404, message: "Expense not found" };
     }
+
+     await createAccountLog({
+      logType: "Expense",
+      action: "Delete",
+      description: `Expense '${expense.title}' for ₹${expense.amount} deleted.`,
+      amount: 0, // No financial change, just a record deletion
+      propertyId: expense.property.id,
+      performedBy: data.deletedBy || "System",
+      referenceId: expense._id,
+    });
 
     return {
       success: true,
@@ -683,6 +704,16 @@ export const updateExpense = async (data) => {
     Object.assign(existingExpense, expenseData);
 
     await existingExpense.save();
+
+    await createAccountLog({
+      logType: "Expense",
+      action: "Update",
+      description: `Expense '${existingExpense.title}' (ID: ${existingExpense._id}) updated.`,
+      amount: -existingExpense.amount,
+      propertyId: existingExpense.property.id,
+      performedBy: data.handledBy || "System",
+      referenceId: existingExpense._id,
+    });
 
     return {
       success: true,

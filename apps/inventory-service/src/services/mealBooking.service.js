@@ -8,6 +8,7 @@ import {
 } from "../utils/helpers.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
 
 export const createMealBooking = async (data) => {
@@ -150,10 +151,11 @@ export const getBookingByProperty = async (data) => {
     const enrichedData = await Promise.all(
       bookingsData.map(async (booking) => {
         try {
-          const userServiceResponse = await axios.get(
-            `${process.env.USER_SERVICE_URL}/user/${booking.userId}`
+          const userServiceResponse = await sendRPCRequest(
+            USER_PATTERN.USER.GET_USER_BY_ID,
+            { userId: booking.userId }
           );
-          const userDetails = userServiceResponse.data;
+          const userDetails = userServiceResponse.body.data;
           return {
             ...booking,
             userName: userDetails?.name || "N/A",
@@ -250,6 +252,16 @@ export const updateBookingStatus = async (data) => {
     }
     await booking.save();
 
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
+
+    userIdsToNotify.push(booking.userId);
+
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "booking-status",
+      data: booking,
+    });
+
     return {
       success: true,
       status: 200,
@@ -304,6 +316,12 @@ export const checkNextDayBooking = async (data) => {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
+    console.log(
+      "-------------------------Checking bookings for date:",
+      startOfDay,
+      endOfDay,
+      today
+    );
 
     const bookings = await MealBooking.find({
       userId,

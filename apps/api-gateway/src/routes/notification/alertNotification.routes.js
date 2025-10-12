@@ -5,14 +5,28 @@ import {
   getAlertNotificationsController,
 } from "../../controllers/notification/alertNotification.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
+
 const alertNotificationRoutes = express.Router();
+
+alertNotificationRoutes.use(isAuthenticated);
 
 alertNotificationRoutes.post(
   "/add",
   upload.fields([{ name: "alertNotificationImage", maxCount: 1 }]),
   addAlertNotificationController
 );
-alertNotificationRoutes.get("/", getAlertNotificationsController);
-alertNotificationRoutes.delete("/:id", deleteAlertNotificationController);
+alertNotificationRoutes.get(
+  "/",
+  hasPermission(PERMISSIONS.NOTIFICATION_VIEW),
+  getAlertNotificationsController
+);
+alertNotificationRoutes.delete(
+  "/:id",
+  hasPermission(PERMISSIONS.NOTIFICATION_MANAGE),
+  deleteAlertNotificationController
+);
 
 export default alertNotificationRoutes;

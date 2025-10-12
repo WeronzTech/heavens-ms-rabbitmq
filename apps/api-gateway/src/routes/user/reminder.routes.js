@@ -7,14 +7,43 @@ import {
   getUserNotes,
   snoozeReminder,
 } from "../../controllers/user/reminder.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const reminderRoutes = express.Router();
 
-reminderRoutes.post("/", createNote);
-reminderRoutes.get("/activeReminders", getActiveReminders);
-reminderRoutes.get("/:id", getUserNotes);
-reminderRoutes.patch("/:id/complete", completeReminder);
-reminderRoutes.patch("/:id/snooze", snoozeReminder);
-reminderRoutes.delete("/:id", deleteNote);
+reminderRoutes.use(isAuthenticated);
+
+reminderRoutes.post(
+  "/",
+  hasPermission(PERMISSIONS.REMINDER_MANAGE),
+  createNote
+);
+reminderRoutes.get(
+  "/:id",
+  hasPermission(PERMISSIONS.REMINDER_VIEW),
+  getUserNotes
+);
+reminderRoutes.get(
+  "/reminders",
+  hasPermission(PERMISSIONS.REMINDER_VIEW),
+  getActiveReminders
+);
+reminderRoutes.patch(
+  "/:id/complete",
+  hasPermission(PERMISSIONS.REMINDER_MANAGE),
+  completeReminder
+);
+reminderRoutes.patch(
+  "/:id/snooze",
+  hasPermission(PERMISSIONS.REMINDER_MANAGE),
+  snoozeReminder
+);
+reminderRoutes.delete(
+  "/:id",
+  hasPermission(PERMISSIONS.REMINDER_MANAGE),
+  deleteNote
+);
 
 export default reminderRoutes;

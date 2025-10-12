@@ -73,4 +73,7 @@ export const ACCOUNTS_PATTERN = {
     DELETE_VOUCHER: "delete_voucher",
     GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property",
   },
+  LOG: {
+    GET_ACCOUNT_LOGS: "get_account_logs",
+  },
 };

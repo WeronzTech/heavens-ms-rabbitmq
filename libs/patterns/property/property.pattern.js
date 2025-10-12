@@ -26,7 +26,6 @@ export const PROPERTY_PATTERN = {
     GET_STAFF_BY_PROPERTYID: "get_staff_by_propertyId",
     ADD_STAFF: "add_staff",
     UPDATE_STAFF: "update_staff",
-    UPDATE_STAFF: "update_staff",
     GET_ALL_STAFF_FOR_ATTENDANCE: "get_all_staff_for_attendance",
   },
   PROPERTY_LOG: {

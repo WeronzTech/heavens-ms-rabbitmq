@@ -43,6 +43,7 @@ import voucherRoutes from "./routes/accounts/voucher.routes.js";
 import referralRoutes from "./routes/user/referral.routes.js";
 import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
 import reminderRoutes from "./routes/user/reminder.routes.js";
+import logRoutes from "./routes/accounts/accountsLog.routes.js";
 
 dotenv.config();
 const app = express();
@@ -55,8 +56,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://hpanel.heavensliving.in",
-      "http://192.168.1.80:8082",
       "http://192.168.1.73:8082",
+      "http://192.168.1.80:8082",
     ],
     credentials: true,
   })
@@ -102,7 +103,7 @@ app.use("/api/v2/user/logs", userLogRoutes);
 app.use("/api/v2/property/room", roomRoutes);
 app.use("/api/v2/notification/push-notification", pushNotificationRoutes);
 app.use("/api/v2/notification", notificationRoutes);
-app.use("/api/v2/notification/alert-notification", alertNotificationRoutes);
+app.use("/api/v2/notification/alert-Notification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/depositPayments", depositPaymentRoutes);
 app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
@@ -117,6 +118,7 @@ app.use("/api/v2/property/carousel", carouselRoutes);
 app.use("/api/v2/voucher", voucherRoutes);
 app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/reminder", reminderRoutes);
+app.use("/api/v2/accounts-log", logRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

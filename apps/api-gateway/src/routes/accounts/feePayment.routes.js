@@ -19,44 +19,101 @@ import {
   getTransactionHistoryByUserId,
 } from "../../controllers/accounts/feePayments.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const feePaymentRoutes = express.Router();
 
-feePaymentRoutes.post("/add-payment", addFeePaymentController);
+feePaymentRoutes.use(isAuthenticated);
 
-feePaymentRoutes.get("/monthly", getMonthWiseRentCollectionController);
-
-feePaymentRoutes.get("/financial/summary", getFinancialSummary);
-
-feePaymentRoutes.post("/initiate-online", initiateOnlinePayment);
-feePaymentRoutes.post("/verify-online", verifyAndRecordOnlinePayment);
-feePaymentRoutes.post("/record-manual", recordManualPayment);
-feePaymentRoutes.get("/next-due-date", isAuthenticated, getNextDueDate);
-feePaymentRoutes.put("/update/:id", updateFeePaymentController);
-
-feePaymentRoutes.get("/", getAllFeePaymentsController);
-
-feePaymentRoutes.get("/get_all_payments", getAllAccountsPaymentController);
+feePaymentRoutes.post(
+  "/add-payment",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
+  addFeePaymentController
+);
 
 feePaymentRoutes.get(
-  "/user-payments",
-  isAuthenticated,
-  getUserPaymentsController
+  "/monthly",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getMonthWiseRentCollectionController
 );
+
+feePaymentRoutes.get(
+  "/financial/summary",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getFinancialSummary
+);
+
+feePaymentRoutes.post(
+  "/initiate-online",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
+  initiateOnlinePayment
+);
+feePaymentRoutes.post(
+  "/verify-online",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
+  verifyAndRecordOnlinePayment
+);
+feePaymentRoutes.post(
+  "/record-manual",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
+  recordManualPayment
+);
+feePaymentRoutes.get("/next-due-date", getNextDueDate);
+feePaymentRoutes.put(
+  "/update/:id",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
+  updateFeePaymentController
+);
+
+feePaymentRoutes.get(
+  "/",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getAllFeePaymentsController
+);
+
+feePaymentRoutes.get(
+  "/get_all_payments",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getAllAccountsPaymentController
+);
+
+feePaymentRoutes.get("/user-payments", getUserPaymentsController);
 
 feePaymentRoutes.get(
   "/transactionHistory/:userId",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
   getTransactionHistoryByUserId
 );
 
-feePaymentRoutes.get("/latestPayment/:userId", getLatestFeePaymentByUserId);
+feePaymentRoutes.get(
+  "/latestPayment/:userId",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getLatestFeePaymentByUserId
+);
 
-feePaymentRoutes.get("/waveoff", getWaveOffedPaymentsController);
+feePaymentRoutes.get(
+  "/waveoff",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getWaveOffedPaymentsController
+);
 
-feePaymentRoutes.get("/cashPayments", getAllCashPaymentsController);
+feePaymentRoutes.get(
+  "/cashPayments",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getAllCashPaymentsController
+);
 
-feePaymentRoutes.get("/analytics", getFeePaymentsAnalytics);
+feePaymentRoutes.get(
+  "/analytics",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getFeePaymentsAnalytics
+);
 
-feePaymentRoutes.get("/:paymentId", getFeePaymentController);
+feePaymentRoutes.get(
+  "/:paymentId",
+  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
+  getFeePaymentController
+);
 
 export default feePaymentRoutes;

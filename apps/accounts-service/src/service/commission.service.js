@@ -4,12 +4,12 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { createAccountLog } from "./accountsLog.service.js";
 
 export const addCommission = async (data) => {
   try {
     console.log(data);
-    const { userIds, amount } = data;
-    const newCommission = await Commission.create(data);
+    const { amount, userIds } = data;
 
     if (Array.isArray(userIds) && userIds.length > 0) {
       const amountPerUser = amount / userIds.length;
@@ -26,6 +26,18 @@ export const addCommission = async (data) => {
     } else {
       console.warn("No userIds provided, skipping user update.");
     }
+
+    const newCommission = await Commission.create(data);
+
+    await createAccountLog({
+      logType: "Commission",
+      action: "Create",
+      description: `Commission of ₹${newCommission.amount} for agency ${newCommission.agencyName} created.`,
+      amount: newCommission.amount,
+      propertyId: newCommission.property,
+      performedBy: data.createdBy || "System", // Assuming createdBy is passed
+      referenceId: newCommission._id,
+    });
 
     return {
       success: true,
@@ -226,6 +238,17 @@ export const editCommission = async (data) => {
     if (!updatedCommission) {
       return { success: false, status: 404, message: "Commission not found." };
     }
+
+    await createAccountLog({
+      logType: "Commission",
+      action: "Update",
+      description: `Commission record ${updatedCommission._id} updated.`,
+      amount: updatedCommission.amount,
+      propertyId: updatedCommission.property,
+      performedBy: data.updatedBy || "System", // Assuming updatedBy is passed
+      referenceId: updatedCommission._id,
+    });
+
     return {
       success: true,
       status: 200,
@@ -250,6 +273,16 @@ export const deleteCommission = async (data) => {
     if (!deletedCommission) {
       return { success: false, status: 404, message: "Commission not found." };
     }
+    await createAccountLog({
+      logType: "Commission",
+      action: "Delete",
+      description: `Commission of ₹${deletedCommission.amount} for agency ${deletedCommission.agencyName} deleted.`,
+      amount: deletedCommission.amount,
+      propertyId: deletedCommission.property,
+      performedBy: data.deletedBy || "System", // Assuming deletedBy is passed
+      referenceId: deletedCommission._id,
+    });
+
     return {
       success: true,
       status: 200,
