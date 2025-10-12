@@ -11,6 +11,7 @@ import Commission from "../models/commission.model.js";
 import moment from "moment";
 import Voucher from "../models/voucher.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -317,516 +318,6 @@ export const getFeePaymentById = async (data) => {
   }
 };
 
-// const processAndRecordPayment = async ({
-//   userId,
-//   amount,
-//   paymentMethod,
-//   transactionId = null,
-//   razorpayDetails = {},
-// }) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-
-//   try {
-//     const userResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.GET_USER_BY_ID,
-//       { userId }
-//     );
-//     if (!userResponse.body.success) {
-//       throw new Error(userResponse.message || "User not found.");
-//     }
-//     const user = userResponse.body.data;
-
-//     // --- Financial Logic ---
-//     if (user.rentType === "daily" || user.rentType === "mess") {
-//       const pending = user.financialDetails.pendingAmount || 0;
-//       if (amount < pending) {
-//         throw new Error(
-//           `Payment amount must be at least the pending amount of ₹${pending}.`
-//         );
-//       }
-//       user.financialDetails.pendingAmount -= amount;
-//       if (user.financialDetails.pendingAmount <= 0) {
-//         user.paymentStatus = "paid";
-//       }
-//     } else if (user.rentType === "monthly") {
-//       const monthlyRent = user.financialDetails.monthlyRent || 0;
-//       const currentBalance = user.financialDetails.accountBalance || 0;
-//       const totalAvailableAmount = amount + currentBalance;
-
-//       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
-//       if (totalAvailableAmount < monthlyRent) {
-//         throw new Error(
-//           `Payment of ₹${amount} plus advance of ₹${currentBalance} is less than monthly rent of ₹${monthlyRent}.`
-//         );
-//       }
-
-//       let monthsCleared = Math.floor(totalAvailableAmount / monthlyRent);
-//       let newAccountBalance = totalAvailableAmount % monthlyRent;
-
-//       user.financialDetails.accountBalance = newAccountBalance;
-//       user.financialDetails.pendingRent =
-//         (user.financialDetails.pendingRent || 0) - monthsCleared * monthlyRent;
-//       if (user.financialDetails.pendingRent <= 0) {
-//         user.financialDetails.pendingRent = 0;
-//         user.paymentStatus = "paid";
-//       }
-
-//       const lastCleared = user.financialDetails.clearedTillMonth
-//         ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
-//         : new Date(user.stayDetails.joinDate);
-//       lastCleared.setMonth(lastCleared.getMonth() + monthsCleared);
-//       user.financialDetails.clearedTillMonth = `${lastCleared.getFullYear()}-${String(
-//         lastCleared.getMonth() + 1
-//       ).padStart(2, "0")}`;
-//       user.financialDetails.nextDueDate = new Date(
-//         lastCleared.getFullYear(),
-//         lastCleared.getMonth() + 1,
-//         5
-//       );
-//     }
-
-//     // Create the Payment Record
-//     const newPayment = new Payments({
-//       name: user.name,
-//       contact: user.contact,
-//       room: user.stayDetails?.roomNumber || "N/A",
-//       rent: user.financialDetails?.monthlyRent || 0,
-//       amount: amount,
-//       accountBalance: user.financialDetails?.accountBalance || 0,
-//       dueAmount: user.financialDetails.pendingRent,
-//       paymentMethod,
-//       transactionId,
-//       status: "Paid",
-//       property: {
-//         id: user.stayDetails?.propertyId,
-//         name: user.stayDetails?.propertyName,
-//       },
-//       userId: user._id,
-//       ...razorpayDetails,
-//     });
-
-//     await newPayment.save();
-
-//     // Update user via RPC
-//     const updateUserResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.UPDATE_USER,
-//       {
-//         userId,
-//         userData: {
-//           financialDetails: user.financialDetails,
-//           paymentStatus: user.paymentStatus,
-//         },
-//       }
-//     );
-
-//     if (!updateUserResponse.body.success) {
-//       throw new Error("Failed to update user financial details.");
-//     }
-
-//     await session.commitTransaction();
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Payment recorded successfully.",
-//       data: newPayment,
-//     };
-//   } catch (error) {
-//     await session.abortTransaction();
-//     console.error("Error during payment processing:", error);
-//     return { success: false, status: 400, message: error.message };
-//   } finally {
-//     session.endSession();
-//   }
-// };
-
-// export const initiateOnlinePayment = async (data) => {
-//   try {
-//     const { userId, amount } = data;
-//     if (!userId || !amount || Number(amount) <= 0) {
-//       return {
-//         success: false,
-//         status: 400,
-//         message: "Valid User ID and amount are required.",
-//       };
-//     }
-
-//     const userResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.GET_USER_BY_ID,
-//       { userId }
-//     );
-//     console.log("User", userResponse);
-//     if (!userResponse.body.success) {
-//       return { success: false, status: 404, message: "User not found." };
-//     }
-//     const user = userResponse.body.data;
-//     const razorpayResponse = await createRazorpayOrderId(amount);
-//     if (!razorpayResponse.success) {
-//       return {
-//         success: false,
-//         status: 500,
-//         message: "Failed to create payment order.",
-//       };
-//     }
-
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Order created successfully.",
-//       data: {
-//         orderId: razorpayResponse.orderId,
-//         amount: Number(amount),
-//         name: "Heavens Living",
-//         prefill: { name: user.name, email: user.email, contact: user.contact },
-//       },
-//     };
-//   } catch (error) {
-//     return { success: false, status: 500, message: "Internal Server Error" };
-//   }
-// };
-
-// export const verifyAndRecordOnlinePayment = async (data) => {
-//   const {
-//     razorpay_order_id,
-//     razorpay_payment_id,
-//     razorpay_signature,
-//     userId,
-//     amount,
-//   } = data;
-
-//   const isVerified = await verifyRazorpaySignature({
-//     razorpay_order_id,
-//     razorpay_payment_id,
-//     razorpay_signature,
-//   });
-//   if (!isVerified) {
-//     return {
-//       success: false,
-//       status: 400,
-//       message: "Payment verification failed. Invalid signature.",
-//     };
-//   }
-
-//   return await processAndRecordPayment({
-//     userId,
-//     amount: Number(amount),
-//     paymentMethod: "Razorpay",
-//     razorpayDetails: {
-//       razorpayOrderId: razorpay_order_id,
-//       razorpayPaymentId: razorpay_payment_id,
-//       razorpaySignature: razorpay_signature,
-//     },
-//     transactionId: razorpay_payment_id,
-//   });
-// };
-
-// export const recordManualPayment = async (data) => {
-//   const { userId, amount, paymentMethod, transactionId } = data;
-//   if (!["Cash", "UPI", "Bank Transfer"].includes(paymentMethod)) {
-//     return {
-//       success: false,
-//       status: 400,
-//       message: "Invalid manual payment method.",
-//     };
-//   }
-//   if (paymentMethod !== "Cash" && !transactionId) {
-//     return {
-//       success: false,
-//       status: 400,
-//       message: "Transaction ID is required for UPI/Bank Transfer.",
-//     };
-//   }
-
-//   return await processAndRecordPayment({
-//     userId,
-//     amount: Number(amount),
-//     paymentMethod,
-//     transactionId,
-//   });
-// };
-// const processAndRecordPayment = async ({
-//   userId,
-//   amount,
-//   paymentMethod,
-//   transactionId = null,
-//   razorpayDetails = {},
-// }) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-
-//   try {
-//     const userResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.GET_USER_BY_ID,
-//       { userId }
-//     );
-//     if (!userResponse.body.success) {
-//       throw new Error(userResponse.message || "User not found.");
-//     }
-//     const user = userResponse.body.data;
-
-//     // --- Financial Logic ---
-//     if (user.rentType === "daily" || user.rentType === "mess") {
-//       const pending = user.financialDetails.pendingAmount || 0;
-//       if (amount < pending) {
-//         throw new Error(
-//           `Payment amount must be at least the pending amount of ₹${pending}.`
-//         );
-//       }
-//       user.financialDetails.pendingAmount -= amount;
-//       if (user.financialDetails.pendingAmount <= 0) {
-//         user.paymentStatus = "paid";
-//       }
-//     } else if (user.rentType === "monthly") {
-//       const monthlyRent = user.financialDetails.monthlyRent || 0;
-//       const currentBalance = user.financialDetails.accountBalance || 0;
-//       const currentPendingRent = user.financialDetails.pendingRent || 0;
-//       const totalAvailableAmount = amount + currentBalance;
-
-//       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
-
-//       // ✅ MODIFIED: Only enforce minimum payment if there are outstanding dues
-//       if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
-//         throw new Error(
-//           `To clear your due, payment of ₹${amount} plus advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
-//         );
-//       }
-
-//       let monthsCleared = Math.floor(totalAvailableAmount / monthlyRent);
-//       let newAccountBalance = totalAvailableAmount % monthlyRent;
-
-//       user.financialDetails.accountBalance = newAccountBalance;
-//       // Use currentPendingRent for calculation to avoid issues with null values
-//       user.financialDetails.pendingRent =
-//         currentPendingRent - monthsCleared * monthlyRent;
-//       if (user.financialDetails.pendingRent <= 0) {
-//         user.financialDetails.pendingRent = 0;
-//         user.paymentStatus = "paid";
-//       }
-
-//       // Only update cleared month if at least one month is cleared
-//       if (monthsCleared > 0) {
-//         const lastCleared = user.financialDetails.clearedTillMonth
-//           ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
-//           : new Date(user.stayDetails.joinDate);
-//         lastCleared.setMonth(lastCleared.getMonth() + monthsCleared);
-//         user.financialDetails.clearedTillMonth = `${lastCleared.getFullYear()}-${String(
-//           lastCleared.getMonth() + 1
-//         ).padStart(2, "0")}`;
-//         user.financialDetails.nextDueDate = new Date(
-//           lastCleared.getFullYear(),
-//           lastCleared.getMonth() + 1,
-//           5
-//         );
-//       }
-//     }
-
-//     // Create the Payment Record
-//     const newPayment = new Payments({
-//       name: user.name,
-//       contact: user.contact,
-//       room: user.stayDetails?.roomNumber || "N/A",
-//       rent: user.financialDetails?.monthlyRent || 0,
-//       amount: amount,
-//       accountBalance: user.financialDetails?.accountBalance || 0,
-//       dueAmount: user.financialDetails.pendingRent,
-//       paymentMethod,
-//       transactionId,
-//       status: "Paid",
-//       property: {
-//         id: user.stayDetails?.propertyId,
-//         name: user.stayDetails?.propertyName,
-//       },
-//       userId: user._id,
-//       ...razorpayDetails,
-//     });
-
-//     await newPayment.save({ session });
-
-//     // Update user via RPC
-//     const updateUserResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.UPDATE_USER,
-//       {
-//         userId,
-//         userData: {
-//           financialDetails: user.financialDetails,
-//           paymentStatus: user.paymentStatus,
-//         },
-//       }
-//     );
-
-//     if (!updateUserResponse.body.success) {
-//       throw new Error("Failed to update user financial details.");
-//     }
-
-//     await session.commitTransaction();
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Payment recorded successfully.",
-//       data: newPayment,
-//     };
-//   } catch (error) {
-//     await session.abortTransaction();
-//     console.error("Error during payment processing:", error);
-//     return { success: false, status: 400, message: error.message };
-//   } finally {
-//     session.endSession();
-//   }
-// };
-// const processAndRecordPayment = async ({
-//   userId,
-//   amount,
-//   paymentMethod,
-//   transactionId = null,
-//   razorpayDetails = {},
-// }) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-
-//   try {
-//     const userResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.GET_USER_BY_ID,
-//       { userId }
-//     );
-//     if (!userResponse.body.success) {
-//       throw new Error(userResponse.message || "User not found.");
-//     }
-//     const user = userResponse.body.data;
-
-//     let paymentForMonths = []; // Initialize for all types
-
-//     // --- Logic for Daily and Mess users ---
-//     if (user.rentType === "daily" || user.rentType === "mess") {
-//       const pending = user.financialDetails.pendingAmount || 0;
-//       if (amount < pending) {
-//         throw new Error(
-//           `Payment amount must be at least the pending amount of ₹${pending}.`
-//         );
-//       }
-//       user.financialDetails.pendingAmount -= amount;
-//       if (user.financialDetails.pendingAmount <= 0) {
-//         user.paymentStatus = "paid";
-//       }
-//     }
-//     // --- Logic for Monthly Renters ---
-//     else if (user.rentType === "monthly") {
-//       const monthlyRent = user.financialDetails.monthlyRent || 0;
-//       const currentBalance = user.financialDetails.accountBalance || 0;
-//       const currentPendingRent = user.financialDetails.pendingRent || 0;
-//       const totalAvailableAmount = amount + currentBalance;
-//       console.log("Total", totalAvailableAmount);
-
-//       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
-
-//       if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
-//         throw new Error(
-//           `To clear your due, payment of ₹${amount} plus advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
-//         );
-//       }
-
-//       let monthsCleared = Math.floor(totalAvailableAmount / monthlyRent);
-//       let newAccountBalance = totalAvailableAmount % monthlyRent;
-
-//       user.financialDetails.accountBalance = newAccountBalance;
-//       user.financialDetails.pendingRent =
-//         currentPendingRent - monthsCleared * monthlyRent;
-//       if (user.financialDetails.pendingRent <= 0) {
-//         user.financialDetails.pendingRent = 0;
-//         user.paymentStatus = "paid";
-//       }
-//       console.log("Months cleared", monthsCleared);
-
-//       if (monthsCleared > 0) {
-//         const lastClearedDate = user.financialDetails.clearedTillMonth
-//           ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
-//           : new Date(user.stayDetails.joinDate);
-
-//         if (!user.financialDetails.clearedTillMonth) {
-//           lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
-//         }
-
-//         // This loop determines which months are being paid for
-//         for (let i = 0; i < monthsCleared; i++) {
-//           const paymentMonthDate = new Date(lastClearedDate);
-//           paymentMonthDate.setMonth(paymentMonthDate.getMonth() + i + 1);
-//           paymentForMonths.push(
-//             // The result is added here
-//             paymentMonthDate.toLocaleString("default", {
-//               month: "long",
-//               year: "numeric",
-//             })
-//           );
-//         }
-//         console.log("payment for month", paymentForMonths);
-
-//         const finalClearedDate = new Date(lastClearedDate);
-//         finalClearedDate.setMonth(finalClearedDate.getMonth() + monthsCleared);
-
-//         user.financialDetails.clearedTillMonth = `${finalClearedDate.getFullYear()}-${String(
-//           finalClearedDate.getMonth() + 1
-//         ).padStart(2, "0")}`;
-//         user.financialDetails.nextDueDate = new Date(
-//           finalClearedDate.getFullYear(),
-//           finalClearedDate.getMonth() + 1,
-//           5
-//         );
-//       }
-//     }
-
-//     // Create the Payment Record
-//     const newPayment = new Payments({
-//       name: user.name,
-//       contact: user.contact,
-//       room: user.stayDetails?.roomNumber || "N/A",
-//       rent: user.financialDetails?.monthlyRent || 0,
-//       amount: amount,
-//       accountBalance: user.financialDetails?.accountBalance || 0,
-//       dueAmount: user.financialDetails.pendingRent,
-//       paymentMethod,
-//       transactionId,
-//       paymentForMonths,
-//       status: "Paid",
-//       property: {
-//         id: user.stayDetails?.propertyId,
-//         name: user.stayDetails?.propertyName,
-//       },
-//       userId: user._id,
-//       ...razorpayDetails,
-//     });
-
-//     await newPayment.save();
-
-//     // Update user via RPC
-//     const updateUserResponse = await sendRPCRequest(
-//       USER_PATTERN.USER.UPDATE_USER,
-//       {
-//         userId,
-//         userData: {
-//           financialDetails: user.financialDetails,
-//           paymentStatus: user.paymentStatus,
-//         },
-//       }
-//     );
-
-//     if (!updateUserResponse.body.success) {
-//       throw new Error("Failed to update user financial details.");
-//     }
-
-//     await session.commitTransaction();
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Payment recorded successfully.",
-//       data: newPayment,
-//     };
-//   } catch (error) {
-//     await session.abortTransaction();
-//     console.error("Error during payment processing:", error);
-//     return { success: false, status: 400, message: error.message };
-//   } finally {
-//     session.endSession();
-//   }
-// };
 const processAndRecordPayment = async ({
   userId,
   amount,
@@ -853,6 +344,7 @@ const processAndRecordPayment = async ({
     const user = userResponse.body.data;
 
     let paymentForMonths = [];
+    let advanceForMonths = [];
 
     if (user.rentType === "daily" || user.rentType === "mess") {
       const pending = user.financialDetails.pendingAmount || 0;
@@ -938,6 +430,19 @@ const processAndRecordPayment = async ({
           finalClearedDate.getMonth() + 1,
           5
         );
+        if (newAccountBalance > 0) {
+          const lastPaidMonth = user.financialDetails.clearedTillMonth
+            ? moment(user.financialDetails.clearedTillMonth, "YYYY-MM")
+            : moment(user.stayDetails.joinDate).subtract(1, "month");
+          const advanceMonth = lastPaidMonth.clone().add(1, "months");
+          advanceForMonths.push(advanceMonth.format("MMMM YYYY"));
+        }
+      } else {
+        const lastPaidMonth = user.financialDetails.clearedTillMonth
+          ? moment(user.financialDetails.clearedTillMonth, "YYYY-MM")
+          : moment(user.stayDetails.joinDate).subtract(1, "month");
+        const advanceMonth = lastPaidMonth.clone().add(1, "months");
+        advanceForMonths.push(advanceMonth.format("MMMM YYYY"));
       }
     }
 
@@ -960,6 +465,7 @@ const processAndRecordPayment = async ({
       paymentDate,
       transactionId,
       paymentForMonths,
+      advanceForMonths,
       status: "Paid",
       property: {
         id: user.stayDetails?.propertyId,
@@ -972,6 +478,16 @@ const processAndRecordPayment = async ({
     });
 
     await newPayment.save({ session });
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
+
+    userIdsToNotify.push(user._id);
+
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "next-due-date",
+      data: user,
+    });
 
     await createAccountLog({
       logType: "Fee Payment",

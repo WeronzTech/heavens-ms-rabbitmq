@@ -8,6 +8,7 @@ import {
 } from "../utils/helpers.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
 
 export const createMealBooking = async (data) => {
@@ -136,7 +137,6 @@ export const getBookingByProperty = async (data) => {
     if (mealType) query.mealType = mealType;
     if (mealCategory) query.mealCategory = mealCategory;
     if (status) query.status = status;
-    console.log("Query", query);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [bookingsData, total] = await Promise.all([
@@ -155,7 +155,6 @@ export const getBookingByProperty = async (data) => {
             USER_PATTERN.USER.GET_USER_BY_ID,
             { userId: booking.userId }
           );
-          console.log("userServiceResponse", userServiceResponse);
           const userDetails = userServiceResponse.body.data;
           return {
             ...booking,
@@ -252,6 +251,16 @@ export const updateBookingStatus = async (data) => {
       booking.deliveredDate = new Date();
     }
     await booking.save();
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
+
+    userIdsToNotify.push(booking.userId);
+
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "booking-status",
+      data: booking,
+    });
 
     return {
       success: true,

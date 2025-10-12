@@ -46,12 +46,16 @@ export const getAccountDashboardDataForExpenseSection = async (req, res) => {
       error: error.message,
     });
   }
-}; 
+};
 
 export const getGSTReportController = async (req, res) => {
   try {
+    const { month, year } = req.query;
     // You can pass query params if needed, e.g., startDate, endDate
-    const response = await sendRPCRequest(ACCOUNTS_PATTERN.DASHBOARD.GET_GST_REPORT, {});
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.DASHBOARD.GET_GST_REPORT,
+      { month, year }
+    );
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {

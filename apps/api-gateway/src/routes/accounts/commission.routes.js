@@ -9,20 +9,34 @@ import {
   getCommissionByPropertyController,
 } from "../../controllers/accounts/commission.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
-
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const commissionRoutes = Router();
 
-commissionRoutes.route("/").post(addCommission).get(getAllCommissions);
+commissionRoutes.use(isAuthenticated);
 
-commissionRoutes.get("/check-user", isAuthenticated, checkUserCommission);
+commissionRoutes
+  .route("/")
+  .post(hasPermission(PERMISSIONS.COMMISSION_MANAGE), addCommission)
+  .get(hasPermission(PERMISSIONS.COMMISSION_VIEW), getAllCommissions);
 
-commissionRoutes.get("/by-property",  getCommissionByPropertyController);
+commissionRoutes.get(
+  "/check-user",
+  hasPermission(PERMISSIONS.COMMISSION_VIEW),
+  checkUserCommission
+);
+
+commissionRoutes.get(
+  "/by-property",
+  hasPermission(PERMISSIONS.COMMISSION_VIEW),
+  getCommissionByPropertyController
+);
 
 commissionRoutes
   .route("/:commissionId")
-  .get(getCommissionById)
-  .put(editCommission)
-  .delete(deleteCommission);
+  .get(hasPermission(PERMISSIONS.COMMISSION_VIEW), getCommissionById)
+  .put(hasPermission(PERMISSIONS.COMMISSION_MANAGE), editCommission)
+  .delete(hasPermission(PERMISSIONS.COMMISSION_MANAGE), deleteCommission);
 
 export default commissionRoutes;
