@@ -10,30 +10,38 @@ import {
   createManualMealBookings,
 } from "../../controllers/inventory/mealBooking.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const messBookingRoutes = Router();
 
-messBookingRoutes
-  .route("/get-booking")
-  .get(isAuthenticated, checkNextDayBooking);
+messBookingRoutes.use(isAuthenticated);
 
-messBookingRoutes.route("/").post(isAuthenticated, createMealBooking);
+messBookingRoutes.route("/get-booking").get(checkNextDayBooking);
+
+messBookingRoutes
+  .route("/")
+  .post(hasPermission(PERMISSIONS.BOOKING_MANAGE), createMealBooking);
 
 messBookingRoutes
   .route("/manual")
-  .post(isAuthenticated, createManualMealBookings);
+  .post(hasPermission(PERMISSIONS.BOOKING_MANAGE), createManualMealBookings);
 
-messBookingRoutes.route("/property").get(isAuthenticated, getBookingByProperty);
+messBookingRoutes
+  .route("/property")
+  .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingByProperty);
 
 messBookingRoutes
   .route("/:bookingId")
-  .get(isAuthenticated, getBookingById)
-  .delete(isAuthenticated, deleteBooking);
+  .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingById)
+  .delete(hasPermission(PERMISSIONS.BOOKING_MANAGE), deleteBooking);
 
-messBookingRoutes.route("/user/:userId").get(isAuthenticated, getUserBookings);
+messBookingRoutes
+  .route("/user/:userId")
+  .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getUserBookings);
 
 messBookingRoutes
   .route("/:bookingId/status")
-  .patch(isAuthenticated, updateBookingStatus);
+  .patch(hasPermission(PERMISSIONS.BOOKING_MANAGE), updateBookingStatus);
 
 export default messBookingRoutes;

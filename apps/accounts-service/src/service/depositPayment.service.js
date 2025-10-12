@@ -6,6 +6,7 @@ import {
 } from "../../../../libs/common/razorpay.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Deposits from "../models/depositPayments.model.js";
+import { createAccountLog } from "./accountsLog.service.js";
 
 const processAndRecordDepositPayment = async ({
   userId,
@@ -88,6 +89,16 @@ const processAndRecordDepositPayment = async ({
     });
 
     await newDeposit.save({ session });
+
+    await createAccountLog({
+      logType: "Deposit",
+      action: "Payment",
+      description: `Deposit of ₹${amount} received from ${user.name}.`,
+      amount: amount,
+      propertyId: user.stayDetails?.propertyId,
+      performedBy: collectedBy || "System",
+      referenceId: newDeposit._id,
+    });
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
@@ -178,6 +189,16 @@ export const processAndRecordRefundPayment = async ({
     });
 
     await newDeposit.save({ session });
+
+    await createAccountLog({
+      logType: "Deposit",
+      action: "Refund",
+      description: `Deposit of ₹${amount} refunded to ${user.name}.`,
+      amount: -amount, // Negative as it's an outflow
+      propertyId: user.stayDetails?.propertyId,
+      performedBy: handledBy || "System",
+      referenceId: newDeposit._id,
+    });
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(

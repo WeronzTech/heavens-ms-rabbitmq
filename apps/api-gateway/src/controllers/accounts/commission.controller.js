@@ -15,11 +15,10 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 };
 
 export const addCommission = (req, res) => {
-  return handleRPCAndRespond(
-    res,
-    ACCOUNTS_PATTERN.COMMISSION.ADD_COMMISSION,
-    req.body
-  );
+  return handleRPCAndRespond(res, ACCOUNTS_PATTERN.COMMISSION.ADD_COMMISSION, {
+    createdBy: req.userAuth,
+    ...req.body,
+  });
 };
 
 export const getAllCommissions = (req, res) => {
@@ -43,6 +42,7 @@ export const getCommissionById = (req, res) => {
 export const editCommission = (req, res) => {
   return handleRPCAndRespond(res, ACCOUNTS_PATTERN.COMMISSION.EDIT_COMMISSION, {
     commissionId: req.params.commissionId,
+    updatedBy: req.userAuth,
     ...req.body,
   });
 };
@@ -53,6 +53,7 @@ export const deleteCommission = (req, res) => {
     ACCOUNTS_PATTERN.COMMISSION.DELETE_COMMISSION,
     {
       commissionId: req.params.commissionId,
+      deletedBy: req.userAuth,
     }
   );
 };

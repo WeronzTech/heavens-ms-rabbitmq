@@ -13,20 +13,65 @@ import {
   getMenuStockAnalysis,
   getRecipeById,
 } from "../../controllers/inventory/kitchen.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const kitchenRoutes = express.Router();
 
-kitchenRoutes.post("/recipes", addRecipe);
-kitchenRoutes.put("/recipes/:id", editRecipe);
-kitchenRoutes.get("/recipes", getAllRecipes);
-kitchenRoutes.get("/recipes/:id", getRecipeById);
-kitchenRoutes.delete("/recipes/:id", deleteRecipe);
-kitchenRoutes.get("/serving", getMenuStockAnalysis);
-kitchenRoutes.get("/", getAllKitchens);
-kitchenRoutes.get("/getKitchens", getKitchens);
-kitchenRoutes.get("/:id", getKitchenById);
-kitchenRoutes.post("/", addKitchen);
-kitchenRoutes.put("/:id", editKitchen);
-kitchenRoutes.delete("/:id", deleteKitchen);
+kitchenRoutes.use(isAuthenticated);
+
+kitchenRoutes.post(
+  "/recipes",
+  hasPermission(PERMISSIONS.KITCHEN_MANAGE),
+  addRecipe
+);
+kitchenRoutes.put(
+  "/recipes/:id",
+  hasPermission(PERMISSIONS.KITCHEN_MANAGE),
+  editRecipe
+);
+kitchenRoutes.get(
+  "/recipes",
+  hasPermission(PERMISSIONS.KITCHEN_VIEW),
+  getAllRecipes
+);
+kitchenRoutes.get(
+  "/recipes/:id",
+  hasPermission(PERMISSIONS.KITCHEN_VIEW),
+  getRecipeById
+);
+kitchenRoutes.delete(
+  "/recipes/:id",
+  hasPermission(PERMISSIONS.KITCHEN_MANAGE),
+  deleteRecipe
+);
+kitchenRoutes.get(
+  "/serving",
+  hasPermission(PERMISSIONS.KITCHEN_VIEW),
+  getMenuStockAnalysis
+);
+kitchenRoutes.get("/", hasPermission(PERMISSIONS.KITCHEN_VIEW), getAllKitchens);
+kitchenRoutes.get(
+  "/getKitchens",
+  hasPermission(PERMISSIONS.KITCHEN_VIEW),
+  getKitchens
+);
+kitchenRoutes.get(
+  "/:id",
+  hasPermission(PERMISSIONS.KITCHEN_VIEW),
+  getKitchenById
+);
+kitchenRoutes.post("/", hasPermission(PERMISSIONS.KITCHEN_MANAGE), addKitchen);
+kitchenRoutes.put(
+  "/:id",
+  hasPermission(PERMISSIONS.KITCHEN_MANAGE),
+  editKitchen
+);
+kitchenRoutes.delete(
+  "/:id",
+  hasPermission(PERMISSIONS.KITCHEN_MANAGE),
+  deleteKitchen
+);
 
 export default kitchenRoutes;

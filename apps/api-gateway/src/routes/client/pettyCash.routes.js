@@ -4,13 +4,30 @@ import {
   getPettyCashByManagerController,
   getPettyCashController,
 } from "../../controllers/client/pettyCash.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const pettyCashRoutes = express.Router();
 
-pettyCashRoutes.post("/add", addPettyCashController);
+pettyCashRoutes.use(isAuthenticated);
 
-pettyCashRoutes.get("/", getPettyCashController);
+pettyCashRoutes.post(
+  "/add",
+  hasPermission(PERMISSIONS.PETTY_CASH_MANAGE),
+  addPettyCashController
+);
 
-pettyCashRoutes.get("/:id", getPettyCashByManagerController);
+pettyCashRoutes.get(
+  "/",
+  hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
+  getPettyCashController
+);
+
+pettyCashRoutes.get(
+  "/:id",
+  hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
+  getPettyCashByManagerController
+);
 
 export default pettyCashRoutes;

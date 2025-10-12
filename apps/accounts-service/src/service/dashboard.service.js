@@ -636,18 +636,45 @@ export const getMonthlyIncomeExpenseSummaryForMainDashboard = async (data) => {
  * @param {string} options.format - 'excel' | 'pdf' | undefined
  * @returns {Object} - GST report data and optionally file path
  */
-export const getGSTReport = async ({ format } = {}) => {
+export const getGSTReport = async ({ format, month, year } = {}) => {
   try {
     // Ensure "downloads" folder exists
     const downloadDir = path.join(process.cwd(), "downloads");
     if (!fs.existsSync(downloadDir))
       fs.mkdirSync(downloadDir, { recursive: true });
 
+    let paymentQuery = {};
+    let expenseQuery = {};
+    let salaryQuery = {};
+
+    if (month && year) {
+      const numericMonth = parseInt(month, 10);
+      const numericYear = parseInt(year, 10);
+
+      // Ensure month and year are valid numbers
+      if (
+        !isNaN(numericMonth) &&
+        !isNaN(numericYear) &&
+        numericMonth >= 1 &&
+        numericMonth <= 12
+      ) {
+        // Create start and end dates for the given month.
+        // Note: JavaScript's Date month is 0-indexed (0=Jan, 11=Dec)
+        const startDate = new Date(numericYear, numericMonth - 1, 1);
+        const endDate = new Date(numericYear, numericMonth, 1); // First day of the next month
+
+        // Create query objects for each model based on their date field name
+        paymentQuery = { paymentDate: { $gte: startDate, $lt: endDate } };
+        expenseQuery = { date: { $gte: startDate, $lt: endDate } };
+        salaryQuery = { date: { $gte: startDate, $lt: endDate } };
+      }
+    }
+
     // 1️⃣ Fetch all data in parallel
     const [feePayments, expenses, salaries] = await Promise.all([
-      Payments.find({}),
-      Expense.find({}),
-      StaffSalaryHistory.find({}),
+      Payments.find(paymentQuery),
+      Expense.find(expenseQuery),
+      StaffSalaryHistory.find(salaryQuery),
     ]);
 
     // 2️⃣ Convert salaries to expense-like objects
@@ -657,7 +684,7 @@ export const getGSTReport = async ({ format } = {}) => {
       paymentMethod: "N/A",
       amount: sal.salary || 0,
       date: sal.date,
-      property: sal.property || {},
+      property: sal.propertyId || {},
     }));
 
     // 3️⃣ Merge actual expenses + salaries

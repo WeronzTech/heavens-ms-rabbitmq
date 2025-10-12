@@ -6,18 +6,40 @@ import {
   recordManualDepositPayment,
   verifyAndRecordOnlineDepositPayment,
 } from "../../controllers/accounts/depositPayments.controller.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
 
 const depositPaymentRoutes = express.Router();
 
-depositPaymentRoutes.post("/initiate-online", initiateOnlineDepositPayment);
+depositPaymentRoutes.use(isAuthenticated);
+
+depositPaymentRoutes.post(
+  "/initiate-online",
+  hasPermission(PERMISSIONS.DEPOSIT_MANAGE),
+  initiateOnlineDepositPayment
+);
 depositPaymentRoutes.post(
   "/verify-online",
+  hasPermission(PERMISSIONS.DEPOSIT_MANAGE),
   verifyAndRecordOnlineDepositPayment
 );
-depositPaymentRoutes.post("/record-manual", recordManualDepositPayment);
+depositPaymentRoutes.post(
+  "/record-manual",
+  hasPermission(PERMISSIONS.DEPOSIT_MANAGE),
+  recordManualDepositPayment
+);
 
-depositPaymentRoutes.post("/record-refund", processAndRecordRefundPayment);
+depositPaymentRoutes.post(
+  "/record-refund",
+  hasPermission(PERMISSIONS.DEPOSIT_MANAGE),
+  processAndRecordRefundPayment
+);
 
-depositPaymentRoutes.get("/", getAllDepositPayments);
+depositPaymentRoutes.get(
+  "/",
+  hasPermission(PERMISSIONS.DEPOSIT_VIEW),
+  getAllDepositPayments
+);
 
 export default depositPaymentRoutes;

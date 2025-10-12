@@ -12,12 +12,11 @@ import {
   getManagerById,
 } from "../../controllers/client/manager.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const managerRoutes = express.Router();
-
-managerRoutes.get("/", getAllManagers);
-
-managerRoutes.get("/:id", getManagerById);
 
 managerRoutes.post(
   "/register",
@@ -34,8 +33,24 @@ managerRoutes.post(
   registerManager
 );
 
+managerRoutes.post("/login", validateManagerCredentials);
+managerRoutes.post("/forgot-password", forgotPasswordManager);
+managerRoutes.post("/reset-password/:token", resetPasswordManager);
+managerRoutes.post("/by-email", getManagerByEmail);
+
+managerRoutes.use(isAuthenticated);
+
+managerRoutes.get("/", hasPermission(PERMISSIONS.MANAGER_VIEW), getAllManagers);
+
+managerRoutes.get(
+  "/:id",
+  hasPermission(PERMISSIONS.MANAGER_VIEW),
+  getManagerById
+);
+
 managerRoutes.put(
   "/edit/:id",
+  hasPermission(PERMISSIONS.MANAGER_MANAGE),
   upload.fields([
     {
       name: "photo",
@@ -49,16 +64,16 @@ managerRoutes.put(
   editManager
 );
 
-managerRoutes.put("/status/:id", changeManagerStatus);
+managerRoutes.put(
+  "/status/:id",
+  hasPermission(PERMISSIONS.MANAGER_MANAGE),
+  changeManagerStatus
+);
 
-managerRoutes.delete("/delete/:id", deleteManager);
-
-managerRoutes.post("/login", validateManagerCredentials);
-
-managerRoutes.post("/forgot-password", forgotPasswordManager);
-
-managerRoutes.post("/reset-password/:token", resetPasswordManager);
-
-managerRoutes.post("/by-email", getManagerByEmail);
+managerRoutes.delete(
+  "/delete/:id",
+  hasPermission(PERMISSIONS.MANAGER_MANAGE),
+  deleteManager
+);
 
 export default managerRoutes;

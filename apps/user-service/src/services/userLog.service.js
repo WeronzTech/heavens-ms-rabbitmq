@@ -38,6 +38,7 @@ export const getActivityLogs = async (data) => {
         filter.createdAt.$lte = endOfDay;
       }
     }
+    console.log("Filter", filter);
 
     // Get logs with pagination
     const logs = await UserLog.find(filter)
@@ -46,12 +47,14 @@ export const getActivityLogs = async (data) => {
       .limit(parseInt(limit))
       .select("-__v")
       .lean();
+    console.log(logs);
 
     // Get total count
     const total = await UserLog.countDocuments(filter);
 
     return {
       success: true,
+      status: 200,
       data: logs,
       pagination: {
         page: parseInt(page),
