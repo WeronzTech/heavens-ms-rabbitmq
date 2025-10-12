@@ -35,9 +35,14 @@ attendanceRoutes.get("/summary", getAllAttendanceSummary);
 // Update a single attendance record
 // attendanceRoutes.put("/:id", updateAttendance);
 
-attendanceRoutes.put("/update", updateAttendance);
+// attendanceRoutes.put("/update", updateAttendance);
+// attendanceRoutes.put(
+//   "/:id",
+//   hasPermission(PERMISSIONS.ATTENDANCE_MANAGE),
+//   updateAttendance
+// );
 attendanceRoutes.put(
-  "/:id",
+  "/update",
   hasPermission(PERMISSIONS.ATTENDANCE_MANAGE),
   updateAttendance
 );
