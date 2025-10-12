@@ -194,6 +194,7 @@ export const registerUser = async (data) => {
       isHeavens,
       personalDetails,
       referredByCode,
+      agent,
     } = data;
 
     let rentType;
@@ -258,6 +259,7 @@ export const registerUser = async (data) => {
       isHeavens: isHeavens || false,
       personalDetails,
       referralInfo: { referredByCode: referredByCode || null },
+      agent,
     };
 
     // 6. Type-specific logic
@@ -3204,10 +3206,9 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
 
 export const getUsersByAgencyService = async (data) => {
   try {
-    const { agency } = data;
-    const agencyId = new mongoose.Types.ObjectId(agency);
+    const { agent } = data;
 
-    if (!agency) {
+    if (!agent) {
       return {
         success: false,
         status: 400,
@@ -3215,7 +3216,23 @@ export const getUsersByAgencyService = async (data) => {
       };
     }
 
-    const users = await User.find({ agency: agencyId }).lean();
+    const agencyId = new mongoose.Types.ObjectId(agent);
+
+    // Fetch only required fields
+    const users = await User.find(
+      { agent: agencyId },
+      {
+        name: 1,
+        contact: 1,
+        commissionEarned: 1,
+        "stayDetails.monthlyRent": 1,
+        "stayDetails.dailyRent": 1,
+        "stayDetails.nonRefundableDeposit": 1,
+        "stayDetails.refundableDeposit": 1,
+        "stayDetails.depositAmountPaid": 1,
+        "stayDetails.joinDate": 1,
+      }
+    ).lean();
 
     if (!users || users.length === 0) {
       return {
@@ -3225,10 +3242,17 @@ export const getUsersByAgencyService = async (data) => {
       };
     }
 
+    // Calculate total commissionEarned
+    const totalCommission = users.reduce(
+      (sum, user) => sum + (user.commissionEarned || 0),
+      0
+    );
+
     return {
       success: true,
       status: 200,
       message: "Users fetched successfully.",
+      totalCommission,
       data: users,
     };
   } catch (error) {
@@ -3241,6 +3265,46 @@ export const getUsersByAgencyService = async (data) => {
     };
   }
 };
+
+// export const getUsersByAgencyService = async (data) => {
+//   try {
+//     const { agent } = data;
+//     const agencyId = new mongoose.Types.ObjectId(agent);
+
+//     if (!agent) {
+//       return {
+//         success: false,
+//         status: 400,
+//         message: "Agency is required.",
+//       };
+//     }
+
+//     const users = await User.find({ agent: agencyId }).lean();
+
+//     if (!users || users.length === 0) {
+//       return {
+//         success: false,
+//         status: 404,
+//         message: "No users found for the specified agency.",
+//       };
+//     }
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Users fetched successfully.",
+//       data: users,
+//     };
+//   } catch (error) {
+//     console.error("Get Users by Agency Service Error:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal Server Error",
+//       error: error.message,
+//     };
+//   }
+// };
 
 export const getUsersForMakingPayment = async (data) => {
   try {
@@ -3627,6 +3691,75 @@ export const getPendingDepositPayments = async (data) => {
     };
   } catch (error) {
     console.error("Get Pending Deposit Payments Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const allocateUsersToAgent = async (data) => {
+  try {
+    const { agentId, userIds } = data;
+
+    if (!agentId || !Array.isArray(userIds) || userIds.length === 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "Agent ID and user IDs are required.",
+      };
+    }
+
+    // Bulk update: assign the agent to each user
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: { agent: agentId } }
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: `Successfully allocated ${result.modifiedCount} users to the agent.`,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Allocate Users Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const allocateCommissionToUsers = async (data) => {
+  try {
+    const { userIds = [], amountPerUser = 0 } = data;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "No valid user IDs provided.",
+      };
+    }
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $inc: { commissionEarned: amountPerUser } }
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: `Successfully updated ${result.modifiedCount} user(s) with commission.`,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Allocate Commission Service Error:", error);
     return {
       success: false,
       status: 500,

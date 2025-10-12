@@ -8,7 +8,7 @@ import { upload } from "../../../../../libs/common/imageOperation.js";
 const alertNotificationRoutes = express.Router();
 
 alertNotificationRoutes.post(
-  "/",
+  "/add",
   upload.fields([{ name: "alertNotificationImage", maxCount: 1 }]),
   addAlertNotificationController
 );

@@ -7,38 +7,26 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 
 export const addCommission = async (data) => {
   try {
-    const { agent, agency,agencyName, property, amount, userIds, paymentType,remarks } = data;
-    // if (
-    //   !agent ||
-    //   !agent.name ||
-    //   !agency ||
-    //   !agencyName ||
-    //   !property ||
-    //   !amount ||
-    //   !paymentType
-    // ) {
-    //   return {
-    //     success: false,
-    //     status: 400,
-    //     message: "Missing required fields.",
-    //   };
-    // }
+    console.log(data);
+    const { userIds, amount } = data;
+    const newCommission = await Commission.create(data);
 
-    if (userIds && userIds.length > 0) {
-      const existingCommission = await Commission.findOne({
-        userIds: { $in: userIds },
-      });
-      if (existingCommission) {
-        return {
-          success: false,
-          status: 409, // Conflict
-          message:
-            "A commission already exists for one of the provided students.",
-        };
-      }
+    if (Array.isArray(userIds) && userIds.length > 0) {
+      const amountPerUser = amount / userIds.length;
+
+      const response = await sendRPCRequest(
+        USER_PATTERN.USER.ALLOCATE_COMMISSION_AMOUNT_TO_USERS,
+        {
+          userIds,
+          amountPerUser,
+        }
+      );
+
+      console.log("Commission allocated to users:", response);
+    } else {
+      console.warn("No userIds provided, skipping user update.");
     }
 
-    const newCommission = await Commission.create(data);
     return {
       success: true,
       status: 201,
@@ -360,4 +348,3 @@ export const getCommissionByProperty = async (data) => {
     };
   }
 };
-

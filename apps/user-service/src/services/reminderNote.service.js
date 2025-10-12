@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Note from "../models/reminderNote.modal.js";
 import User from "../models/user.model.js";
 
@@ -11,7 +12,15 @@ export const noteController = {
   // Create a new note (with or without reminder)
   createNote: async (data) => {
     try {
-      const { createdBy, userId, content, isReminder, reminderDate } = data;
+      const {
+        createdBy,
+        userId,
+        name,
+        content,
+        isReminder,
+        reminderDate,
+        propertyId,
+      } = data;
       console.log(data);
       // Validate user exists
       const user = await User.findById(userId);
@@ -29,10 +38,12 @@ export const noteController = {
 
       const newNote = await Note.create({
         userId,
+        name,
         content,
         createdBy,
         isReminder: isReminder || false,
         reminderDate: isReminder ? reminderDate : null,
+        propertyId,
       });
 
       return { status: 201, success: true, data: newNote };
@@ -55,12 +66,23 @@ export const noteController = {
   },
 
   // Get all active reminders (for dashboard)
-  getActiveReminders: async () => {
+  getActiveReminders: async (data) => {
     try {
-      const reminders = await Note.find({
+      const { propertyId } = data;
+
+      const now = new Date();
+
+      const query = {
         isReminder: true,
-        reminderStatus: { $in: ["pending", "overdue"] },
-      }).sort({ reminderDate: 1 });
+        reminderStatus: { $in: ["pending"] },
+        reminderDate: { $lte: now },
+      };
+
+      if (propertyId) {
+        query.propertyId = new mongoose.Types.ObjectId(propertyId);
+      }
+
+      const reminders = await Note.find(query).sort({ reminderDate: 1 });
 
       if (!reminders || reminders.length === 0) {
         return {
@@ -70,9 +92,18 @@ export const noteController = {
         };
       }
 
-      return { status: 200, success: true, data: reminders };
+      return {
+        status: 200,
+        success: true,
+        data: reminders,
+      };
     } catch (error) {
-      return { status: 500, success: false, message: error.message };
+      console.error("Error fetching active reminders:", error);
+      return {
+        status: 500,
+        success: false,
+        message: error.message,
+      };
     }
   },
 

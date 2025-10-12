@@ -11,6 +11,7 @@ import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import mongoose from "mongoose";
+import Attendance from "../models/attendance.model.js";
 
 // 🛠️ Service logic
 export const getAllStaff = async (data) => {
@@ -83,17 +84,13 @@ export const getAllStaff = async (data) => {
     // --- Include manager data if requested ---
     if (manager === "true") {
       try {
-        const managerResponse = async (propertyId, joinDate, status, name) => {
-          return sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, {
-            propertyId,
-            joinDate,
-            status,
-            name,
-          });
-        };
+        const managerResponse = await sendRPCRequest(
+          CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
+          { propertyId, joinDate, status, name }
+        );
 
-        const managerData = managerResponse.data?.data;
-
+        const managerData = managerResponse?.data || managerResponse;
+        console.log(managerData);
         if (Array.isArray(managerData) && managerData.length > 0) {
           const enrichedManagers = await Promise.all(
             managerData.map(async (m) => {
@@ -483,4 +480,216 @@ export const getEmployeeCount = async (data) => {
   }
 
   return Staff.countDocuments(filter);
+};
+
+export const getAllStaffsForAttendance = async (data) => {
+  try {
+    const { kitchenId, propertyId, name, manager, joinDate, status } = data;
+    const filter = {};
+
+    if (kitchenId) filter.kitchenId = kitchenId;
+    if (propertyId) filter.propertyId = propertyId;
+
+    if (joinDate) {
+      const date = new Date(joinDate);
+      const startDate = new Date(date.getTime() - 5.5 * 60 * 60 * 1000);
+      startDate.setUTCHours(0, 0, 0, 0);
+      const endDate = new Date(date.getTime() - 5.5 * 60 * 60 * 1000);
+      endDate.setUTCHours(23, 59, 59, 999);
+      filter.joinDate = { $gte: startDate, $lte: endDate };
+    }
+
+    if (status) filter.status = status;
+    if (name) filter.name = { $regex: name, $options: "i" };
+
+    const staffMembers = await Staff.find(filter);
+
+    // --- If propertyId is present, also fetch staff linked via kitchenIds ---
+    let kitchenStaff = [];
+    if (propertyId) {
+      try {
+        const accessibleKitchens = await getAccessibleKitchens(propertyId);
+        const accessibleKitchenIds = accessibleKitchens.map((k) =>
+          k._id.toString()
+        );
+
+        if (accessibleKitchenIds.length > 0) {
+          kitchenStaff = await Staff.find({
+            kitchenId: { $in: accessibleKitchenIds },
+            ...(status && { status }),
+            ...(name && { name: { $regex: name, $options: "i" } }),
+            ...(joinDate && { joinDate: filter.joinDate }),
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching kitchen staff:", err.message);
+      }
+    }
+
+    // Merge & deduplicate staff
+    const allStaff = [...staffMembers, ...kitchenStaff];
+    const uniqueStaffMap = new Map(allStaff.map((s) => [s._id.toString(), s]));
+    const uniqueStaff = Array.from(uniqueStaffMap.values());
+
+    // --- Get start and end of current month ---
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    // Enrich staff with role names and attendance data
+    let enrichedStaff = await Promise.all(
+      uniqueStaff.map(async (staff) => {
+        const staffObject = staff.toObject();
+
+        // Role
+        if (staff.role) {
+          const roleName = await getRoleName(staff.role);
+          staffObject.role = {
+            _id: staff.role,
+            name: roleName,
+          };
+        }
+
+        // --- Today's (latest) attendance ---
+        const todayAttendance = await Attendance.findOne({
+          employeeId: staff._id,
+        })
+          .sort({ date: -1 })
+          .lean();
+
+        if (todayAttendance) {
+          staffObject.todayAttendanceDate = todayAttendance.date;
+          staffObject.todayStatus = todayAttendance.status;
+        } else {
+          staffObject.todayAttendanceDate = null;
+          staffObject.todayStatus = "Not Marked";
+        }
+
+        // --- Second latest (previous) attendance ---
+        const previousAttendance = await Attendance.findOne({
+          employeeId: staff._id,
+        })
+          .sort({ date: -1 })
+          .skip(1)
+          .lean();
+
+        if (previousAttendance) {
+          staffObject.lastAttendanceDate = previousAttendance.date;
+          staffObject.lastDayStatus = previousAttendance.status;
+        } else {
+          staffObject.lastAttendanceDate = null;
+          staffObject.lastDayStatus = "Not Marked";
+        }
+
+        // --- Count of 'Present' attendances in the current month ---
+        const monthlyPresentCount = await Attendance.countDocuments({
+          employeeId: staff._id,
+          status: "Present",
+          date: { $gte: startOfMonth, $lte: endOfMonth },
+        });
+
+        staffObject.monthlyPresentDays = monthlyPresentCount;
+
+        return staffObject;
+      })
+    );
+
+    // --- Include manager data if requested ---
+    if (manager === "true") {
+      try {
+        const managerResponse = await sendRPCRequest(
+          CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
+          { propertyId, joinDate, status, name }
+        );
+
+        const managerData = managerResponse?.data || managerResponse;
+        if (Array.isArray(managerData) && managerData.length > 0) {
+          const enrichedManagers = await Promise.all(
+            managerData.map(async (m) => {
+              if (m && m._id) {
+                const enrichedManager = { ...m };
+
+                if (m.role) {
+                  const roleName = await getRoleName(m.role);
+                  enrichedManager.role = { _id: m.role, name: roleName };
+                }
+
+                // --- Today's (latest) attendance ---
+                const todayAttendance = await Attendance.findOne({
+                  employeeId: m._id,
+                })
+                  .sort({ date: -1 })
+                  .lean();
+
+                if (todayAttendance) {
+                  enrichedManager.todayAttendanceDate = todayAttendance.date;
+                  enrichedManager.todayStatus = todayAttendance.status;
+                } else {
+                  enrichedManager.todayAttendanceDate = null;
+                  enrichedManager.todayStatus = "Not Marked";
+                }
+
+                // --- Second latest (previous) attendance ---
+                const previousAttendance = await Attendance.findOne({
+                  employeeId: m._id,
+                })
+                  .sort({ date: -1 })
+                  .skip(1)
+                  .lean();
+
+                if (previousAttendance) {
+                  enrichedManager.lastAttendanceDate = previousAttendance.date;
+                  enrichedManager.lastDayStatus = previousAttendance.status;
+                } else {
+                  enrichedManager.lastAttendanceDate = null;
+                  enrichedManager.lastDayStatus = "Not Marked";
+                }
+
+                // --- Monthly present count for manager ---
+                const monthlyPresentCount = await Attendance.countDocuments({
+                  employeeId: m._id,
+                  status: "Present",
+                  date: { $gte: startOfMonth, $lte: endOfMonth },
+                });
+
+                enrichedManager.monthlyPresentDays = monthlyPresentCount;
+
+                return enrichedManager;
+              }
+              return null;
+            })
+          );
+
+          enrichedStaff.push(...enrichedManagers.filter(Boolean));
+        }
+      } catch (error) {
+        console.error(
+          `Could not fetch or process manager for property ${propertyId}:`,
+          error.message
+        );
+      }
+    }
+
+    return {
+      status: 200,
+      data: {
+        count: enrichedStaff.length,
+        staff: enrichedStaff,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getAllStaff service:", error);
+    return {
+      status: 500,
+      message: error.message || "Internal server error while fetching staff",
+    };
+  }
 };

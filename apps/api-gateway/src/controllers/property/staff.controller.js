@@ -1,18 +1,11 @@
 import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../../libs/patterns/property/property.pattern.js";
 
-
 // 🎯 Controller for fetching all staff via RPC
 export const getAllStaff = async (req, res) => {
   try {
-    const {
-      kitchenId,
-      propertyId,
-      name,
-      manager,
-      joinDate,
-      status
-    } = req.query;
+    const { kitchenId, propertyId, name, manager, joinDate, status } =
+      req.query;
 
     // Send request to staff service using RPC
     const response = await sendRPCRequest(
@@ -80,10 +73,10 @@ export const deleteStaff = async (req, res) => {
     const { id } = req.params;
     const adminName = req.headers["x-user-username"];
 
-    const response = await sendRPCRequest(
-      PROPERTY_PATTERN.STAFF.DELETE_STAFF,
-      { id, adminName }
-    );
+    const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.DELETE_STAFF, {
+      id,
+      adminName,
+    });
 
     console.log("🗑️ Delete Staff RPC Response:", response);
 
@@ -240,6 +233,40 @@ export const updateStaff = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Server error while updating staff",
+    });
+  }
+};
+
+export const getAllStaffForAttendance = async (req, res) => {
+  try {
+    const { kitchenId, propertyId, name, manager, joinDate, status } =
+      req.query;
+
+    // Send request to staff service using RPC
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.STAFF.GET_ALL_STAFF_FOR_ATTENDANCE,
+      { kitchenId, propertyId, name, manager, joinDate, status }
+    );
+
+    console.log("👥 Staff RPC Response:", response);
+
+    if (response.status === 200) {
+      return res.status(200).json({
+        success: true,
+        count: response.data.count,
+        staff: response.data.staff,
+      });
+    } else {
+      return res.status(response.status).json({
+        success: false,
+        message: response.message || "Failed to fetch staff",
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error in getAllStaff controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while fetching staff",
     });
   }
 };

@@ -3,16 +3,26 @@ import { USER_PATTERN } from "../../../../../libs/patterns/user/user.pattern.js"
 
 export const createNote = async (req, res) => {
   try {
-    const { userId, content, isReminder, reminderDate, createdBy } = req.body;
+    const {
+      userId,
+      name,
+      content,
+      isReminder,
+      reminderDate,
+      createdBy,
+      propertyId,
+    } = req.body;
 
     const response = await sendRPCRequest(
       USER_PATTERN.REMINDER_NOTE.CREATE_NOTE,
       {
         createdBy,
         userId,
+        name,
         content,
         isReminder,
         reminderDate,
+        propertyId,
       }
     );
 
@@ -45,8 +55,11 @@ export const getUserNotes = async (req, res) => {
 
 export const getActiveReminders = async (req, res) => {
   try {
+    const { propertyId } = req.query;
+
     const response = await sendRPCRequest(
-      USER_PATTERN.REMINDER_NOTE.GET_ACTIVE_REMINDERS
+      USER_PATTERN.REMINDER_NOTE.GET_ACTIVE_REMINDERS,
+      { propertyId }
     );
 
     return res

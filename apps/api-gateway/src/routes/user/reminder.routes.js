@@ -11,8 +11,8 @@ import {
 const reminderRoutes = express.Router();
 
 reminderRoutes.post("/", createNote);
+reminderRoutes.get("/activeReminders", getActiveReminders);
 reminderRoutes.get("/:id", getUserNotes);
-reminderRoutes.get("/reminders", getActiveReminders);
 reminderRoutes.patch("/:id/complete", completeReminder);
 reminderRoutes.patch("/:id/snooze", snoozeReminder);
 reminderRoutes.delete("/:id", deleteNote);

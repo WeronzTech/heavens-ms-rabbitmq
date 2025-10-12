@@ -7,6 +7,10 @@ const noteSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    name: {
+      type: String,
+      required: true,
+    },
     content: {
       type: String,
       required: true,
@@ -38,6 +42,10 @@ const noteSchema = new mongoose.Schema(
         notes: String,
       },
     ],
+    propertyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
   },
   {
     timestamps: true,
@@ -45,11 +53,11 @@ const noteSchema = new mongoose.Schema(
 );
 
 // Indexes for efficient querying
-noteSchema.index({userId: 1});
-noteSchema.index({reminderDate: 1});
-noteSchema.index({reminderStatus: 1});
-noteSchema.index({isReminder: 1});
-noteSchema.index({userId: 1, reminderStatus: 1});
+noteSchema.index({ userId: 1 });
+noteSchema.index({ reminderDate: 1 });
+noteSchema.index({ reminderStatus: 1 });
+noteSchema.index({ isReminder: 1 });
+noteSchema.index({ userId: 1, reminderStatus: 1 });
 
 const Note = mongoose.model("Note", noteSchema);
 

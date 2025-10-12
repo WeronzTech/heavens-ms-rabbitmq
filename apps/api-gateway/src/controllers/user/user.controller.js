@@ -561,11 +561,11 @@ export const getAllPendingPayments = async (req, res) => {
 
 export const getUsersByAgencyController = async (req, res) => {
   try {
-    const { agency } = req.query;
+    const { agent } = req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_AGENCY,
-      { agency }
+      { agent }
     );
 
     return res.status(response.status).json(response);
@@ -612,3 +612,30 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 
 export const getUsersWithBirthdayToday = (req, res) =>
   handleRPCAndRespond(res, USER_PATTERN.USER.GET_USERS_WITH_BIRTHDAY_TODAY, {});
+
+export const allocateUsersToAgent = async (req, res) => {
+  try {
+    const { agentId, userIds } = req.body;
+
+    if (!agentId || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Agent ID and at least one user ID are required.",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.USER.ALLOCATE_AGENT_TO_USERS,
+      { agentId, userIds }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC allocation Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};

@@ -45,11 +45,25 @@ const agencySchema = new Schema(
       required: true,
       trim: true,
     },
+    hasAgency: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
     agencyName: {
       type: String,
-      required: true,
-      unique: true,
       trim: true,
+      unique: true,
+      required: function () {
+        return this.hasAgency;
+      },
+    },
+    contactNumber: {
+      type: String,
+      unique: true,
+      required: function () {
+        return !this.hasAgency;
+      },
     },
   },
   { timestamps: true }

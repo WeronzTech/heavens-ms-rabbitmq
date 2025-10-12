@@ -26,6 +26,8 @@ export const USER_PATTERN = {
     FETCH_USER_DATA: "fetch_user_data",
     GET_USERS_WITH_BIRTHDAY_TODAY: "get_users_with_birthday_today",
     GET_USER_BY_AGENCY: "get_user_by_agency",
+    ALLOCATE_AGENT_TO_USERS: "allocate_agent_to_users",
+    ALLOCATE_COMMISSION_AMOUNT_TO_USERS: "allocate_commission_amount_to_users",
   },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",

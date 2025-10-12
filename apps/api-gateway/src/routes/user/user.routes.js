@@ -1,6 +1,7 @@
 import express from "express";
 import {
   adminUpdateUser,
+  allocateUsersToAgent,
   approveUser,
   createStatusRequest,
   extendUserDays,
@@ -103,5 +104,6 @@ userRoutes.put(
   respondToStatusRequest
 );
 userRoutes.put("/:id/block-status", handleBlockStatus);
+userRoutes.post("/allocateUsersToAgent", allocateUsersToAgent);
 
 export default userRoutes;

@@ -27,6 +27,7 @@ export const PROPERTY_PATTERN = {
     ADD_STAFF: "add_staff",
     UPDATE_STAFF: "update_staff",
     UPDATE_STAFF: "update_staff",
+    GET_ALL_STAFF_FOR_ATTENDANCE: "get_all_staff_for_attendance",
   },
   PROPERTY_LOG: {
     GET_ACTIVITY_LOG: "get_activity_log",
@@ -55,11 +56,13 @@ export const PROPERTY_PATTERN = {
     MARK_ATTENDANCE: "mark_attendance",
     GET_ATTENDANCE: "get_attendance",
     UPDATE_ATTENDANCE: "update_attendance",
+    GET_ATTENDANCE_SUMMARY: "get_attendance_summary",
+    GET_AVAILABLE_ATTENDANCE_DATE: "get_available_attendance_date",
   },
   CAROUSEL: {
     ADD_CAROUSEL: "add_carousel",
     UPDATE_CAROUSEL: "update_carousel",
     DELETE_CAROUSEL: "delete_carousel",
-    GET_ALL_CAROUSEL: "get_all_carousel"
-  }
+    GET_ALL_CAROUSEL: "get_all_carousel",
+  },
 };

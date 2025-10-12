@@ -55,7 +55,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://hpanel.heavensliving.in",
-      "http://192.168.1.80:5173",
+      "http://192.168.1.80:8082",
+      "http://192.168.1.73:8082",
     ],
     credentials: true,
   })
@@ -95,13 +96,13 @@ app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
 app.use("/api/v2/property", propertyRoutes);
 app.use("/api/v2/property/dashboard", dashboardRoutes);
-app.use("/api/v2/property/staff", staffRoutes);
+app.use("/api/v2/staff", staffRoutes);
 app.use("/api/v2/user", userRoutes);
 app.use("/api/v2/user/logs", userLogRoutes);
 app.use("/api/v2/property/room", roomRoutes);
 app.use("/api/v2/notification/push-notification", pushNotificationRoutes);
 app.use("/api/v2/notification", notificationRoutes);
-app.use("/api/v2/alertNotification", alertNotificationRoutes);
+app.use("/api/v2/notification/alert-notification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/depositPayments", depositPaymentRoutes);
 app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);

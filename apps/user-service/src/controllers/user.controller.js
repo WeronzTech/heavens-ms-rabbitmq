@@ -32,6 +32,8 @@ import {
   getUserDepositStatisticsForAccountDashboard,
   getUsersByAgencyService,
   getPendingDepositPayments,
+  allocateUsersToAgent,
+  allocateCommissionToUsers,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -187,5 +189,16 @@ createResponder(
   USER_PATTERN.DASHBOARD.GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
   async (data) => {
     return await getUserDepositStatisticsForAccountDashboard(data);
+  }
+);
+
+createResponder(USER_PATTERN.USER.ALLOCATE_AGENT_TO_USERS, async (data) => {
+  return await allocateUsersToAgent(data);
+});
+
+createResponder(
+  USER_PATTERN.USER.ALLOCATE_COMMISSION_AMOUNT_TO_USERS,
+  async (data) => {
+    return await allocateCommissionToUsers(data);
   }
 );

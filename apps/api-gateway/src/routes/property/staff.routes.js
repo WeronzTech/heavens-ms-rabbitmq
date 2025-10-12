@@ -1,7 +1,15 @@
 import express from "express";
-import { addStaff, deleteStaff, getAllStaff, getStaffById, getStaffByPropertyId, staffStatusChange, updateStaff } from "../../controllers/property/staff.controller.js";
+import {
+  addStaff,
+  deleteStaff,
+  getAllStaff,
+  getAllStaffForAttendance,
+  getStaffById,
+  getStaffByPropertyId,
+  staffStatusChange,
+  updateStaff,
+} from "../../controllers/property/staff.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
-
 
 const staffRoutes = express.Router();
 
@@ -24,9 +32,9 @@ staffRoutes.post(
   addStaff
 );
 
- staffRoutes.get("/getAll", getAllStaff);
+staffRoutes.get("/getAll", getAllStaff);
 
- staffRoutes.get("/:id", getStaffById);
+staffRoutes.get("/:id", getStaffById);
 
 staffRoutes.put("/status/:id", staffStatusChange);
 
@@ -51,5 +59,6 @@ staffRoutes.put(
 
 staffRoutes.delete("/delete/:id", deleteStaff);
 staffRoutes.get("/by-property/:propertyId", getStaffByPropertyId);
+staffRoutes.get("/attendance/getAll", getAllStaffForAttendance);
 
 export default staffRoutes;
