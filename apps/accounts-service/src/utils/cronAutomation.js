@@ -162,11 +162,15 @@ export const generateMonthlySalaries = async () => {
       const attendanceRecords = attendanceResponse.success
         ? attendanceResponse.data.data
         : [];
-      const payableDays = attendanceRecords.reduce(
-        (count, record) =>
-          ["Present", "Paid Leave"].includes(record.status) ? count + 1 : count,
-        0
-      );
+
+      const payableDays = attendanceRecords.reduce((count, record) => {
+        if (["Present", "Paid Leave"].includes(record.status)) {
+          return count + 1;
+        } else if (record.status === "Half Day") {
+          return count + 0.5; // Add half a day for "Half Day"
+        }
+        return count; // "Absent" or other statuses count as 0
+      }, 0);
 
       const perDaySalary = employee.salary / daysInPreviousMonth;
       const calculatedSalary = perDaySalary * payableDays;

@@ -6,13 +6,18 @@ import {
   getRoleById,
   updateRole,
 } from "../../controllers/auth/roles.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const roleRoutes = express.Router();
 
-roleRoutes.post("/", createRole);
-roleRoutes.put("/:id", updateRole);
-roleRoutes.delete("/:id", deleteRole);
-roleRoutes.get("/", getAllRoles);
-roleRoutes.get("/:id", getRoleById);
+roleRoutes.use(isAuthenticated);
+
+roleRoutes.post("/", hasPermission(PERMISSIONS.ROLES_MANAGE), createRole);
+roleRoutes.put("/:id", hasPermission(PERMISSIONS.ROLES_MANAGE), updateRole);
+roleRoutes.delete("/:id", hasPermission(PERMISSIONS.ROLES_MANAGE), deleteRole);
+roleRoutes.get("/", hasPermission(PERMISSIONS.ROLES_VIEW), getAllRoles);
+roleRoutes.get("/:id", hasPermission(PERMISSIONS.ROLES_VIEW), getRoleById);
 
 export default roleRoutes;

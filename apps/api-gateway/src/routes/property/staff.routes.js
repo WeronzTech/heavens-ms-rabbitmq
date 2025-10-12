@@ -1,12 +1,25 @@
 import express from "express";
-import { addStaff, deleteStaff, getAllStaff, getStaffById, getStaffByPropertyId, staffStatusChange, updateStaff } from "../../controllers/property/staff.controller.js";
+import {
+  addStaff,
+  deleteStaff,
+  getAllStaff,
+  getStaffById,
+  getStaffByPropertyId,
+  staffStatusChange,
+  updateStaff,
+} from "../../controllers/property/staff.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
-
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const staffRoutes = express.Router();
 
+staffRoutes.use(isAuthenticated);
+
 staffRoutes.post(
   "/add",
+  hasPermission(PERMISSIONS.STAFF_MANAGE),
   upload.fields([
     {
       name: "photo",
@@ -24,14 +37,19 @@ staffRoutes.post(
   addStaff
 );
 
- staffRoutes.get("/getAll", getAllStaff);
+staffRoutes.get("/getAll", hasPermission(PERMISSIONS.STAFF_VIEW), getAllStaff);
 
- staffRoutes.get("/:id", getStaffById);
+staffRoutes.get("/:id", hasPermission(PERMISSIONS.STAFF_VIEW), getStaffById);
 
-staffRoutes.put("/status/:id", staffStatusChange);
+staffRoutes.put(
+  "/status/:id",
+  hasPermission(PERMISSIONS.STAFF_MANAGE),
+  staffStatusChange
+);
 
 staffRoutes.put(
   "/update/:id",
+  hasPermission(PERMISSIONS.STAFF_MANAGE),
   upload.fields([
     {
       name: "photo",
@@ -49,7 +67,15 @@ staffRoutes.put(
   updateStaff
 );
 
-staffRoutes.delete("/delete/:id", deleteStaff);
-staffRoutes.get("/by-property/:propertyId", getStaffByPropertyId);
+staffRoutes.delete(
+  "/delete/:id",
+  hasPermission(PERMISSIONS.STAFF_MANAGE),
+  deleteStaff
+);
+staffRoutes.get(
+  "/by-property/:propertyId",
+  hasPermission(PERMISSIONS.STAFF_VIEW),
+  getStaffByPropertyId
+);
 
 export default staffRoutes;

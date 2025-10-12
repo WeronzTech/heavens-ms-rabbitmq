@@ -58,57 +58,57 @@ export const initializeSocketEvents = (io) => {
       }
     });
 
-    socket.on("user-booking-status", async (data) => {
-      try {
-        const { today } = data;
-        const currentUserId = await findUserIdBySocketId(socket.id);
+    // socket.on("user-booking-status", async (data) => {
+    //   try {
+    //     const { today } = data;
+    //     const currentUserId = await findUserIdBySocketId(socket.id);
 
-        if (!currentUserId) {
-          // Acknowledge with an error if the user isn't found in the store
-          return {
-            success: false,
-            message: "Authentication error: User not found for this socket.",
-          };
-        }
+    //     if (!currentUserId) {
+    //       // Acknowledge with an error if the user isn't found in the store
+    //       return {
+    //         success: false,
+    //         message: "Authentication error: User not found for this socket.",
+    //       };
+    //     }
 
-        console.log(
-          `Received user-booking-status request for userId: ${currentUserId}`
-        );
+    //     console.log(
+    //       `Received user-booking-status request for userId: ${currentUserId}`
+    //     );
 
-        const response = await sendRPCRequest(
-          INVENTORY_PATTERN.BOOKING.CHECK_NEXT_DAY_BOOKING,
-          {
-            userId: currentUserId,
-            today,
-          }
-        );
+    //     const response = await sendRPCRequest(
+    //       INVENTORY_PATTERN.BOOKING.CHECK_NEXT_DAY_BOOKING,
+    //       {
+    //         userId: currentUserId,
+    //         today,
+    //       }
+    //     );
 
-        const breakfastBooking = response.data.bookingDetails.find(
-          (booking) => booking.mealType === "Breakfast"
-        );
+    //     const breakfastBooking = response.data.bookingDetails.find(
+    //       (booking) => booking.mealType === "Breakfast"
+    //     );
 
-        // Now you can safely access the status property of that object
-        // It's good practice to check if a booking was actually found
-        const breakfastStatus = breakfastBooking
-          ? breakfastBooking.status
-          : "Not Booked";
+    //     // Now you can safely access the status property of that object
+    //     // It's good practice to check if a booking was actually found
+    //     const breakfastStatus = breakfastBooking
+    //       ? breakfastBooking.status
+    //       : "Not Booked";
 
-        console.log(
-          "Response from booking service (Breakfast Status):",
-          breakfastStatus
-        );
-        // Emit the response back to the requesting client
-        socket.emit("booking-status-response", response);
-      } catch (error) {
-        console.error("Error processing user-booking-status:", error);
-        const errorResponse = {
-          success: false,
-          message: "An error occurred while fetching booking status.",
-          error: error.message,
-        };
-        socket.emit("booking-status-response", errorResponse);
-      }
-    });
+    //     console.log(
+    //       "Response from booking service (Breakfast Status):",
+    //       breakfastStatus
+    //     );
+    //     // Emit the response back to the requesting client
+    //     socket.emit("booking-status-response", response);
+    //   } catch (error) {
+    //     console.error("Error processing user-booking-status:", error);
+    //     const errorResponse = {
+    //       success: false,
+    //       message: "An error occurred while fetching booking status.",
+    //       error: error.message,
+    //     };
+    //     socket.emit("booking-status-response", errorResponse);
+    //   }
+    // });
 
     socket.on("disconnect", async () => {
       console.log(`Client disconnected: ${socket.id}`);

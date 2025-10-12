@@ -8,15 +8,48 @@ import {
   getRecipeCategoryById,
   updateRecipeCategory,
 } from "../../controllers/inventory/category.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const categoryRoutes = express.Router();
 
-categoryRoutes.get("/", getCategoriesByPropertyId);
-categoryRoutes.post("/", addCategory);
-categoryRoutes.get("/recipe-category/:kitchenId", getRecipeCategoriesByKitchen);
-categoryRoutes.get("/recipe-category-id/:id", getRecipeCategoryById);
-categoryRoutes.post("/recipe-category", createRecipeCategory);
-categoryRoutes.put("/recipe-category/:id", updateRecipeCategory);
-categoryRoutes.delete("/recipe-category/:id", deleteRecipeCategory);
+categoryRoutes.use(isAuthenticated);
+
+categoryRoutes.get(
+  "/",
+  hasPermission(PERMISSIONS.CATEGORY_VIEW),
+  getCategoriesByPropertyId
+);
+categoryRoutes.post(
+  "/",
+  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
+  addCategory
+);
+categoryRoutes.get(
+  "/recipe-category/:kitchenId",
+  hasPermission(PERMISSIONS.CATEGORY_VIEW),
+  getRecipeCategoriesByKitchen
+);
+categoryRoutes.get(
+  "/recipe-category-id/:id",
+  hasPermission(PERMISSIONS.CATEGORY_VIEW),
+  getRecipeCategoryById
+);
+categoryRoutes.post(
+  "/recipe-category",
+  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
+  createRecipeCategory
+);
+categoryRoutes.put(
+  "/recipe-category/:id",
+  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
+  updateRecipeCategory
+);
+categoryRoutes.delete(
+  "/recipe-category/:id",
+  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
+  deleteRecipeCategory
+);
 
 export default categoryRoutes;
