@@ -69,7 +69,13 @@ staffRoutes.put(
 );
 
 staffRoutes.get("/attendance/getAll", getAllStaffForAttendance);
-staffRoutes.delete(hasPermission(PERMISSIONS.STAFF_MANAGE), deleteStaff);
+
+staffRoutes.delete(
+  "/delete/:id",
+  hasPermission(PERMISSIONS.STAFF_MANAGE),
+  deleteStaff
+);
+
 staffRoutes.get(
   "/by-property/:propertyId",
   hasPermission(PERMISSIONS.STAFF_VIEW),

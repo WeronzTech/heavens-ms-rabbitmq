@@ -345,7 +345,7 @@ export const deleteExpense = async (data) => {
       return { success: false, status: 404, message: "Expense not found" };
     }
 
-     await createAccountLog({
+    await createAccountLog({
       logType: "Expense",
       action: "Delete",
       description: `Expense '${expense.title}' for ₹${expense.amount} deleted.`,
@@ -525,7 +525,7 @@ export const getExpenseAnalytics = async (data) => {
           acc[t.type] = t.totalAmount;
           return acc;
         },
-        { pg: 0, mess: 0, others: 0 }
+        { PG: 0, Mess: 0, Others: 0 }
       );
 
       const monthName = new Date(0, monthData._id - 1).toLocaleString("en", {
@@ -535,9 +535,9 @@ export const getExpenseAnalytics = async (data) => {
       return {
         monthYear: `${monthName} ${targetYear}`,
         totalExpense: monthData.totalExpense,
-        pg: typesObj.pg || 0,
-        mess: typesObj.mess || 0,
-        others: typesObj.others || 0,
+        pg: typesObj.PG || 0,
+        mess: typesObj.Mess || 0,
+        others: typesObj.Others || 0,
       };
     });
 

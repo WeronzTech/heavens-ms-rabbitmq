@@ -96,8 +96,7 @@ export const updateNoteController = async (req, res) => {
 export const completeReminder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { actionNotes } = req.body;
-    const takenBy = req.headers["x-user-id"];
+    const { takenBy, actionNotes } = req.body;
 
     const response = await sendRPCRequest(
       USER_PATTERN.REMINDER_NOTE.COMPLETE_REMINDER,
@@ -120,8 +119,7 @@ export const completeReminder = async (req, res) => {
 export const snoozeReminder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { newDate, reason } = req.body;
-    const takenBy = req.headers["x-user-id"];
+    const { takenBy, newDate, reason } = req.body;
 
     const response = await sendRPCRequest(
       USER_PATTERN.REMINDER_NOTE.SNOOZE_REMINDER,

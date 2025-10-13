@@ -153,9 +153,18 @@ export const noteController = {
         return { status: 404, success: false, message: "Note not found" };
       }
 
-      return { status: 200, success: true, data: updatedNote };
+      return {
+        status: 200,
+        success: true,
+        message: "Reminder marked as completed",
+        data: updatedNote,
+      };
     } catch (error) {
-      return { status: 500, success: false, message: error.message };
+      return {
+        status: 500,
+        success: false,
+        message: error.message,
+      };
     }
   },
 
@@ -189,7 +198,15 @@ export const noteController = {
         return { status: 404, success: false, message: "Note not found" };
       }
 
-      return { status: 200, success: true, data: updatedNote };
+      return {
+        status: 200,
+        success: true,
+        message: `Reminder snoozed to ${new Date(
+          newDate
+        ).toLocaleDateString()}`,
+
+        data: updatedNote,
+      };
     } catch (error) {
       return { status: 500, success: false, message: error.message };
     }

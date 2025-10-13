@@ -9,9 +9,10 @@ import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
-import Voucher from "../models/voucher.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
+import Deposits from "../models/depositPayments.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -342,7 +343,7 @@ const processAndRecordPayment = async ({
       throw new Error(userResponse.message || "User not found.");
     }
     const user = userResponse.body.data;
-
+    console.log(user);
     let paymentForMonths = [];
     let advanceForMonths = [];
 
@@ -1154,41 +1155,90 @@ export const getWaveOffedPayments = async (data) => {
 
 export const getAllCashPayments = async ({ propertyId }) => {
   try {
+    const startDate = new Date("2025-10-13T00:00:00.000Z");
+
     // Fetch all cash payments
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
-      ...(propertyId && { "property.id": propertyId }), // Payments model uses property.id
+      createdAt: { $gte: startDate },
+      ...(propertyId && { "property.id": propertyId }),
     }).sort({ createdAt: -1 });
 
-    // Fetch all vouchers (filtering by propertyId from voucher model)
-    const Vouchers = await Voucher.find({
+    // Fetch all deposit cash payments
+    const DepositPayments = await Deposits.find({
+      paymentMethod: "Cash",
+      createdAt: { $gte: startDate },
+      ...(propertyId && { property: propertyId }),
+    }).sort({ createdAt: -1 });
+
+    // Fetch all cash expenses from Expense collection
+    const Expenses = await Expense.find({
+      paymentMethod: "Cash",
+      createdAt: { $gte: startDate },
+      ...(propertyId && { "property.id": propertyId }),
+    }).sort({ createdAt: -1 });
+
+    // Fetch all cash commissions
+    const Commissions = await Commission.find({
+      paymentType: "Cash",
+      createdAt: { $gte: startDate },
+      ...(propertyId && { property: propertyId }),
+    }).sort({ createdAt: -1 });
+
+    // Fetch all cash staff salary payments
+    const StaffSalaries = await StaffSalaryHistory.find({
+      paymentMethod: "Cash",
+      createdAt: { $gte: startDate },
       ...(propertyId && { propertyId }),
     }).sort({ createdAt: -1 });
 
-    // Calculate total cash payments
+    // Calculate total cash payments (inflow)
     const totalCashPayments = CashPayments.reduce(
       (sum, payment) => sum + (payment.amount || 0),
       0
     );
 
-    // Calculate total vouchers
-    const totalVouchers = Vouchers.reduce(
-      (sum, voucher) => sum + (voucher.amount || 0),
+    // Calculate total cash payments (inflow)
+    const totalDepositPayments = DepositPayments.reduce(
+      (sum, payment) => sum + (payment.amountPaid || 0),
+      0
+    );
+    // Calculate total expenses (outflows)
+    const totalExpenses = Expenses.reduce(
+      (sum, exp) => sum + (exp.amount || 0),
       0
     );
 
-    // Net cash = cash payments - vouchers
-    const netCash = totalCashPayments - totalVouchers;
+    const totalCommissions = Commissions.reduce(
+      (sum, com) => sum + (com.amount || 0),
+      0
+    );
+
+    const totalStaffSalaries = StaffSalaries.reduce(
+      (sum, sal) => sum + (sal.paidAmount || 0),
+      0
+    );
+
+    // Total cash inflow
+    const totalCashInflow = totalCashPayments + totalDepositPayments;
+
+    // Total cash outflow
+    const totalCashOutflow =
+      totalExpenses + totalCommissions + totalStaffSalaries;
+
+    // Net cash = inflow - outflow
+    const netCash = Math.max(totalCashInflow - totalCashOutflow, 0);
 
     return {
       success: true,
       status: 200,
       message: "Cash payments fetched successfully",
       totalCashPayments,
-      totalVouchers,
+      totalExpenses,
+      totalCommissions,
+      totalStaffSalaries,
+      totalCashOutflow,
       netCash,
-      // cashPayments: CashPayments,
-      // vouchers: Vouchers,
     };
   } catch (error) {
     console.error("Get Cash Payments Service Error:", error);
