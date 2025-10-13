@@ -19,6 +19,19 @@ const generateUniqueReferralCode = async () => {
   return referralCode;
 };
 
+const getReferralLevel = (referralCount, levels) => {
+  // Sort levels by referrals needed in descending order to find the highest applicable level
+  const sortedLevels = [...levels].sort(
+    (a, b) => b.referralsNeeded - a.referralsNeeded
+  );
+  for (const level of sortedLevels) {
+    if (referralCount >= level.referralsNeeded) {
+      return level;
+    }
+  }
+  return null; // Return null if no level is matched
+};
+
 export const getUserReferralDetails = async (data) => {
   try {
     const { userId } = data;
@@ -108,12 +121,42 @@ export const completeReferral = async (data) => {
       };
     }
 
-    const rewardAmount = settings ? settings.rewardAmount : 250;
+    // --- LEVEL-BASED LOGIC START ---
+    if (!settings || !settings.levels || settings.levels.length === 0) {
+      return {
+        success: false,
+        status: 404,
+        message: "Referral level settings are not configured by the admin.",
+      };
+    }
 
-    referrer.referralInfo.totalReferrals =
-      (referrer.referralInfo.totalReferrals || 0) + 1;
+    const newTotalReferrals = (referrer.referralInfo.totalReferrals || 0) + 1;
+
+    const newLevelInfo = getReferralLevel(newTotalReferrals, settings.levels);
+
+    if (!newLevelInfo) {
+      console.log(
+        `Referral for ${newUser.name} by ${referrer.name} did not meet criteria for any reward level.`
+      );
+      // Even if no reward, we still count the referral
+      referrer.referralInfo.totalReferrals = newTotalReferrals;
+      newUser.referralInfo.isReferralProcessed = true;
+      await Promise.all([referrer.save(), newUser.save()]);
+      return {
+        success: true,
+        status: 200,
+        message: "Referral processed, but no reward level achieved.",
+      };
+    }
+
+    const rewardAmount = newLevelInfo.rewardAmount;
+
+    referrer.referralInfo.totalReferrals = newTotalReferrals;
+    referrer.referralInfo.currentLevel = newLevelInfo.level;
     referrer.referralInfo.referralEarnings =
       (referrer.referralInfo.referralEarnings || 0) + rewardAmount;
+    referrer.referralInfo.availableBalance =
+      (referrer.referralInfo.availableBalance || 0) + rewardAmount; // Add to spendable balance
     referrer.referralInfo.referralHistory.referredUsers.push(newUser.name);
     referrer.referralInfo.referralHistory.lastUsed = new Date();
 
@@ -122,7 +165,7 @@ export const completeReferral = async (data) => {
     await Promise.all([referrer.save(), newUser.save()]);
 
     console.log(
-      `Referral complete! User ${referrer.name} earned ₹${rewardAmount} for referring ${newUser.name}.`
+      `Referral complete! User ${referrer.name} (Level ${newLevelInfo.level}) earned ₹${rewardAmount} for referring ${newUser.name}.`
     );
 
     return {
@@ -130,6 +173,7 @@ export const completeReferral = async (data) => {
       status: 200,
       message: "Referral completed successfully.",
     };
+    // --- LEVEL-BASED LOGIC END ---
   } catch (error) {
     console.error("Complete Referral Service Error:", error);
     return {
@@ -140,14 +184,22 @@ export const completeReferral = async (data) => {
     };
   }
 };
-
 export const getReferralSettings = async () => {
   try {
     let settings = await ReferralSettings.findOne();
 
-    // If no settings exist, create a default one
     if (!settings) {
-      settings = await ReferralSettings.create({ rewardAmount: 250 });
+      // Create default settings if they don't exist
+      const defaultLevels = [
+        { level: 1, referralsNeeded: 1, rewardAmount: 100 },
+        { level: 2, referralsNeeded: 5, rewardAmount: 150 },
+        { level: 3, referralsNeeded: 15, rewardAmount: 200 },
+        { level: 4, referralsNeeded: 30, rewardAmount: 250 },
+      ];
+      settings = await ReferralSettings.create({
+        levels: defaultLevels,
+        maxUsagePerTransaction: 500,
+      });
     }
 
     return {
@@ -169,19 +221,31 @@ export const getReferralSettings = async () => {
 
 export const upsertReferralSettings = async (data) => {
   try {
-    const { rewardAmount } = data;
-    if (rewardAmount === undefined || typeof rewardAmount !== "number") {
+    const { levels, maxUsagePerTransaction } = data;
+
+    // Add validation for the new structure
+    if (!levels || !Array.isArray(levels) || levels.length === 0) {
       return {
         success: false,
         status: 400,
-        message: "A valid 'rewardAmount' is required.",
+        message: "A valid 'levels' array is required.",
       };
     }
 
-    // Find one and update, or create if it doesn't exist (upsert)
+    if (
+      maxUsagePerTransaction === undefined ||
+      typeof maxUsagePerTransaction !== "number"
+    ) {
+      return {
+        success: false,
+        status: 400,
+        message: "A valid 'maxUsagePerTransaction' is required.",
+      };
+    }
+
     const settings = await ReferralSettings.findOneAndUpdate(
-      {}, // An empty filter will match the first document found
-      { $set: { rewardAmount } },
+      {},
+      { $set: { levels, maxUsagePerTransaction } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
