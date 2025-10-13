@@ -187,7 +187,7 @@ export const sendPushNotification = async ({ data }) => {
 
     // Fetch user IDs
     const userResp = await getUserIds(params.toString());
-    const userArray = userResp?.data || userResp; // normalize
+    const userArray = userResp?.body || userResp; // normalize
 
     if (!Array.isArray(userArray) || userArray.length === 0) {
       return {

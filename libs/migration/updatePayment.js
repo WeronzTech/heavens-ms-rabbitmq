@@ -1,5 +1,20 @@
 import mongoose from "mongoose";
-import DatabaseCounter from "./databaseCounter.model.js";
+
+// --- Configuration ---
+// Set to 'false' to perform actual database writes.
+// Set to 'true' to only log what would be updated without saving changes.
+const IS_DRY_RUN = false;
+
+// ❗ IMPORTANT: Set the connection strings for your TWO databases.
+const USERS_DB_URI =
+  "mongodb+srv://weronztech:YOsHNIqznJgGcnRX@cluster0.degplel.mongodb.net/userDB?retryWrites=true&w=majority";
+const PAYMENTS_DB_URI =
+  "mongodb+srv://weronztech:YOsHNIqznJgGcnRX@cluster0.degplel.mongodb.net/accountsDB?retryWrites=true&w=majority";
+
+// --- Paste Schemas Directly Here ---
+
+// 1. User Schema (from your user.model.js)
+// Note: I've removed the pre-save hooks and other methods as they aren't needed for this update script.
 
 const userSchema = new mongoose.Schema(
   {
@@ -208,10 +223,9 @@ const userSchema = new mongoose.Schema(
             referredUsers: [String],
             lastUsed: Date,
           },
-          currentLevel: { type: Number, default: 0 }, // UPDATED: Tracks the user's current referral level
+          level: { type: Number, default: 1 },
           totalReferrals: { type: Number, default: 0 },
           referralEarnings: { type: Number, default: 0 },
-          availableBalance: { type: Number, default: 0 }, // NEW: The spendable balance
           withdrawnAmount: { type: Number, default: 0 },
         },
         { _id: false }
@@ -280,126 +294,179 @@ const userSchema = new mongoose.Schema(
 );
 
 // Indexes for performance optimization
-userSchema.index({ userType: 1, rentType: 1 });
-userSchema.index({ "stayDetails.propertyId": 1, isHeavens: 1 });
-userSchema.index({ "stayDetails.roomId": 1 });
-userSchema.index({ contact: 1 });
-userSchema.index({ email: 1 }, { sparse: true });
-userSchema.index({ residentId: 1 }, { sparse: true });
-userSchema.index({ paymentStatus: 1, "financialDetails.nextDueDate": 1 });
-userSchema.index({ currentStatus: 1, isVacated: 1 });
-userSchema.index({ "messDetails.kitchenId": 1 }, { sparse: true });
-userSchema.index({ "statusRequests.status": 1 });
-userSchema.index({ "statusRequests.type": 1 });
-userSchema.index({ "statusRequests.requestedAt": -1 });
-userSchema.index({ userType: 1, "statusRequests.status": 1 });
+// 2. Payment Schema (from your payments.model.js
+const paymentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    rentType: { type: String, required: true },
+    userType: { type: String, required: true },
+    contact: { type: String, required: true },
+    room: { type: String, required: true },
+    rent: { type: Number, required: true },
+    amount: { type: Number, required: true }, // Payment amount
+    dueAmount: { type: Number, required: true }, // Remaining pending amount
+    waveOffAmount: { type: Number, required: false },
+    waveOffReason: { type: String, required: false },
+    accountBalance: { type: Number, required: true },
+    advanceApplied: { type: Number, default: 0 }, // How much credit was used for this payment
+    remainingBalance: { type: Number, default: 0 },
+    paymentMethod: {
+      type: String,
+      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay"],
+      required: true,
+    },
+    transactionId: {
+      type: String,
+      required: function () {
+        return (
+          this.paymentMethod === "UPI" || this.paymentMethod === "Bank Transfer"
+        );
+      }, // Only required for UPI and Online payments
+      sparse: true, // Allow null for manual payments (Cash and Bank Transfer)
+    },
+    collectedBy: { type: String, required: false },
+    fullyClearedRentMonths: [{ type: String, required: true }], // Example: "January 2024"
+    paymentForMonths: [{ type: String }],
+    advanceForMonths: [{ type: String }],
+    paymentDate: { type: Date, default: Date.now },
+    status: { type: String, enum: ["Paid", "Pending"], default: "Pending" },
+    remarks: { type: String },
+    property: {
+      id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Property",
+        required: false,
+      },
+      name: {
+        type: String,
+        required: false,
+      },
+      _id: false,
+    },
+    receiptNumber: { type: String },
+    razorpayOrderId: { type: String }, // Store Razorpay order ID
+    razorpayPaymentId: { type: String }, // Store transaction ID
+    razorpaySignature: { type: String }, // For verifying payment
+    clientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+      required: false,
+    }, // Link to the client
+    userId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  },
+  { timestamps: true }
+);
 
-userSchema.pre("save", async function (next) {
+/**
+ * Main function to perform the update logic across two databases.
+ */
+const updateAcrossDatabases = async () => {
+  console.log("🚀 Starting user financial details update script...");
+
+  let userDbConnection;
+  let paymentDbConnection;
+
   try {
-    if (this.isNew) {
-      const now = new Date();
-      const year = now.getFullYear().toString().slice(-2);
-      const month = `0${now.getMonth() + 1}`.slice(-2);
+    // 1. Establish connections to both databases
+    console.log("Connecting to databases...");
+    userDbConnection = await mongoose
+      .createConnection(USERS_DB_URI)
+      .asPromise();
+    paymentDbConnection = await mongoose
+      .createConnection(PAYMENTS_DB_URI)
+      .asPromise();
+    console.log(
+      "✅ Successfully connected to both User and Payment databases."
+    );
 
-      let counter = await DatabaseCounter.findOneAndUpdate(
-        {
-          type: "User",
-          year: parseInt(year, 10),
-          month: parseInt(month, 10),
-        },
-        { $inc: { count: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-      );
+    // 2. Register models on their respective connections
+    const User = userDbConnection.model("User", userSchema);
+    const Payments = paymentDbConnection.model("Payments", paymentSchema);
 
-      if (!counter) {
-        throw new Error("Counter document could not be created or updated.");
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    // 3. Fetch all relevant users from the User database
+    const users = await User.find({
+      rentType: "monthly",
+      isVacated: false,
+    }).select("_id name userId financialDetails");
+
+    console.log(
+      `🔍 Found ${users.length} monthly rent users to process from the Users DB.`
+    );
+
+    // 4. Iterate over each user
+    for (const user of users) {
+      // 5. Find the latest payment for this user from the Payments database
+      const latestPayment = await Payments.findOne({
+        userId: user._id, // This links the two collections
+        status: "Paid",
+      }).sort({ paymentDate: -1, _id: -1 });
+
+      if (!latestPayment || !latestPayment.fullyClearedRentMonths?.length) {
+        // console.log(`- Skipping user ${user.name} (${user.userId}): No valid payment found in Payments DB.`);
+        skippedCount++;
+        continue;
       }
 
-      const customId = `HVNS-U${year}${month}${counter.count}`;
-      this.userId = customId;
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+      // 6. Determine the most recently cleared month
+      const clearedMonths = latestPayment.fullyClearedRentMonths;
+      const latestClearedMonthStr = clearedMonths[clearedMonths.length - 1];
 
-// Virtual for calculating current rent based on rent type
-userSchema.virtual("currentRent").get(function () {
-  switch (this.rentType) {
-    case "Daily":
-      return this.stayDetails?.dailyRent || this.stayDetails?.rent;
-    case "Weekly":
-      return this.stayDetails?.weeklyRent || this.stayDetails?.rent;
-    case "Monthly":
-      return (
-        this.stayDetails?.monthlyRent ||
-        this.financialDetails?.monthlyRent ||
-        this.stayDetails?.rent
+      // 7. Calculate the next due date
+      const lastClearedDate = new Date(Date.parse(latestClearedMonthStr));
+      if (isNaN(lastClearedDate)) {
+        console.warn(
+          `- Skipping user ${user.name} (${user.userId}): Invalid date format: "${latestClearedMonthStr}"`
+        );
+        skippedCount++;
+        continue;
+      }
+
+      const year = lastClearedDate.getFullYear();
+      // `getMonth()` is 0-indexed (Jan=0), so add 1. `padStart` ensures two digits (e.g., '09').
+      const month = String(lastClearedDate.getMonth() + 1).padStart(2, "0");
+      const formattedClearedMonth = `${year}-${month}`;
+
+      const nextDueDate = new Date(lastClearedDate);
+      nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+      nextDueDate.setDate(latestPayment.paymentDate.getDate());
+      nextDueDate.setHours(0, 0, 0, 0);
+
+      // 8. Update the user document in memory
+      user.financialDetails.clearedTillMonth = formattedClearedMonth;
+      user.financialDetails.nextDueDate = nextDueDate;
+
+      console.log(
+        `- Preparing update for ${user.name} (${
+          user.userId
+        }): Cleared until ${latestClearedMonthStr}, Next due: ${nextDueDate.toLocaleDateString()}`
       );
-    default:
-      return this.stayDetails?.rent || 0;
-  }
-});
 
-// Pre-save middleware to set appropriate rent values
-userSchema.pre("save", function (next) {
-  // Auto-set rent values based on rentType
-  if (this.stayDetails?.rent) {
-    switch (this.rentType) {
-      case "Daily":
-        this.stayDetails.dailyRent =
-          this.stayDetails.dailyRent || this.stayDetails.rent;
-        break;
-      case "Weekly":
-        this.stayDetails.weeklyRent =
-          this.stayDetails.weeklyRent || this.stayDetails.rent;
-        break;
-      case "Monthly":
-        this.stayDetails.monthlyRent =
-          this.stayDetails.monthlyRent || this.stayDetails.rent;
-        this.financialDetails.monthlyRent =
-          this.financialDetails.monthlyRent || this.stayDetails.rent;
-        break;
+      // 9. Save changes to the User database if not a dry run
+      if (!IS_DRY_RUN) {
+        await user.save();
+      }
+      updatedCount++;
     }
-  }
 
-  // Set default values based on userType
-  if (this.userType === "MessOnly") {
-    this.rentType = this.rentType || "Monthly";
+    console.log("\n--- Script Summary ---");
+    if (IS_DRY_RUN) {
+      console.log("🛠️ DRY RUN MODE: No changes were saved to the database.");
+    }
+    console.log(`✅ Users processed for update: ${updatedCount}`);
+    console.log(`⏩ Users skipped: ${skippedCount}`);
+    console.log("🎉 Script finished successfully!");
+  } catch (error) {
+    console.error("\n❌ An error occurred during the update process:", error);
+  } finally {
+    // 10. Disconnect from both databases
+    if (userDbConnection) await userDbConnection.close();
+    if (paymentDbConnection) await paymentDbConnection.close();
+    console.log("🔌 Disconnected from all databases.");
   }
-  if (this.userType === "DailyRent") {
-    this.rentType = "Daily";
-  }
-
-  next();
-});
-
-// Static method to get users by rent type
-userSchema.statics.findByRentType = function (
-  rentType,
-  additionalFilters = {}
-) {
-  return this.find({ rentType, ...additionalFilters });
 };
 
-// Static method to get overdue payments
-userSchema.statics.findOverduePayments = function () {
-  return this.find({
-    paymentStatus: { $in: ["Pending", "Overdue"] },
-    "financialDetails.nextDueDate": { $lt: new Date() },
-    isVacated: false,
-  });
-};
-
-// Instance method to calculate total dues
-userSchema.methods.calculateTotalDues = function () {
-  return (
-    (this.financialDetails?.pendingRent || 0) +
-    (this.financialDetails?.monthlyRent || 0)
-  );
-};
-
-const User = mongoose.model("User", userSchema);
-
-export default User;
+// Run the script
+updateAcrossDatabases();
