@@ -36,70 +36,77 @@ export const addInventory = async (data) => {
       kitchenId: { $in: kitchenId },
     });
 
+    // if (existingItem) {
+    //   if (existingItem.pricePerUnit !== pricePerUnit) {
+    //     if (existingItem.stockQuantity > existingItem.lowStockQuantity) {
+    //       await QueuedInventory.create({
+    //         productName,
+    //         quantityType,
+    //         stockQuantity,
+    //         lowStockQuantity,
+    //         kitchenId,
+    //         categoryId,
+    //         pricePerUnit,
+    //         totalCost,
+    //         linkedInventoryId: existingItem._id,
+    //         status: "pending",
+    //       });
+    //       return {
+    //         success: true,
+    //         status: 202,
+    //         message: "Price differs and stock is not zero. Item queued.",
+    //         data: existingItem,
+    //       };
+    //     } else {
+    //       existingItem.pricePerUnit = pricePerUnit;
+    //       existingItem.totalCost = totalCost;
+    //       existingItem.stockQuantity = stockQuantity;
+    //       await existingItem.save();
+    //       await InventoryLog.create({
+    //         inventoryId: existingItem._id,
+    //         kitchenId: kitchenId[0],
+    //         productName,
+    //         quantityChanged: stockQuantity,
+    //         newStock: stockQuantity,
+    //         operation: "price_update_and_add",
+    //         performedBy: userAuth,
+    //         notes: "Stock added after price change",
+    //       });
+    //       return {
+    //         success: true,
+    //         status: 200,
+    //         message: "Inventory updated successfully.",
+    //         data: existingItem,
+    //       };
+    //     }
+    //   } else {
+    //     existingItem.stockQuantity += stockQuantity;
+    //     existingItem.totalCost += totalCost;
+    //     await existingItem.save();
+    //     await InventoryLog.create({
+    //       inventoryId: existingItem._id,
+    //       kitchenId: kitchenId[0],
+    //       productName,
+    //       quantityChanged: stockQuantity,
+    //       newStock: existingItem.stockQuantity,
+    //       operation: "add",
+    //       performedBy: userAuth,
+    //       notes: "Stock added (price matched)",
+    //     });
+    //     return {
+    //       success: true,
+    //       status: 200,
+    //       message: "Inventory updated successfully.",
+    //       data: existingItem,
+    //     };
+    //   }
+    // }
     if (existingItem) {
-      if (existingItem.pricePerUnit !== pricePerUnit) {
-        if (existingItem.stockQuantity > existingItem.lowStockQuantity) {
-          await QueuedInventory.create({
-            productName,
-            quantityType,
-            stockQuantity,
-            lowStockQuantity,
-            kitchenId,
-            categoryId,
-            pricePerUnit,
-            totalCost,
-            linkedInventoryId: existingItem._id,
-            status: "pending",
-          });
-          return {
-            success: true,
-            status: 202,
-            message: "Price differs and stock is not zero. Item queued.",
-            data: existingItem,
-          };
-        } else {
-          existingItem.pricePerUnit = pricePerUnit;
-          existingItem.totalCost = totalCost;
-          existingItem.stockQuantity = stockQuantity;
-          await existingItem.save();
-          await InventoryLog.create({
-            inventoryId: existingItem._id,
-            kitchenId: kitchenId[0],
-            productName,
-            quantityChanged: stockQuantity,
-            newStock: stockQuantity,
-            operation: "price_update_and_add",
-            performedBy: userAuth,
-            notes: "Stock added after price change",
-          });
-          return {
-            success: true,
-            status: 200,
-            message: "Inventory updated successfully.",
-            data: existingItem,
-          };
-        }
-      } else {
-        existingItem.stockQuantity += stockQuantity;
-        existingItem.totalCost += totalCost;
-        await existingItem.save();
-        await InventoryLog.create({
-          inventoryId: existingItem._id,
-          kitchenId: kitchenId[0],
-          productName,
-          quantityChanged: stockQuantity,
-          newStock: existingItem.stockQuantity,
-          operation: "add",
-          performedBy: userAuth,
-          notes: "Stock added (price matched)",
-        });
-        return {
-          success: true,
-          status: 200,
-          message: "Inventory updated successfully.",
-          data: existingItem,
-        };
-      }
+      return {
+        success: false,
+        status: 400,
+        message: "Inventory item already exists.",
+      };
     }
 
     const newItem = await Inventory.create({
