@@ -11,6 +11,7 @@ const paymentSchema = new mongoose.Schema(
     amount: { type: Number, required: true }, // Payment amount
     dueAmount: { type: Number, required: true }, // Remaining pending amount
     waveOffAmount: { type: Number, required: false },
+    referralAmountUsed: { type: Number, required: false },
     waveOffReason: { type: String, required: false },
     accountBalance: { type: Number, required: true },
     advanceApplied: { type: Number, default: 0 }, // How much credit was used for this payment

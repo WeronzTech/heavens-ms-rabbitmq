@@ -16,12 +16,13 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 export const addCategory = (req, res) =>
   handleRPCAndRespond(res, INVENTORY_PATTERN.CATEGORY.ADD_CATEGORY, req.body);
 
-export const getCategoriesByPropertyId = (req, res) =>
+export const getCategoriesByPropertyId = (req, res) => {
   handleRPCAndRespond(
     res,
     INVENTORY_PATTERN.CATEGORY.GET_CATEGORIES_BY_PROPERTY,
     req.query
   );
+};
 
 export const createRecipeCategory = (req, res) =>
   handleRPCAndRespond(

@@ -327,6 +327,7 @@ const processAndRecordPayment = async ({
   razorpayDetails = {},
   waveOffAmount = 0, // New field
   waveOffReason = null, // New field
+  referralAmountUsed = 0,
   paymentDate,
   collectedBy = "",
   remarks = "",
@@ -343,13 +344,18 @@ const processAndRecordPayment = async ({
       throw new Error(userResponse.message || "User not found.");
     }
     const user = userResponse.body.data;
-    console.log(user);
+
+    if (referralAmountUsed > 0) {
+      user.referralInfo.availableBalance -= referralAmountUsed;
+      user.referralInfo.withdrawnAmount += referralAmountUsed;
+    }
+
     let paymentForMonths = [];
     let advanceForMonths = [];
 
     if (user.rentType === "daily" || user.rentType === "mess") {
       const pending = user.financialDetails.pendingAmount || 0;
-      const totalCredit = amount + waveOffAmount;
+      const totalCredit = amount + waveOffAmount + referralAmountUsed;
 
       if (totalCredit < pending) {
         throw new Error(
@@ -381,7 +387,8 @@ const processAndRecordPayment = async ({
       const currentPendingRent = user.financialDetails.pendingRent || 0;
 
       // The total credit for this transaction includes payment, balance, and any wave-off
-      const totalAvailableAmount = amount + currentBalance + waveOffAmount;
+      const totalAvailableAmount =
+        amount + currentBalance + waveOffAmount + referralAmountUsed;
 
       if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
         throw new Error(
@@ -465,6 +472,7 @@ const processAndRecordPayment = async ({
       paymentMethod,
       paymentDate,
       transactionId,
+      referralAmountUsed,
       paymentForMonths,
       advanceForMonths,
       status: "Paid",
@@ -508,23 +516,13 @@ const processAndRecordPayment = async ({
         userData: {
           financialDetails: user.financialDetails,
           paymentStatus: user.paymentStatus,
+          referralInfo: user.referralInfo,
         },
       }
     );
 
     if (!updateUserResponse.body.success) {
       throw new Error("Failed to update user financial details.");
-    }
-
-    const updateUserReferral = await sendRPCRequest(
-      USER_PATTERN.REFERRAL.COMPLETE_REFERRAL,
-      {
-        newUserId: userId,
-      }
-    );
-
-    if (!updateUserReferral?.success) {
-      throw new Error("Failed to update user referral.");
     }
 
     await session.commitTransaction();
@@ -545,8 +543,9 @@ const processAndRecordPayment = async ({
 
 export const initiateOnlinePayment = async (data) => {
   try {
-    const { userId, amount } = data;
+    const { userId, amount, useReferralBalance } = data;
     const paymentAmount = Number(amount);
+    let referralAmountUsed = Number(useReferralBalance) || 0;
 
     if (!userId || !paymentAmount || paymentAmount <= 0) {
       return {
@@ -564,6 +563,38 @@ export const initiateOnlinePayment = async (data) => {
       return { success: false, status: 404, message: "User not found." };
     }
     const user = userResponse.body.data;
+
+    if (referralAmountUsed > 0) {
+      const settingsResponse = await sendRPCRequest(
+        USER_PATTERN.REFERRAL.GET_SETTINGS,
+        {}
+      );
+      if (!settingsResponse?.success) {
+        throw new Error("Could not retrieve referral settings.");
+      }
+      const referralSettings = settingsResponse.data;
+
+      const availableBalance = user.referralInfo?.availableBalance || 0;
+
+      if (referralAmountUsed > availableBalance) {
+        return {
+          success: false,
+          status: 400,
+          message: `You are trying to use ₹${referralAmountUsed} from referrals, but you only have ₹${availableBalance} available.`,
+        };
+      }
+
+      if (referralAmountUsed > referralSettings.maxUsagePerTransaction) {
+        return {
+          success: false,
+          status: 400,
+          message: `You cannot use more than ₹${referralSettings.maxUsagePerTransaction} from your referral balance in a single transaction.`,
+        };
+      }
+
+      // Reduce the amount that needs to be paid via Razorpay
+      paymentAmount -= referralAmountUsed;
+    }
 
     // ✅ NEW: Validate payment amount before creating Razorpay order
     const { rentType, financialDetails } = user;
@@ -602,26 +633,39 @@ export const initiateOnlinePayment = async (data) => {
       }
     }
 
-    const razorpayResponse = await createRazorpayOrderId(paymentAmount);
-    if (!razorpayResponse.success) {
-      return {
-        success: false,
-        status: 500,
-        message: "Failed to create payment order.",
-      };
-    }
+    if (paymentAmount > 0) {
+      const razorpayResponse = await createRazorpayOrderId(paymentAmount);
+      if (!razorpayResponse.success) {
+        return {
+          success: false,
+          status: 500,
+          message: "Failed to create payment order.",
+        };
+      }
 
-    return {
-      success: true,
-      status: 200,
-      message: "Order created successfully.",
-      data: {
-        orderId: razorpayResponse.orderId,
-        amount: paymentAmount,
-        name: "Heavens Living",
-        prefill: { name: user.name, email: user.email, contact: user.contact },
-      },
-    };
+      return {
+        success: true,
+        status: 200,
+        message: "Order created successfully.",
+        data: {
+          orderId: razorpayResponse.orderId,
+          amount: paymentAmount,
+          name: "Heavens Living",
+          prefill: {
+            name: user.name,
+            email: user.email,
+            contact: user.contact,
+          },
+        },
+      };
+    } else {
+      return await processAndRecordPayment({
+        userId,
+        amount: 0, // No new amount paid online
+        paymentMethod: "Referral Balance",
+        referralAmountUsed: referralAmountUsed, // Pass the used amount
+      });
+    }
   } catch (error) {
     console.error("Error during payment initiation:", error);
     return { success: false, status: 500, message: "Internal Server Error" };
@@ -635,6 +679,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     razorpay_signature,
     userId,
     amount,
+    useReferralBalance,
   } = data;
 
   const isVerified = await verifyRazorpaySignature({
@@ -653,6 +698,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
   return await processAndRecordPayment({
     userId,
     amount: Number(amount),
+    referralAmountUsed: Number(useReferralBalance) || 0,
     paymentMethod: "Razorpay",
     razorpayDetails: {
       razorpayOrderId: razorpay_order_id,

@@ -63,4 +63,21 @@ export const USER_PATTERN = {
     GET_SETTINGS: "get_referral_settings",
     UPDATE_SETTINGS: "update_referral_settings",
   },
+  GAMING: {
+    ITEM: {
+      CREATE: "gaming_item_create",
+      GET_ALL: "gaming_item_get_all",
+      GET_BY_ID: "gaming_item_get_by_id",
+      UPDATE: "gaming_item_update",
+      UPDATE_STATUS: "gaming_item_update_status",
+      DELETE: "gaming_item_delete",
+    },
+    ORDER: {
+      INITIATE: "gaming_order_initiate",
+      VERIFY_AND_CONFIRM: "gaming_order_verify_and_confirm",
+      UPDATE_STATUS: "gaming_order_update_status",
+      GET_ALL: "gaming_order_get_all",
+      GET_BY_ID: "gaming_order_get_by_id",
+    },
+  },
 };

@@ -44,6 +44,7 @@ import referralRoutes from "./routes/user/referral.routes.js";
 import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
 import reminderRoutes from "./routes/user/reminder.routes.js";
 import logRoutes from "./routes/accounts/accountsLog.routes.js";
+import gamingRoutes from "./routes/user/gaming.routes.js";
 
 dotenv.config();
 const app = express();
@@ -119,6 +120,7 @@ app.use("/api/v2/voucher", voucherRoutes);
 app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/reminder", reminderRoutes);
 app.use("/api/v2/accounts-log", logRoutes);
+app.use("/api/v2/gaming", gamingRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
