@@ -17,7 +17,7 @@ const categoryRoutes = express.Router();
 categoryRoutes.use(isAuthenticated);
 
 categoryRoutes.get(
-  "/",
+  "/get-by-property",
   hasPermission(PERMISSIONS.CATEGORY_VIEW),
   getCategoriesByPropertyId
 );

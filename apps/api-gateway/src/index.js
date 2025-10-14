@@ -44,6 +44,7 @@ import referralRoutes from "./routes/user/referral.routes.js";
 import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
 import reminderRoutes from "./routes/user/reminder.routes.js";
 import logRoutes from "./routes/accounts/accountsLog.routes.js";
+import gamingRoutes from "./routes/user/gaming.routes.js";
 
 dotenv.config();
 const app = express();
@@ -53,7 +54,12 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://hpanel.heavensliving.in","http://192.168.1.73:8082","http://192.168.1.80:8082",],
+    origin: [
+      "http://localhost:5173",
+      "https://hpanel.heavensliving.in",
+      "http://192.168.1.73:8082",
+      "http://192.168.1.80:8082",
+    ],
     credentials: true,
   })
 );
@@ -114,6 +120,7 @@ app.use("/api/v2/voucher", voucherRoutes);
 app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/reminder", reminderRoutes);
 app.use("/api/v2/accounts-log", logRoutes);
+app.use("/api/v2/gaming", gamingRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
