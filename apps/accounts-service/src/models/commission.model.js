@@ -36,10 +36,13 @@ const commissionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
     },
-    property: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-    },
+    paymentDate: { type: Date, default: Date.now },
+    property: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+    ],
     // userIds: [
     //   {
     //     type: mongoose.Schema.Types.ObjectId,

@@ -1189,30 +1189,33 @@ export const getHeavensUserById = async (data) => {
 
 export const getUsersByRentType = async (data) => {
   try {
-    const { rentType, propertyId, page, limit, search, status, joinDate } =
+    const { rentType, propertyId, all, page, limit, search, status, joinDate } =
       data;
-    console.log("hererererere");
 
-    console.log(propertyId);
+    // New flag to determine whether to fetch all users (no pagination)
+    const fetchAll = all === true || all === "true";
+
     // Convert and validate pagination parameters
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
 
-    // Validate pagination
-    if (
-      isNaN(pageNumber) ||
-      pageNumber < 1 ||
-      isNaN(limitNumber) ||
-      limitNumber < 1 ||
-      limitNumber > 100
-    ) {
-      return {
-        status: 400,
-        body: {
-          success: false,
-          error: "Invalid pagination parameters",
-        },
-      };
+    // Validate pagination only if not fetching all
+    if (!fetchAll) {
+      if (
+        isNaN(pageNumber) ||
+        pageNumber < 1 ||
+        isNaN(limitNumber) ||
+        limitNumber < 1 ||
+        limitNumber > 100
+      ) {
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: "Invalid pagination parameters",
+          },
+        };
+      }
     }
 
     // Base query conditions
@@ -1248,12 +1251,11 @@ export const getUsersByRentType = async (data) => {
           );
           queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
         } else {
-          // Handle the error case - maybe return empty array or throw error
           console.error(
             "Failed to fetch accessible kitchens:",
             accessibleKitchensResponse.message
           );
-          queryConditions["messDetails.kitchenId"] = { $in: [] }; // No kitchens accessible
+          queryConditions["messDetails.kitchenId"] = { $in: [] };
         }
       } else {
         queryConditions["stayDetails.propertyId"] = propertyId;
@@ -1291,7 +1293,7 @@ export const getUsersByRentType = async (data) => {
       }
     }
 
-    // Date filter - more robust handling
+    // Date filter - robust handling
     if (joinDate) {
       try {
         const startDate = new Date(`${joinDate}T00:00:00.000Z`);
@@ -1353,16 +1355,19 @@ export const getUsersByRentType = async (data) => {
 
     // Get total count for pagination metadata
     const totalCount = await User.countDocuments(queryConditions);
+    const totalPages = Math.ceil(totalCount / limitNumber);
     const skip = (pageNumber - 1) * limitNumber;
-    // console.log(queryConditions);
 
-    // Fetch users
-    const users = await User.find(queryConditions)
+    // Fetch users (skip pagination if fetchAll)
+    let query = User.find(queryConditions)
       .select(projection)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNumber)
-      .lean();
+      .sort({ createdAt: -1 });
+
+    if (!fetchAll) {
+      query = query.skip(skip).limit(limitNumber);
+    }
+
+    const users = await query.lean();
 
     // Format response
     const formattedUsers = users.map((user) => {
@@ -1405,7 +1410,6 @@ export const getUsersByRentType = async (data) => {
         noOfDaysForMessOnly: user.messDetails?.noOfDays,
       };
 
-      // 👉 Add deposit-related fields only if NOT 'daily' or 'mess'
       if (rentType !== "daily" && rentType !== "mess") {
         formatted.depositAmount =
           (user.stayDetails?.nonRefundableDeposit || 0) +
@@ -1417,17 +1421,18 @@ export const getUsersByRentType = async (data) => {
       return formatted;
     });
 
+    // Return consistent response
     return {
       status: 200,
       body: {
         success: true,
         pagination: {
           total: totalCount,
-          totalPages: Math.ceil(totalCount / limitNumber),
-          currentPage: pageNumber,
-          itemsPerPage: limitNumber,
-          hasNextPage: pageNumber < Math.ceil(totalCount / limitNumber),
-          hasPreviousPage: pageNumber > 1,
+          totalPages: fetchAll ? 1 : totalPages,
+          currentPage: fetchAll ? 1 : pageNumber,
+          itemsPerPage: fetchAll ? totalCount : limitNumber,
+          hasNextPage: !fetchAll && pageNumber < totalPages,
+          hasPreviousPage: !fetchAll && pageNumber > 1,
         },
         data: formattedUsers,
       },
@@ -3229,12 +3234,12 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
 export const getUsersByAgencyService = async (data) => {
   try {
     const { agent } = data;
-
+    console.log(data);
     if (!agent) {
       return {
         success: false,
         status: 400,
-        message: "Agency is required.",
+        message: "Agent is required.",
       };
     }
 
@@ -3247,6 +3252,7 @@ export const getUsersByAgencyService = async (data) => {
         name: 1,
         contact: 1,
         commissionEarned: 1,
+        "stayDetails.propertyId": 1,
         "stayDetails.monthlyRent": 1,
         "stayDetails.dailyRent": 1,
         "stayDetails.nonRefundableDeposit": 1,
@@ -3287,46 +3293,6 @@ export const getUsersByAgencyService = async (data) => {
     };
   }
 };
-
-// export const getUsersByAgencyService = async (data) => {
-//   try {
-//     const { agent } = data;
-//     const agencyId = new mongoose.Types.ObjectId(agent);
-
-//     if (!agent) {
-//       return {
-//         success: false,
-//         status: 400,
-//         message: "Agency is required.",
-//       };
-//     }
-
-//     const users = await User.find({ agent: agencyId }).lean();
-
-//     if (!users || users.length === 0) {
-//       return {
-//         success: false,
-//         status: 404,
-//         message: "No users found for the specified agency.",
-//       };
-//     }
-
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Users fetched successfully.",
-//       data: users,
-//     };
-//   } catch (error) {
-//     console.error("Get Users by Agency Service Error:", error);
-//     return {
-//       success: false,
-//       status: 500,
-//       message: "Internal Server Error",
-//       error: error.message,
-//     };
-//   }
-// };
 
 export const getUsersForMakingPayment = async (data) => {
   try {

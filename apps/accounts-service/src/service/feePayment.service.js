@@ -1115,19 +1115,52 @@ export const getFeePaymentsByUserId = async (data) => {
   }
 };
 
-export const getWaveOffedPayments = async (data) => {
+export const getWaveOffedPayments = async (filters) => {
   try {
+    const { propertyId, userType, paymentMethod, month, year, search } =
+      filters || {};
+    console.log("filters");
+    console.log(filters);
+
     const query = { waveOffAmount: { $gt: 0 } };
 
-    // Extract propertyId from data
-    const { propertyId } = data || {};
+    // Property filter (nested field)
+    if (propertyId) query["property.id"] = propertyId;
 
-    if (propertyId) {
-      query["property.id"] = propertyId;
+    // User type filter
+    if (userType) query.userType = userType;
+
+    // Payment method filter
+    if (paymentMethod) query.paymentMethod = paymentMethod;
+
+    // Search filter for name or transactionId
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { transactionId: { $regex: search, $options: "i" } },
+      ];
     }
 
-    const waveOffedPayments = await Payments.find(query).lean();
+    // Month & year filter (based on paymentDate)
+    if (month || year) {
+      const now = new Date();
+      const filterYear = year || now.getFullYear();
+      const filterMonth = month ? month - 1 : 0; // JS months are 0-indexed
 
+      const start = new Date(filterYear, filterMonth, 1, 0, 0, 0, 0);
+      const end = month
+        ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
+        : new Date(filterYear, 11, 31, 23, 59, 59, 999);
+
+      query.paymentDate = { $gte: start, $lte: end };
+    }
+
+    // Fetch data
+    const waveOffedPayments = await Payments.find(query)
+      .sort({ paymentDate: -1 })
+      .lean();
+
+    // Total wave-off amount
     const totalWaveOff = waveOffedPayments.reduce(
       (sum, payment) => sum + (payment.waveOffAmount || 0),
       0

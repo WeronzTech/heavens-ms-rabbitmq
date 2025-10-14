@@ -182,21 +182,15 @@ export const getHeavensUserById = async (req, res) => {
 
 export const getUsersByRentType = async (req, res) => {
   try {
-    const {
-      rentType,
-      propertyId,
-      page = 1,
-      limit = 10,
-      search,
-      status,
-      joinDate,
-    } = req.query;
+    const { rentType, propertyId, all, page, limit, search, status, joinDate } =
+      req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_USERS_BY_RENT_TYPE,
       {
         rentType,
         propertyId,
+        all,
         page,
         limit,
         search,

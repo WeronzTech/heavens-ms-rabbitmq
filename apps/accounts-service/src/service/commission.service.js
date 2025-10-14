@@ -34,7 +34,7 @@ export const addCommission = async (data) => {
       action: "Create",
       description: `Commission of ₹${newCommission.amount} for agency ${newCommission.agencyName} created.`,
       amount: newCommission.amount,
-      propertyId: newCommission.property,
+      // propertyId: newCommission.property,
       performedBy: data.createdBy || "System", // Assuming createdBy is passed
       referenceId: newCommission._id,
     });
@@ -56,77 +56,140 @@ export const addCommission = async (data) => {
   }
 };
 
+// export const getAllCommissions = async (filters) => {
+//   try {
+//     const { agencyId, propertyId, startDate, endDate } = filters;
+//     const query = {};
+
+//     if (agencyId) query.agency = agencyId;
+//     if (propertyId) query.property = propertyId;
+//     if (startDate && endDate) {
+//       query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+//     }
+
+//     const commissions = await Commission.find(query)
+//       .sort({ createdAt: -1 })
+//       .lean();
+
+//     // Enrich commissions with data from other services
+//     const enrichedCommissions = await Promise.all(
+//       commissions.map(async (commission) => {
+//         const agencyResponse = await sendRPCRequest(
+//           CLIENT_PATTERN.AGENCY.GET_AGENCY_BY_ID,
+//           { agencyId: commission.agency }
+//         );
+//         const propertyResponse = await sendRPCRequest(
+//           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+//           { id: commission.property }
+//         );
+
+//         // Enrich userIds
+//         let enrichedUsers = [];
+//         if (commission.userIds && commission.userIds.length > 0) {
+//           enrichedUsers = await Promise.all(
+//             commission.userIds.map(async (userId) => {
+//               const userResponse = await sendRPCRequest(
+//                 USER_PATTERN.USER.GET_USER_BY_ID,
+//                 { userId }
+//               );
+//               if (userResponse.body.success) {
+//                 return {
+//                   _id: userResponse.body.data._id,
+//                   name: userResponse.body.data.name,
+//                 };
+//               }
+//               return { _id: userId, name: "User not found" };
+//             })
+//           );
+//         }
+
+//         return {
+//           ...commission,
+//           userIds: enrichedUsers,
+//           agency: agencyResponse.success
+//             ? {
+//                 _id: agencyResponse.data._id,
+//                 agencyName: agencyResponse.data.agencyName,
+//               }
+//             : { _id: commission.agency, agencyName: "N/A" },
+//           property: propertyResponse.success
+//             ? {
+//                 _id: propertyResponse.data._id,
+//                 propertyName: propertyResponse.data.propertyName,
+//               }
+//             : { _id: commission.property, propertyName: "N/A" },
+//         };
+//       })
+//     );
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Commissions retrieved successfully.",
+//       data: enrichedCommissions,
+//     };
+//   } catch (error) {
+//     console.error("Get All Commissions Service Error:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal Server Error",
+//       error: error.message,
+//     };
+//   }
+// };
+
 export const getAllCommissions = async (filters) => {
   try {
-    const { agencyId, propertyId, startDate, endDate } = filters;
+    const { propertyId, month, year, paymentType, search } = filters;
+    console.log(filters);
     const query = {};
 
-    if (agencyId) query.agency = agencyId;
-    if (propertyId) query.property = propertyId;
-    if (startDate && endDate) {
-      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    // 🔹 Property filter (property field is now an array of IDs)
+    if (propertyId) {
+      query.property = { $in: [propertyId] };
     }
 
+    // 🔹 Month & Year filter (based on paymentDate)
+    if (month && year) {
+      // JavaScript months are 0-indexed (0 = Jan, 11 = Dec)
+      const startOfMonth = new Date(year, month - 1, 1);
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+      query.paymentDate = {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      };
+    }
+
+    // 🔹 Payment Type filter
+    if (paymentType) {
+      query.paymentType = paymentType;
+    }
+
+    // 🔹 Search filter (agentName, agencyName, contactNumber, transactionId)
+    if (search && search.trim() !== "") {
+      const searchRegex = new RegExp(search.trim(), "i"); // Case-insensitive
+      query.$or = [
+        { agentName: searchRegex },
+        { agencyName: searchRegex },
+        { contactNumber: searchRegex },
+        { transactionId: searchRegex },
+      ];
+    }
+
+    // 🔹 Fetch from DB
     const commissions = await Commission.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ paymentDate: -1 }) // Sort by payment date (latest first)
       .lean();
 
-    // Enrich commissions with data from other services
-    const enrichedCommissions = await Promise.all(
-      commissions.map(async (commission) => {
-        const agencyResponse = await sendRPCRequest(
-          CLIENT_PATTERN.AGENCY.GET_AGENCY_BY_ID,
-          { agencyId: commission.agency }
-        );
-        const propertyResponse = await sendRPCRequest(
-          PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: commission.property }
-        );
-
-        // Enrich userIds
-        let enrichedUsers = [];
-        if (commission.userIds && commission.userIds.length > 0) {
-          enrichedUsers = await Promise.all(
-            commission.userIds.map(async (userId) => {
-              const userResponse = await sendRPCRequest(
-                USER_PATTERN.USER.GET_USER_BY_ID,
-                { userId }
-              );
-              if (userResponse.body.success) {
-                return {
-                  _id: userResponse.body.data._id,
-                  name: userResponse.body.data.name,
-                };
-              }
-              return { _id: userId, name: "User not found" };
-            })
-          );
-        }
-
-        return {
-          ...commission,
-          userIds: enrichedUsers,
-          agency: agencyResponse.success
-            ? {
-                _id: agencyResponse.data._id,
-                agencyName: agencyResponse.data.agencyName,
-              }
-            : { _id: commission.agency, agencyName: "N/A" },
-          property: propertyResponse.success
-            ? {
-                _id: propertyResponse.data._id,
-                propertyName: propertyResponse.data.propertyName,
-              }
-            : { _id: commission.property, propertyName: "N/A" },
-        };
-      })
-    );
-
+    // ✅ Return commissions
     return {
       success: true,
       status: 200,
       message: "Commissions retrieved successfully.",
-      data: enrichedCommissions,
+      total: commissions.length,
+      data: commissions,
     };
   } catch (error) {
     console.error("Get All Commissions Service Error:", error);

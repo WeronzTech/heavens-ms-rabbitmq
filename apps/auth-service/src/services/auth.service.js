@@ -136,13 +136,13 @@ export const userLogin = async (loginData) => {
         message: "You have already checked out from Heavens Living.",
       };
     }
-    // if (!user.isApproved) {
-    //   return {
-    //     success: false,
-    //     status: 403,
-    //     message: "Your account has not been approved by the admin yet.",
-    //   };
-    // }
+    if (!user.isApproved) {
+      return {
+        success: false,
+        status: 403,
+        message: "Your account has not been approved by the admin yet.",
+      };
+    }
     if (!user.isLoginEnabled) {
       return {
         success: false,

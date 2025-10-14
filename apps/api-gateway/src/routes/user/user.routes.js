@@ -138,6 +138,12 @@ userRoutes.get(
   getUsersByAgencyController
 );
 
+userRoutes.post(
+  "/allocateUsersToAgent",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  allocateUsersToAgent
+);
+
 userRoutes
   .route("/:id")
   .get(hasPermission(PERMISSIONS.USER_VIEW), getHeavensUserById)
