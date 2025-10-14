@@ -345,7 +345,7 @@ export const deleteExpense = async (data) => {
       return { success: false, status: 404, message: "Expense not found" };
     }
 
-     await createAccountLog({
+    await createAccountLog({
       logType: "Expense",
       action: "Delete",
       description: `Expense '${expense.title}' for ₹${expense.amount} deleted.`,

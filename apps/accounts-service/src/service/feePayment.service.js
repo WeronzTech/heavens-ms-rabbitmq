@@ -453,6 +453,11 @@ const processAndRecordPayment = async ({
       }
     }
 
+    const dueAmount =
+      user.financialDetails?.pendingRent ??
+      user.financialDetails?.pendingAmount ??
+      0;
+
     // Create the Payment Record
     const newPayment = new Payments({
       name: user.name,
@@ -465,9 +470,7 @@ const processAndRecordPayment = async ({
       waveOffAmount: waveOffAmount,
       waveOffReason: waveOffReason,
       accountBalance: user.financialDetails?.accountBalance || 0,
-      dueAmount:
-        user.financialDetails?.pendingRent ||
-        user.financialDetails?.pendingAmount,
+      dueAmount,
       paymentMethod,
       paymentDate,
       transactionId,
@@ -543,7 +546,7 @@ const processAndRecordPayment = async ({
 export const initiateOnlinePayment = async (data) => {
   try {
     const { userId, amount, useReferralBalance } = data;
-    const paymentAmount = Number(amount);
+    let paymentAmount = Number(amount);
     let referralAmountUsed = Number(useReferralBalance) || 0;
 
     if (!userId || !paymentAmount || paymentAmount <= 0) {
@@ -613,7 +616,8 @@ export const initiateOnlinePayment = async (data) => {
       const currentPendingRent = pendingRent || 0;
       const currentBalance = accountBalance || 0;
       const rent = monthlyRent || 0;
-      const totalAvailableAmount = paymentAmount + currentBalance;
+      const totalAvailableAmount =
+        paymentAmount + currentBalance + referralAmountUsed;
 
       if (rent <= 0) {
         return {
