@@ -4,6 +4,8 @@ import {
   verifyPayment,
 } from "../../../../libs/common/razorpay.js";
 import GamingItem from "../models/gamingItem.model.js";
+import GamingOrder from "../models/gamingOrder.model.js";
+import User from "../models/user.model.js";
 
 export const createGamingItem = async (data) => {
   try {
@@ -234,6 +236,11 @@ export const verifyPaymentAndConfirmOrder = async (data) => {
     await order.save();
 
     // Here you can trigger notifications, etc.
+    if (order.userId) {
+      await User.findByIdAndUpdate(order.userId, {
+        "gaming.gameCompleted": true,
+      });
+    }
 
     return {
       success: true,
@@ -290,6 +297,37 @@ export const getOrderById = async ({ orderId }) => {
     return { success: true, status: 200, data: order };
   } catch (error) {
     console.error("Get Order By ID Service Error:", error);
+    return { success: false, status: 500, message: "Internal server error" };
+  }
+};
+
+export const updateGamePlayedStatus = async ({ userId }) => {
+  try {
+    if (!userId) {
+      return { success: false, status: 400, message: "User ID is required." };
+    }
+
+    // Send an RPC request to the User service to update the user document
+    const user = await User.findByIdAndUpdate(userId, {
+      "gaming.gamePlayed": true,
+    });
+
+    if (!user) {
+      console.error("Failed to update user game played status:", user);
+      return {
+        success: false,
+        status: 404,
+        message: "User not found or failed to update.",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "User game played status updated.",
+    };
+  } catch (error) {
+    console.error("Update Game Played Status Service Error:", error);
     return { success: false, status: 500, message: "Internal server error" };
   }
 };

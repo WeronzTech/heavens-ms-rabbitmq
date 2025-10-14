@@ -271,6 +271,10 @@ const userSchema = new mongoose.Schema(
       },
     ],
     notes: String,
+    gaming: {
+      gamePlayed: { type: Boolean, default: false },
+      gameCompleted: { type: Boolean, default: false },
+    },
   },
   {
     timestamps: true,

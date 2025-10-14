@@ -9,7 +9,7 @@ const paymentSchema = new mongoose.Schema(
     room: { type: String, required: true },
     rent: { type: Number, required: true },
     amount: { type: Number, required: true }, // Payment amount
-    dueAmount: { type: Number, required: true }, // Remaining pending amount
+    dueAmount: { type: Number, required: false }, // Remaining pending amount
     waveOffAmount: { type: Number, required: false },
     referralAmountUsed: { type: Number, required: false },
     waveOffReason: { type: String, required: false },

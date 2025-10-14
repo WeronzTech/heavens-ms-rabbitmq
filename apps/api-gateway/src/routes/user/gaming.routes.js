@@ -14,6 +14,7 @@ import {
   updateGamingItem,
   updateGamingItemStatus,
   updateOrderStatus,
+  updateUserGamePlayedStatus,
   verifyAndConfirmOrder,
 } from "../../controllers/user/gaming.controller.js";
 
@@ -62,5 +63,7 @@ gamingRoutes
 // Renamed endpoints for clarity in the payment flow
 gamingRoutes.post("/orders/initiate", initiateOrder);
 gamingRoutes.post("/orders/confirm", verifyAndConfirmOrder);
+
+gamingRoutes.post("/status/played", updateUserGamePlayedStatus);
 
 export default gamingRoutes;
