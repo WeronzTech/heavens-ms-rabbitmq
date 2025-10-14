@@ -633,10 +633,19 @@ export const downloadDeadStockReport = async (data) => {
       });
     } else {
       const fields = [
-        /* ... fields for csv ... */
+        { label: "Date", value: "createdAt" },
+        { label: "Product Name", value: "inventoryId.productName" },
+        { label: "Kitchen", value: "kitchenId.name" },
+        { label: "Quantity Removed", value: "quantityChanged" },
+        { label: "Unit Type", value: "inventoryId.quantityType" },
+        { label: "Reason", value: "notes" },
+        { label: "Logged By", value: "performedBy.name" },
       ];
       const formattedLogs = logs.map((log) => ({
-        /* ... formatting ... */
+        ...log,
+        createdAt: moment(log.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+        quantityChanged: Math.abs(log.quantityChanged),
+        notes: log.notes.replace(/^Dead Stock: /, ""),
       }));
       const csv = new Parser({ fields }).parse(formattedLogs);
       return {
@@ -669,15 +678,73 @@ export const downloadWeeklyUsageReport = async (data) => {
       notes: "Daily usage",
       createdAt: { $gte: reportStartDate, $lte: reportEndDate },
     };
-    // ... filtering logic ...
+
+    if (kitchenId) {
+      query.kitchenId = kitchenId;
+    } else if (propertyId) {
+      const kitchens = await Kitchen.find({ propertyId }).select("_id");
+      const kitchenIds = kitchens.map((k) => k._id);
+      if (kitchenIds.length > 0) {
+        query.kitchenId = { $in: kitchenIds };
+      } else {
+        return res.status(404).json({ error: "No kitchens found." });
+      }
+    }
 
     const logs = await InventoryLog.find(query)
       .populate("inventoryId", "productName quantityType")
       .sort({ createdAt: "asc" });
-    // ... data aggregation logic ...
+    const usageData = new Map();
+    logs.forEach((log) => {
+      const productId = log.inventoryId._id.toString();
+      if (!usageData.has(productId)) {
+        usageData.set(productId, {
+          productName: log.inventoryId.productName,
+          quantityType: log.inventoryId.quantityType,
+          days: {},
+        });
+      }
 
-    const reportData = []; // aggregated data
+      const product = usageData.get(productId);
+      const dayKey = moment(log.createdAt).format("YYYY-MM-DD");
+      const usedQty = Math.abs(log.quantityChanged);
+
+      if (!product.days[dayKey]) {
+        product.days[dayKey] = { used: 0, available: log.newStock + usedQty };
+      }
+      product.days[dayKey].used += usedQty;
+    });
+
+    const reportData = Array.from(usageData.values()); // aggregated data
     const reportDates = []; // dates for the report
+
+    for (
+      let m = moment(reportStartDate);
+      m.isSameOrBefore(reportEndDate);
+      m.add(1, "days")
+    ) {
+      reportDates.push(m.clone());
+    }
+
+    reportData.forEach((item) => {
+      let lastAvailable = null;
+      reportDates.forEach((date) => {
+        const dayKey = date.format("YYYY-MM-DD");
+        if (item.days[dayKey]) {
+          lastAvailable = item.days[dayKey].available - item.days[dayKey].used;
+        } else if (lastAvailable !== null) {
+          item.days[dayKey] = { available: lastAvailable, used: 0 };
+        } else {
+          item.days[dayKey] = { available: "-", used: 0 };
+        }
+      });
+    });
+
+    if (reportData.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No daily usage logs found for the selected period." });
+    }
 
     if (format.toLowerCase() === "pdf") {
       const doc = new PDFDocument({
@@ -712,7 +779,18 @@ export const downloadWeeklyUsageReport = async (data) => {
       });
     } else {
       const fields = [
-        /* ... csv fields ... */
+        { label: "Item Name", value: "productName" },
+        { label: "Unit Type", value: "quantityType" },
+        ...reportDates.flatMap((date) => [
+          {
+            label: `${date.format("dddd, MMM D")} - Available`,
+            value: `days.${date.format("YYYY-MM-DD")}.available`,
+          },
+          {
+            label: `${date.format("dddd, MMM D")} - Used`,
+            value: `days.${date.format("YYYY-MM-DD")}.used`,
+          },
+        ]),
       ];
       const csv = new Parser({ fields, defaultValue: 0 }).parse(reportData);
       return {

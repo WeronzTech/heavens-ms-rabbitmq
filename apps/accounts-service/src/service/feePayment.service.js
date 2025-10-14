@@ -524,17 +524,6 @@ const processAndRecordPayment = async ({
       throw new Error("Failed to update user financial details.");
     }
 
-    const updateUserReferral = await sendRPCRequest(
-      USER_PATTERN.REFERRAL.COMPLETE_REFERRAL,
-      {
-        newUserId: userId,
-      }
-    );
-
-    if (!updateUserReferral?.success) {
-      throw new Error("Failed to update user referral.");
-    }
-
     await session.commitTransaction();
     return {
       success: true,
