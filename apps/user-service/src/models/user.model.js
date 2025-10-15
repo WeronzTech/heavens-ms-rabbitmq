@@ -274,6 +274,7 @@ const userSchema = new mongoose.Schema(
     gaming: {
       gamePlayed: { type: Boolean, default: false },
       gameCompleted: { type: Boolean, default: false },
+      gameActive: { type: Boolean, default: false },
     },
   },
   {
