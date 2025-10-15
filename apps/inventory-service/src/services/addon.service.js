@@ -6,7 +6,10 @@ import {
   validateRequired,
 } from "../utils/helpers.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 
@@ -106,6 +109,7 @@ export const updateAddon = async (data) => {
   try {
     const { addonId, itemImage, ...updateData } = data;
     validateObjectId(addonId, "Addon ID");
+    const oldData = await Addon.findById(addonId);
 
     if (itemImage) {
       const file = {
@@ -114,6 +118,7 @@ export const updateAddon = async (data) => {
       };
       const itemImageURL = await uploadToFirebase(file, "addon-images");
       updateData.itemImage = itemImageURL;
+      await deleteFromFirebase(oldData.itemImage);
     }
 
     const validatedData = parseAndValidateData(updateData, true);
@@ -172,6 +177,7 @@ export const deleteAddon = async ({ addonId }) => {
     if (!deletedAddon) {
       return { success: false, status: 404, message: "Addon not found" };
     }
+    await deleteFromFirebase(deletedAddon.itemImage);
     return {
       success: true,
       status: 200,

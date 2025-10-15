@@ -31,6 +31,7 @@ services:
       - RABBITMQ_DEFAULT_PASS=admin123
     ports:
       - "15672:15672" # Management UI
+      - "5672:5672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:

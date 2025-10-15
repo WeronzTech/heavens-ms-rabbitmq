@@ -18,7 +18,7 @@ const createRazorpayOrderId = async (amount) => {
     };
 
     const order = await razorpay.orders.create(options);
-    // console.log("Order", order);
+    console.log("Order", order);
 
     return { success: true, orderId: order.id };
   } catch (err) {

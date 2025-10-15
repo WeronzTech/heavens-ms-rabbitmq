@@ -1,4 +1,7 @@
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import {
   createRazorpayOrderId,
   verifyPayment,
@@ -64,6 +67,7 @@ export const updateGamingItem = async (data) => {
   try {
     const { itemId, itemImage, ...updateData } = data;
 
+    const oldGamingItem = await GamingItem.findById(itemId);
     // Create a file object that uploadToFirebase can use
     const file = {
       buffer: Buffer.from(itemImage.buffer, "base64"),
@@ -72,6 +76,7 @@ export const updateGamingItem = async (data) => {
 
     const itemImageURL = await uploadToFirebase(file, "gaming-images");
     updateData.itemImage = itemImageURL;
+    await deleteFromFirebase(oldGamingItem.itemImage);
     const updatedItem = await GamingItem.findByIdAndUpdate(itemId, updateData, {
       new: true,
     });
@@ -108,6 +113,7 @@ export const deleteGamingItem = async ({ itemId }) => {
     if (!deleted) {
       return { success: false, status: 404, message: "Gaming item not found" };
     }
+    await deleteFromFirebase(deleted.itemImage);
     return {
       success: true,
       status: 200,
@@ -193,7 +199,7 @@ export const verifyPaymentAndConfirmOrder = async (data) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
 
-    if (!razpay_order_id || !razpay_payment_id || !razpay_signature) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return {
         success: false,
         status: 400,
@@ -272,9 +278,17 @@ export const updateOrderStatus = async ({ orderId, deliveryStatus }) => {
   }
 };
 
-export const getAllOrders = async () => {
+export const getAllOrders = async (data) => {
   try {
-    const orders = await GamingOrder.find().populate(
+    const { userId } = data;
+    let filter = {};
+
+    if (userId) {
+      filter.userId = userId;
+    }
+    console.log("Filter", filter);
+
+    const orders = await GamingOrder.find(filter).populate(
       "itemId",
       "itemName price itemImage"
     );

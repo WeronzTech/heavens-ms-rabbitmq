@@ -1,7 +1,10 @@
 import FcmToken from "../models/fcmToken.model.js";
 import PushNotification from "../models/pushNotification.model.js";
 import { sendPushNotificationToUser } from "../utils/sendNotificationHelper.js";
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import { getUserIds } from "./internal.service.js";
 import NotificationLog from "../models/notificationLog.model.js";
 
@@ -74,6 +77,7 @@ export const updatePushNotification = async (data) => {
       dailyRentOnly,
       workerOnly,
     };
+    const oldData = await PushNotification.findById(id);
 
     if (file.pushNotifications && file.pushNotifications[0].buffer) {
       const imageFile = {
@@ -82,6 +86,7 @@ export const updatePushNotification = async (data) => {
         originalname: file.pushNotifications[0].originalname,
       };
       updateData.imageUrl = await uploadToFirebase(imageFile, "notification");
+      await deleteFromFirebase(oldData.imageUrl);
     }
 
     const updated = await PushNotification.findByIdAndUpdate(id, updateData, {
@@ -117,6 +122,7 @@ export const deletePushNotification = async ({ data }) => {
     if (!deleted) {
       return { status: 404, message: "Notification not found" };
     }
+    await deleteFromFirebase(deleted.imageUrl);
 
     return {
       status: 200,
