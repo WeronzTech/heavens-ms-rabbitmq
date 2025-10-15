@@ -79,5 +79,6 @@ export const USER_PATTERN = {
       GET_ALL: "gaming_order_get_all",
       GET_BY_ID: "gaming_order_get_by_id",
     },
+    UPDATE_PLAYED_STATUS: "gaming_order_update_played_status",
   },
 };

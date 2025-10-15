@@ -8,6 +8,7 @@ import {
   getGamingItemById,
   getOrderById,
   initiateGamingOrder,
+  updateGamePlayedStatus,
   updateGamingItem,
   updateGamingItemStatus,
   updateOrderStatus,
@@ -44,4 +45,7 @@ createResponder(USER_PATTERN.GAMING.ORDER.UPDATE_STATUS, (data) =>
 createResponder(USER_PATTERN.GAMING.ORDER.GET_ALL, () => getAllOrders());
 createResponder(USER_PATTERN.GAMING.ORDER.GET_BY_ID, (data) =>
   getOrderById(data)
+);
+createResponder(USER_PATTERN.GAMING.UPDATE_PLAYED_STATUS, (data) =>
+  updateGamePlayedStatus(data)
 );

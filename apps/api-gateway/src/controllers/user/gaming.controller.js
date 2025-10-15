@@ -85,3 +85,13 @@ export const getOrderById = (req, res) =>
   handleRPCAndRespond(res, USER_PATTERN.GAMING.ORDER.GET_BY_ID, {
     orderId: req.params.orderId,
   });
+
+export const updateUserGamePlayedStatus = (req, res) => {
+  // The user's ID is retrieved from the authentication token
+  const payload = { userId: req.userAuth };
+  return handleRPCAndRespond(
+    res,
+    USER_PATTERN.GAMING.UPDATE_PLAYED_STATUS,
+    payload
+  );
+};
