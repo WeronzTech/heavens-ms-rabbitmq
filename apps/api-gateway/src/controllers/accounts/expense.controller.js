@@ -10,6 +10,8 @@ export const addExpenseController = async (req, res) => {
       amount,
       handledBy,
       pettyCashType,
+      fromVoucher,
+      voucherId,
       ...expenseData
     } = req.body;
 
@@ -28,6 +30,8 @@ export const addExpenseController = async (req, res) => {
       amount,
       handledBy,
       pettyCashType,
+      fromVoucher,
+      voucherId,
       ...expenseData,
     });
 

@@ -284,19 +284,24 @@ export const rebuildNestedFields = async (flatObject) => {
 
   return result;
 };
-
 export const processAdminUpdates = async (user, updateData) => {
-  if (user.userType !== "messOnly" && updateData.stayDetails?.roomId) {
+  // Await the Promise to get the actual data
+  const resolvedUpdateData = await updateData;
+
+  if (user.userType !== "messOnly" && resolvedUpdateData.stayDetails?.roomId) {
     await handleRoomChange(
       user,
-      updateData.stayDetails.roomId,
-      updateData.stayDetails.propertyId
+      resolvedUpdateData.stayDetails.roomId,
+      resolvedUpdateData.stayDetails.propertyId
     );
   }
 
   // Handle kitchen changes for MessOnly users
-  if (user.userType === "messOnly" && updateData.messDetails?.kitchenId) {
-    await handleKitchenChange(user, updateData.messDetails.kitchenId);
+  if (
+    user.userType === "messOnly" &&
+    resolvedUpdateData.messDetails?.kitchenId
+  ) {
+    await handleKitchenChange(user, resolvedUpdateData.messDetails.kitchenId);
   }
 
   // Update core fields
@@ -316,49 +321,52 @@ export const processAdminUpdates = async (user, updateData) => {
   ];
 
   ADMIN_FIELDS.forEach((field) => {
-    if (field in updateData) {
+    if (field in resolvedUpdateData) {
       user[field] =
-        updateData[field] !== undefined ? updateData[field] : user[field];
+        resolvedUpdateData[field] !== undefined
+          ? resolvedUpdateData[field]
+          : user[field];
     }
   });
 
   // Update type-specific details
   if (user.userType !== "messOnly") {
-    if (updateData.stayDetails) {
+    if (resolvedUpdateData.stayDetails) {
       user.stayDetails = {
         ...user.stayDetails,
-        ...updateData.stayDetails,
-        ...(updateData.stayDetails.joinDate && {
-          joinDate: new Date(updateData.stayDetails.joinDate),
+        ...resolvedUpdateData.stayDetails,
+        ...(resolvedUpdateData.stayDetails.joinDate && {
+          joinDate: new Date(resolvedUpdateData.stayDetails.joinDate),
         }),
-        ...(updateData.stayDetails.checkInDate && {
-          checkInDate: new Date(updateData.stayDetails.checkInDate),
+        ...(resolvedUpdateData.stayDetails.checkInDate && {
+          checkInDate: new Date(resolvedUpdateData.stayDetails.checkInDate),
         }),
-        ...(updateData.stayDetails.checkOutDate && {
-          checkOutDate: new Date(updateData.stayDetails.checkOutDate),
+        ...(resolvedUpdateData.stayDetails.checkOutDate && {
+          checkOutDate: new Date(resolvedUpdateData.stayDetails.checkOutDate),
         }),
       };
     }
   } else {
-    if (updateData.messDetails) {
+    if (resolvedUpdateData.messDetails) {
       user.messDetails = {
         ...user.messDetails,
-        ...updateData.messDetails,
-        ...(updateData.messDetails.messStartDate && {
-          messStartDate: new Date(updateData.messDetails.messStartDate),
+        ...resolvedUpdateData.messDetails,
+        ...(resolvedUpdateData.messDetails.messStartDate && {
+          messStartDate: new Date(resolvedUpdateData.messDetails.messStartDate),
         }),
-        ...(updateData.messDetails.messEndDate && {
-          messEndDate: new Date(updateData.messDetails.messEndDate),
+        ...(resolvedUpdateData.messDetails.messEndDate && {
+          messEndDate: new Date(resolvedUpdateData.messDetails.messEndDate),
         }),
       };
     }
   }
-  if (updateData.financialDetails) {
+
+  if (resolvedUpdateData.financialDetails) {
     user.financialDetails = {
       ...user.financialDetails,
-      ...updateData.financialDetails,
-      ...(updateData.financialDetails.totalAmount && {
-        pendingAmount: updateData.financialDetails.totalAmount,
+      ...resolvedUpdateData.financialDetails,
+      ...(resolvedUpdateData.financialDetails.totalAmount && {
+        pendingAmount: resolvedUpdateData.financialDetails.totalAmount,
       }),
     };
   }
@@ -373,10 +381,10 @@ export const processAdminUpdates = async (user, updateData) => {
   ];
 
   NESTED_SECTIONS.forEach((section) => {
-    if (section in updateData) {
+    if (section in resolvedUpdateData) {
       user[section] = {
         ...user[section],
-        ...updateData[section],
+        ...resolvedUpdateData[section],
       };
     }
   });

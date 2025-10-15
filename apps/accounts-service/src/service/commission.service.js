@@ -180,7 +180,7 @@ export const getAllCommissions = async (filters) => {
 
     // 🔹 Fetch from DB
     const commissions = await Commission.find(query)
-      .sort({ paymentDate: -1 }) // Sort by payment date (latest first)
+      .sort({ paymentDate: -1, createdAt: -1 })
       .lean();
 
     // ✅ Return commissions

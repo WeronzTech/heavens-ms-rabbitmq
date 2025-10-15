@@ -5,6 +5,7 @@ import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.
 import Expense from "../models/expense.model.js";
 import ExpenseCategory from "../models/expenseCategory.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
+import Voucher from "../models/voucher.model.js";
 
 export const addExpense = async (data) => {
   try {
@@ -16,6 +17,8 @@ export const addExpense = async (data) => {
       handledBy,
       pettyCashType,
       billImage,
+      fromVoucher,
+      voucherId,
       ...expenseData
     } = data;
     console.log("data", data);
@@ -50,6 +53,27 @@ export const addExpense = async (data) => {
           success: false,
           status: 400,
           message: `Transaction ID "${transactionId}" already exists`,
+        };
+      }
+    }
+
+    let voucher = null;
+    if (fromVoucher && voucherId) {
+      voucher = await Voucher.findById(voucherId);
+      if (!voucher) {
+        return {
+          success: false,
+          status: 404,
+          message: "Voucher not found",
+        };
+      }
+
+      // 🚫 Prevent overspending beyond remainingAmount
+      if (amount > voucher.remainingAmount) {
+        return {
+          success: false,
+          status: 400,
+          message: `Expense amount (₹${amount}) exceeds remaining voucher balance (₹${voucher.remainingAmount}).`,
         };
       }
     }
@@ -97,19 +121,7 @@ export const addExpense = async (data) => {
             "In-account petty cash balance too low to process this transaction",
         };
       }
-
-      // ✅ Deduct petty cash (send negative amount)
     }
-
-    // let billImageURL;
-    // if (billImage) {
-    //   const originalQuality = true;
-    //   billImageURL = await uploadToFirebase(
-    //     billImage,
-    //     "expense-images",
-    //     originalQuality
-    //   );
-    // }
 
     // ✅ Create expense in DB
     const expense = new Expense({
@@ -117,7 +129,6 @@ export const addExpense = async (data) => {
       property,
       handledBy,
       paymentMethod,
-      // imageUrl: billImageURL,
       pettyCashType: paymentMethod === "Petty Cash" ? pettyCashType : undefined,
       amount,
       ...expenseData,
@@ -134,6 +145,20 @@ export const addExpense = async (data) => {
       performedBy: data.handledBy || "System",
       referenceId: expense._id,
     });
+
+    if (fromVoucher && voucher) {
+      voucher.totalExpenseAmount += amount;
+      voucher.remainingAmount = voucher.amount - voucher.totalExpenseAmount;
+
+      if (voucher.remainingAmount <= 0) {
+        voucher.remainingAmount = 0;
+        voucher.status = "Fully Utilized";
+      } else {
+        voucher.status = "Pending";
+      }
+
+      await voucher.save();
+    }
 
     if (billImage) {
       uploadToFirebase(billImage, "expense-images", false)

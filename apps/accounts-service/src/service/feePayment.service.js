@@ -13,6 +13,7 @@ import { createAccountLog } from "./accountsLog.service.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import Deposits from "../models/depositPayments.model.js";
+import Voucher from "../models/voucher.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -1203,7 +1204,7 @@ export const getWaveOffedPayments = async (filters) => {
 
     // Fetch data
     const waveOffedPayments = await Payments.find(query)
-      .sort({ paymentDate: -1 })
+      .sort({ paymentDate: -1, createdAt: -1 })
       .lean();
 
     // Total wave-off amount
@@ -1232,7 +1233,7 @@ export const getWaveOffedPayments = async (filters) => {
   }
 };
 
-export const getAllCashPayments = async ({ propertyId }) => {
+export const getAllCashPayments = async ({}) => {
   try {
     const startDate = new Date("2025-10-13T00:00:00.000Z");
 
@@ -1240,36 +1241,35 @@ export const getAllCashPayments = async ({ propertyId }) => {
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
       createdAt: { $gte: startDate },
-      ...(propertyId && { "property.id": propertyId }),
     }).sort({ createdAt: -1 });
 
     // Fetch all deposit cash payments
     const DepositPayments = await Deposits.find({
       paymentMethod: "Cash",
       createdAt: { $gte: startDate },
-      ...(propertyId && { property: propertyId }),
     }).sort({ createdAt: -1 });
 
     // Fetch all cash expenses from Expense collection
     const Expenses = await Expense.find({
       paymentMethod: "Cash",
       createdAt: { $gte: startDate },
-      ...(propertyId && { "property.id": propertyId }),
     }).sort({ createdAt: -1 });
 
     // Fetch all cash commissions
     const Commissions = await Commission.find({
       paymentType: "Cash",
       createdAt: { $gte: startDate },
-      ...(propertyId && { property: propertyId }),
     }).sort({ createdAt: -1 });
 
     // Fetch all cash staff salary payments
     const StaffSalaries = await StaffSalaryHistory.find({
       paymentMethod: "Cash",
       createdAt: { $gte: startDate },
-      ...(propertyId && { propertyId }),
     }).sort({ createdAt: -1 });
+
+    const PendingVouchers = await Voucher.find({
+      status: "Pending",
+    }).select("remainingAmount");
 
     // Calculate total cash payments (inflow)
     const totalCashPayments = CashPayments.reduce(
@@ -1298,12 +1298,17 @@ export const getAllCashPayments = async ({ propertyId }) => {
       0
     );
 
+    const totalPendingVoucherRemaining = PendingVouchers.reduce(
+      (sum, voucher) => sum + (voucher.remainingAmount || 0),
+      0
+    );
+
     // Total cash inflow
     const totalCashInflow = totalCashPayments + totalDepositPayments;
 
     // Total cash outflow
     const totalCashOutflow =
-      totalExpenses + totalCommissions + totalStaffSalaries;
+      totalExpenses + totalCommissions + totalPendingVoucherRemaining;
 
     // Net cash = inflow - outflow
     const netCash = Math.max(totalCashInflow - totalCashOutflow, 0);
