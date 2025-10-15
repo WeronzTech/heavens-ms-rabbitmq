@@ -451,7 +451,10 @@
 import { Maintenance } from "../models/maintenance.model.js";
 import Property from "../models/property.model.js";
 import mongoose from "mongoose";
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 
@@ -889,6 +892,8 @@ export const deleteMaintenance = async (data) => {
     const deletedRecord = await Maintenance.findByIdAndDelete(maintenanceId);
     if (!deletedRecord)
       return { success: false, status: 404, message: "Record not found." };
+
+    await deleteFromFirebase(deletedRecord.issueImage);
     return {
       success: true,
       status: 200,

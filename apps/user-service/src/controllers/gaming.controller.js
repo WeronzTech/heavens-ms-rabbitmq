@@ -42,7 +42,9 @@ createResponder(USER_PATTERN.GAMING.ORDER.VERIFY_AND_CONFIRM, (data) =>
 createResponder(USER_PATTERN.GAMING.ORDER.UPDATE_STATUS, (data) =>
   updateOrderStatus(data)
 );
-createResponder(USER_PATTERN.GAMING.ORDER.GET_ALL, () => getAllOrders());
+createResponder(USER_PATTERN.GAMING.ORDER.GET_ALL, (data) =>
+  getAllOrders(data)
+);
 createResponder(USER_PATTERN.GAMING.ORDER.GET_BY_ID, (data) =>
   getOrderById(data)
 );

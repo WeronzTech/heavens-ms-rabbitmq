@@ -79,7 +79,7 @@ export const updateOrderStatus = (req, res) =>
   });
 
 export const getAllOrders = (req, res) =>
-  handleRPCAndRespond(res, USER_PATTERN.GAMING.ORDER.GET_ALL, {});
+  handleRPCAndRespond(res, USER_PATTERN.GAMING.ORDER.GET_ALL, req.query);
 
 export const getOrderById = (req, res) =>
   handleRPCAndRespond(res, USER_PATTERN.GAMING.ORDER.GET_BY_ID, {
