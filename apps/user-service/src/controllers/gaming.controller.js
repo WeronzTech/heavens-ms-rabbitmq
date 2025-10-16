@@ -8,6 +8,7 @@ import {
   getGamingItemById,
   getOrderById,
   initiateGamingOrder,
+  updateGameActiveStatusForAllUsers,
   updateGamePlayedStatus,
   updateGamingItem,
   updateGamingItemStatus,
@@ -50,4 +51,7 @@ createResponder(USER_PATTERN.GAMING.ORDER.GET_BY_ID, (data) =>
 );
 createResponder(USER_PATTERN.GAMING.UPDATE_PLAYED_STATUS, (data) =>
   updateGamePlayedStatus(data)
+);
+createResponder(USER_PATTERN.GAMING.UPDATE_GAME_ACTIVE_STATUS_FOR_ALL, (data) =>
+  updateGameActiveStatusForAllUsers(data)
 );

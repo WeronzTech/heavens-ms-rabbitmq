@@ -95,3 +95,13 @@ export const updateUserGamePlayedStatus = (req, res) => {
     payload
   );
 };
+
+export const updateUserGameActiveStatusForAllUsers = (req, res) => {
+  const { status } = req.body;
+  return handleRPCAndRespond(
+    // Assuming you have this helper function
+    res,
+    USER_PATTERN.GAMING.UPDATE_GAME_ACTIVE_STATUS_FOR_ALL,
+    { status }
+  );
+};
