@@ -235,7 +235,7 @@ export const updateBookingStatus = async (data) => {
         message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
       };
     }
-    const booking = await MealBooking.findById(bookingId);
+    const booking = await MealBooking.find({ orderId: bookingId });
     if (!booking) {
       return { success: false, status: 404, message: "Booking not found" };
     }
