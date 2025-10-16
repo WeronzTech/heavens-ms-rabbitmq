@@ -14,6 +14,7 @@ import {
   updateGamingItem,
   updateGamingItemStatus,
   updateOrderStatus,
+  updateUserGameActiveStatusForAllUsers,
   updateUserGamePlayedStatus,
   verifyAndConfirmOrder,
 } from "../../controllers/user/gaming.controller.js";
@@ -65,5 +66,6 @@ gamingRoutes.post("/orders/initiate", initiateOrder);
 gamingRoutes.post("/orders/confirm", verifyAndConfirmOrder);
 
 gamingRoutes.post("/status/played", updateUserGamePlayedStatus);
+gamingRoutes.post("/status/active", updateUserGameActiveStatusForAllUsers);
 
 export default gamingRoutes;

@@ -345,3 +345,38 @@ export const updateGamePlayedStatus = async ({ userId }) => {
     return { success: false, status: 500, message: "Internal server error" };
   }
 };
+
+export const updateGameActiveStatusForAllUsers = async ({ status }) => {
+  try {
+    // Validate that the incoming status is a boolean
+    if (typeof status !== "boolean") {
+      return {
+        success: false,
+        status: 400,
+        message: "A boolean 'status' field is required.",
+      };
+    }
+
+    // Use updateMany with an empty filter {} to match all documents
+    const updateResult = await User.updateMany(
+      {}, // Empty filter matches all users
+      { $set: { "gaming.gameActive": status } }
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: `Successfully updated the game active status for ${updateResult.modifiedCount} users to '${status}'.`,
+      data: {
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount,
+      },
+    };
+  } catch (error) {
+    console.error(
+      "Update Game Active Status For All Users Service Error:",
+      error
+    );
+    return { success: false, status: 500, message: "Internal server error" };
+  }
+};
