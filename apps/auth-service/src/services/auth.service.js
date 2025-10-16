@@ -221,7 +221,7 @@ export const userLogin = async (loginData) => {
 };
 
 const RESET_TOKEN_EXPIRY_HOURS = 1;
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://yourfrontend.com";
+const FRONTEND_URL = "https://hpanel.heavensliving.in";
 
 export const forgotPasswordUser = async (data) => {
   const { email } = data;
@@ -258,7 +258,7 @@ export const forgotPasswordUser = async (data) => {
       expiry: tokenExpiry,
     });
 
-    const resetUrl = `${FRONTEND_URL}/resident/reset-password?token=${rawToken}`;
+    const resetUrl = `${FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
 
     await emailService.sendPasswordResetEmail(
       user,

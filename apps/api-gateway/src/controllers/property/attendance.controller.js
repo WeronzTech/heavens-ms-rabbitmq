@@ -27,8 +27,29 @@ export const getAllAttendance = (req, res) =>
     req.query
   );
 
+// export const updateAttendance = (req, res) =>
+//   handleRPCAndRespond(res, PROPERTY_PATTERN.ATTENDANCE.UPDATE_ATTENDANCE, {
+//     ...req.body,
+//     attendanceId: req.params.id,
+//   });
+
+export const getAllAttendanceSummary = (req, res) =>
+  handleRPCAndRespond(
+    res,
+    PROPERTY_PATTERN.ATTENDANCE.GET_ATTENDANCE_SUMMARY,
+    req.query
+  );
+
+export const getAvailableAttendanceDates = (req, res) =>
+  handleRPCAndRespond(
+    res,
+    PROPERTY_PATTERN.ATTENDANCE.GET_AVAILABLE_ATTENDANCE_DATE,
+    {
+      employeeId: req.params.id,
+    }
+  );
+
 export const updateAttendance = (req, res) =>
   handleRPCAndRespond(res, PROPERTY_PATTERN.ATTENDANCE.UPDATE_ATTENDANCE, {
     ...req.body,
-    attendanceId: req.params.id,
   });

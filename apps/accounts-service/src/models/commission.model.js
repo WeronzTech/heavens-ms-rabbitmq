@@ -2,23 +2,19 @@ import mongoose from "mongoose";
 
 const commissionSchema = new mongoose.Schema(
   {
-    agent: {
-        type: String,
-        required: true,
-        trim: true,
-    },
-    agencyName: { 
-        type : String , 
-        required:true,
-        trim: true,
-      },
-    agency: {
-      type: mongoose.Schema.Types.ObjectId,
+    agentName: {
+      type: String,
       required: true,
+      trim: true,
     },
-    property: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
+    agencyName: {
+      type: String,
+      trim: true,
+      required: false,
+    },
+    contactNumber: {
+      type: String,
+      required: false,
     },
     amount: {
       type: Number,
@@ -34,13 +30,24 @@ const commissionSchema = new mongoose.Schema(
     },
     remarks: {
       type: String,
-      required:false
+      required: false,
     },
-    userIds: [
+    agent: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+    paymentDate: { type: Date, default: Date.now },
+    property: [
       {
         type: mongoose.Schema.Types.ObjectId,
+        required: true,
       },
     ],
+    // userIds: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //   },
+    // ],
   },
   {
     timestamps: true,

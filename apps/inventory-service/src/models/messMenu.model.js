@@ -79,6 +79,7 @@ const weeklyMenuSchema = new Schema(
     name: {
       type: String,
       required: true,
+      default: "Name",
     },
     kitchenId: {
       type: Schema.Types.ObjectId,

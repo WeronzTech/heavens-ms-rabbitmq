@@ -1,9 +1,12 @@
-import { deleteFromFirebase, uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import Carousel from "../models/carousel.model.js";
 
 export const addCarouselImages = async (data) => {
   try {
-    const { file, title, userId, } = data;
+    const { file, title, userId } = data;
 
     if (!file) {
       return {
@@ -58,10 +61,14 @@ export const addCarouselImages = async (data) => {
 };
 export const updateCarouselImages = async (data) => {
   try {
-    const { carouselId, file, title, userId, } = data;
+    const { carouselId, file, title, userId, propertyId } = data;
 
     if (!carouselId) {
-      return { success: false, status: 400, message: "Carousel ID is required" };
+      return {
+        success: false,
+        status: 400,
+        message: "Carousel ID is required",
+      };
     }
 
     if (!userId) {
@@ -75,23 +82,34 @@ export const updateCarouselImages = async (data) => {
     }
 
     // If a new file is uploaded, replace the old image
-    if (file) {
+    if (file && file.buffer) {
       // Delete existing image from Firebase
       if (carousel.image) {
         try {
           await deleteFromFirebase(carousel.image);
         } catch (err) {
-          console.error(`Failed to delete existing image from Firebase: ${carousel.image}`, err);
+          console.error(
+            `Failed to delete existing image from Firebase: ${carousel.image}`,
+            err
+          );
         }
       }
 
-      // Upload new image to Firebase
-      const newImageUrl = await uploadToFirebase(file, "carousel");
+      // Upload new image to Firebase using the buffer
+      const newImageUrl = await uploadToFirebase(
+        {
+          buffer: file.buffer,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+        },
+        "carousel"
+      );
       carousel.image = newImageUrl;
     }
 
     // Update other fields
-    carousel.title = title || carousel.title;
+    if (title) carousel.title = title;
+    if (propertyId) carousel.propertyId = propertyId;
 
     await carousel.save();
 
@@ -117,7 +135,11 @@ export const deleteCarousel = async (data) => {
     const { carouselId, userId } = data;
 
     if (!carouselId) {
-      return { success: false, status: 400, message: "Carousel ID is required" };
+      return {
+        success: false,
+        status: 400,
+        message: "Carousel ID is required",
+      };
     }
 
     if (!userId) {
@@ -134,7 +156,10 @@ export const deleteCarousel = async (data) => {
       try {
         await deleteFromFirebase(carousel.image);
       } catch (err) {
-        console.error(`Failed to delete image from Firebase: ${carousel.image}`, err);
+        console.error(
+          `Failed to delete image from Firebase: ${carousel.image}`,
+          err
+        );
       }
     }
 
@@ -163,7 +188,9 @@ export const getAllCarousel = async () => {
     return {
       success: true,
       status: 200,
-      message: carousels.length ? "Carousel images fetched successfully" : "No carousel images found",
+      message: carousels.length
+        ? "Carousel images fetched successfully"
+        : "No carousel images found",
       data: carousels,
     };
   } catch (error) {

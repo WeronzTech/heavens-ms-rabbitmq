@@ -218,6 +218,11 @@ const userSchema = new mongoose.Schema(
       ),
       default: {},
     },
+    agent: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
+    commissionEarned: { type: Number, default: 0 },
 
     // Reminders and notifications
     rentReminder: {
