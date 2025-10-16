@@ -14,6 +14,7 @@ import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import Deposits from "../models/depositPayments.model.js";
 import Voucher from "../models/voucher.model.js";
+import emailService from "../../../../libs/email/email.service.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -524,10 +525,20 @@ const processAndRecordPayment = async ({
         },
       }
     );
-
+    const userEmail = updateUserResponse?.body?.data?.email;
     if (!updateUserResponse.body.success) {
       throw new Error("Failed to update user financial details.");
     }
+
+    setImmediate(async () => {
+      try {
+        await Promise.all([
+          emailService.sendFeeReceiptEmail(userEmail, newPayment),
+        ]);
+      } catch (err) {
+        console.error("Post-approval async error:", err);
+      }
+    });
 
     await session.commitTransaction();
     return {

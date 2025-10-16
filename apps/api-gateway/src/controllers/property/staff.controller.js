@@ -126,11 +126,7 @@ export const getStaffByPropertyId = async (req, res) => {
     console.log("🏠 Staff By Property RPC Response:", response);
 
     if (response.status === 200) {
-      return res.status(200).json({
-        success: true,
-        count: response.data.count,
-        staff: response.data.staff,
-      });
+      return res.status(200).json(response.data);
     } else {
       return res.status(response.status).json({
         success: false,
@@ -150,6 +146,7 @@ export const addStaff = async (req, res) => {
   try {
     const {
       name,
+      jobTitle,
       gender,
       dob,
       contactNumber,
@@ -175,6 +172,7 @@ export const addStaff = async (req, res) => {
 
     const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.ADD_STAFF, {
       name,
+      jobTitle,
       gender,
       dob,
       contactNumber,

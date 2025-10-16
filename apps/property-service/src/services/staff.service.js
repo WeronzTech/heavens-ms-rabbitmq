@@ -1,5 +1,4 @@
 import Staff from "../models/staff.model.js";
-import axios from "axios";
 import Property from "../models/property.model.js";
 import { getAccessibleKitchens, getRoleName } from "./internal.service.js";
 import {
@@ -277,7 +276,8 @@ export const getStaffByPropertyId = async (data) => {
 
     return {
       status: 200,
-      data: { count: enrichedStaff.length, staff: enrichedStaff },
+      // data: { count: enrichedStaff.length, staff: enrichedStaff },
+      data: enrichedStaff,
     };
   } catch (error) {
     console.error("Error in getStaffByPropertyId service:", error);
@@ -292,6 +292,7 @@ export const addStaff = async (data) => {
   try {
     const {
       name,
+      jobTitle,
       gender,
       dob,
       contactNumber,
@@ -307,6 +308,18 @@ export const addStaff = async (data) => {
       adminName, // pass from controller
       files, // files passed via RPC
     } = data;
+
+    if (
+      !files ||
+      !files.photo ||
+      !files.aadharFrontImage ||
+      !files.aadharBackImage
+    ) {
+      return {
+        status: 400,
+        message: "Missing required documents.",
+      };
+    }
 
     // ✅ Validate property
     const existingProperty = await Property.findById(propertyId);
@@ -340,6 +353,7 @@ export const addStaff = async (data) => {
     // ✅ Save staff
     const newStaff = new Staff({
       name,
+      jobTitle,
       gender,
       dob,
       contactNumber,

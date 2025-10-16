@@ -64,20 +64,27 @@ export const updateGamingItem = async (data) => {
   try {
     const { itemId, itemImage, ...updateData } = data;
 
-    // Create a file object that uploadToFirebase can use
-    const file = {
-      buffer: Buffer.from(itemImage.buffer, "base64"),
-      originalname: itemImage.originalname,
-    };
+    // ✅ FIX: Only process image if it exists and has buffer data
+    if (itemImage && itemImage.buffer) {
+      // Create a file object that uploadToFirebase can use
+      const file = {
+        buffer: Buffer.from(itemImage.buffer, "base64"),
+        originalname: itemImage.originalname,
+      };
 
-    const itemImageURL = await uploadToFirebase(file, "gaming-images");
-    updateData.itemImage = itemImageURL;
+      const itemImageURL = await uploadToFirebase(file, "gaming-images");
+      updateData.itemImage = itemImageURL;
+    }
+    // ✅ If no new image is provided, the existing image remains unchanged
+
     const updatedItem = await GamingItem.findByIdAndUpdate(itemId, updateData, {
       new: true,
     });
+
     if (!updatedItem) {
       return { success: false, status: 404, message: "Gaming item not found" };
     }
+
     return { success: true, status: 200, data: updatedItem };
   } catch (error) {
     console.error("Update Gaming Item Service Error:", error);

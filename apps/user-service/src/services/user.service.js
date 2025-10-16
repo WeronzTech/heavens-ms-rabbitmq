@@ -36,7 +36,10 @@ import {
   renderVerificationServerError,
   renderVerificationSuccess,
 } from "../../../../libs/email/renderTemplate.service.js";
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
@@ -153,10 +156,8 @@ export const vacateUserById = async (userId) => {
     user.stayDetails.roomId = null;
     user.isLoginEnabled = false;
     await user.save({ session });
-    console.log("rrrrrrr");
 
-    console.log(user);
-    console.log("rrrrrrr");
+    // console.log(user);
 
     await session.commitTransaction();
     return {
@@ -973,8 +974,7 @@ export const updateProfileCompletion = async (data) => {
 export const adminUpdateUser = async (data) => {
   const { id, files, flat } = data;
 
-  const updateData = rebuildNestedFields(flat);
-
+  const updateData = await rebuildNestedFields(flat);
   try {
     const user = await User.findById(id);
     if (!user) {
@@ -2564,11 +2564,11 @@ export const respondToStatusRequest = async (data) => {
           break;
         case "checked_in":
           user.currentStatus = "checked_in";
-          user.isBlocked = false;
+          // user.isBlocked = false;
           break;
         case "on_leave":
           user.currentStatus = "on_leave";
-          user.isBlocked = true;
+          // user.isBlocked = true;
           break;
       }
     }

@@ -26,7 +26,7 @@ reminderRoutes.get(
   getUserNotes
 );
 reminderRoutes.get(
-  "/reminders",
+  "/active/reminders",
   hasPermission(PERMISSIONS.REMINDER_VIEW),
   getActiveReminders
 );

@@ -11,6 +11,7 @@ export const registerManager = async (data) => {
   try {
     const {
       name,
+      jobTitle,
       email,
       phone,
       password,
@@ -22,7 +23,17 @@ export const registerManager = async (data) => {
       files,
     } = data;
 
-    if (!name || !email || !phone || !password || !salary || !propertyId) {
+    if (
+      !name ||
+      !email ||
+      !phone ||
+      !password ||
+      !salary ||
+      !propertyId ||
+      !files ||
+      !files.photo ||
+      !files.aadharImage
+    ) {
       return {
         success: false,
         status: 400,
@@ -66,6 +77,7 @@ export const registerManager = async (data) => {
 
     const newManager = new Manager({
       name,
+      jobTitle,
       email,
       contactNumber: phone,
       password: hashedPassword,

@@ -209,6 +209,7 @@ export const getAllAttendanceSummary = async (data) => {
           _id: {
             employeeId: "$employeeId",
             employeeType: "$employeeType",
+            propertyId: "$propertyId",
           },
           employeeName: { $first: "$employeeName" },
           totalPresent: {
@@ -249,6 +250,7 @@ export const getAllAttendanceSummary = async (data) => {
         totalAbsentDays: item.totalAbsent,
         totalLeaveDays: item.totalLeave,
         totalHalfDays: item.totalHalfDay,
+        propertyIds: item.propertyId,
         selectedDateStatus,
       };
     });

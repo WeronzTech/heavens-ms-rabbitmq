@@ -6,6 +6,7 @@ export const registerManager = async (req, res) => {
   try {
     const {
       name,
+      jobTitle,
       email,
       phone,
       password,
@@ -23,6 +24,7 @@ export const registerManager = async (req, res) => {
       CLIENT_PATTERN.MANAGER.REGISTER_MANAGER,
       {
         name,
+        jobTitle,
         email,
         phone,
         password,
