@@ -15,6 +15,8 @@ import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const messBookingRoutes = Router();
 
+messBookingRoutes.route("/:bookingId/status").patch(updateBookingStatus);
+
 messBookingRoutes.use(isAuthenticated);
 
 messBookingRoutes.route("/get-booking").get(checkNextDayBooking);
@@ -39,9 +41,5 @@ messBookingRoutes
 messBookingRoutes
   .route("/user/:userId")
   .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getUserBookings);
-
-messBookingRoutes
-  .route("/:bookingId/status")
-  .patch(hasPermission(PERMISSIONS.BOOKING_MANAGE), updateBookingStatus);
 
 export default messBookingRoutes;
