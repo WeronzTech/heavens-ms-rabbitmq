@@ -9,9 +9,12 @@ import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
-import Voucher from "../models/voucher.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
+import Deposits from "../models/depositPayments.model.js";
+import Voucher from "../models/voucher.model.js";
+import emailService from "../../../../libs/email/email.service.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -522,10 +525,20 @@ const processAndRecordPayment = async ({
         },
       }
     );
-
+    const userEmail = updateUserResponse?.body?.data?.email;
     if (!updateUserResponse.body.success) {
       throw new Error("Failed to update user financial details.");
     }
+
+    setImmediate(async () => {
+      try {
+        await Promise.all([
+          emailService.sendFeeReceiptEmail(userEmail, newPayment),
+        ]);
+      } catch (err) {
+        console.error("Post-approval async error:", err);
+      }
+    });
 
     await session.commitTransaction();
     return {
@@ -1164,19 +1177,52 @@ export const getFeePaymentsByUserId = async (data) => {
   }
 };
 
-export const getWaveOffedPayments = async (data) => {
+export const getWaveOffedPayments = async (filters) => {
   try {
+    const { propertyId, userType, paymentMethod, month, year, search } =
+      filters || {};
+    console.log("filters");
+    console.log(filters);
+
     const query = { waveOffAmount: { $gt: 0 } };
 
-    // Extract propertyId from data
-    const { propertyId } = data || {};
+    // Property filter (nested field)
+    if (propertyId) query["property.id"] = propertyId;
 
-    if (propertyId) {
-      query["property.id"] = propertyId;
+    // User type filter
+    if (userType) query.userType = userType;
+
+    // Payment method filter
+    if (paymentMethod) query.paymentMethod = paymentMethod;
+
+    // Search filter for name or transactionId
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { transactionId: { $regex: search, $options: "i" } },
+      ];
     }
 
-    const waveOffedPayments = await Payments.find(query).lean();
+    // Month & year filter (based on paymentDate)
+    if (month || year) {
+      const now = new Date();
+      const filterYear = year || now.getFullYear();
+      const filterMonth = month ? month - 1 : 0; // JS months are 0-indexed
 
+      const start = new Date(filterYear, filterMonth, 1, 0, 0, 0, 0);
+      const end = month
+        ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
+        : new Date(filterYear, 11, 31, 23, 59, 59, 999);
+
+      query.paymentDate = { $gte: start, $lte: end };
+    }
+
+    // Fetch data
+    const waveOffedPayments = await Payments.find(query)
+      .sort({ paymentDate: -1, createdAt: -1 })
+      .lean();
+
+    // Total wave-off amount
     const totalWaveOff = waveOffedPayments.reduce(
       (sum, payment) => sum + (payment.waveOffAmount || 0),
       0
@@ -1202,43 +1248,96 @@ export const getWaveOffedPayments = async (data) => {
   }
 };
 
-export const getAllCashPayments = async ({ propertyId }) => {
+export const getAllCashPayments = async ({}) => {
   try {
+    const startDate = new Date("2025-10-13T00:00:00.000Z");
+
     // Fetch all cash payments
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
-      ...(propertyId && { "property.id": propertyId }), // Payments model uses property.id
+      createdAt: { $gte: startDate },
     }).sort({ createdAt: -1 });
 
-    // Fetch all vouchers (filtering by propertyId from voucher model)
-    const Vouchers = await Voucher.find({
-      ...(propertyId && { propertyId }),
+    // Fetch all deposit cash payments
+    const DepositPayments = await Deposits.find({
+      paymentMethod: "Cash",
+      createdAt: { $gte: startDate },
     }).sort({ createdAt: -1 });
 
-    // Calculate total cash payments
+    // Fetch all cash expenses from Expense collection
+    const Expenses = await Expense.find({
+      paymentMethod: "Cash",
+      createdAt: { $gte: startDate },
+    }).sort({ createdAt: -1 });
+
+    // Fetch all cash commissions
+    const Commissions = await Commission.find({
+      paymentType: "Cash",
+      createdAt: { $gte: startDate },
+    }).sort({ createdAt: -1 });
+
+    // Fetch all cash staff salary payments
+    const StaffSalaries = await StaffSalaryHistory.find({
+      paymentMethod: "Cash",
+      createdAt: { $gte: startDate },
+    }).sort({ createdAt: -1 });
+
+    const PendingVouchers = await Voucher.find({
+      status: "Pending",
+    }).select("remainingAmount");
+
+    // Calculate total cash payments (inflow)
     const totalCashPayments = CashPayments.reduce(
       (sum, payment) => sum + (payment.amount || 0),
       0
     );
 
-    // Calculate total vouchers
-    const totalVouchers = Vouchers.reduce(
-      (sum, voucher) => sum + (voucher.amount || 0),
+    // Calculate total cash payments (inflow)
+    const totalDepositPayments = DepositPayments.reduce(
+      (sum, payment) => sum + (payment.amountPaid || 0),
+      0
+    );
+    // Calculate total expenses (outflows)
+    const totalExpenses = Expenses.reduce(
+      (sum, exp) => sum + (exp.amount || 0),
       0
     );
 
-    // Net cash = cash payments - vouchers
-    const netCash = totalCashPayments - totalVouchers;
+    const totalCommissions = Commissions.reduce(
+      (sum, com) => sum + (com.amount || 0),
+      0
+    );
+
+    const totalStaffSalaries = StaffSalaries.reduce(
+      (sum, sal) => sum + (sal.paidAmount || 0),
+      0
+    );
+
+    const totalPendingVoucherRemaining = PendingVouchers.reduce(
+      (sum, voucher) => sum + (voucher.remainingAmount || 0),
+      0
+    );
+
+    // Total cash inflow
+    const totalCashInflow = totalCashPayments + totalDepositPayments;
+
+    // Total cash outflow
+    const totalCashOutflow =
+      totalExpenses + totalCommissions + totalPendingVoucherRemaining;
+
+    // Net cash = inflow - outflow
+    const netCash = Math.max(totalCashInflow - totalCashOutflow, 0);
 
     return {
       success: true,
       status: 200,
       message: "Cash payments fetched successfully",
       totalCashPayments,
-      totalVouchers,
+      totalExpenses,
+      totalCommissions,
+      totalStaffSalaries,
+      totalCashOutflow,
       netCash,
-      // cashPayments: CashPayments,
-      // vouchers: Vouchers,
     };
   } catch (error) {
     console.error("Get Cash Payments Service Error:", error);

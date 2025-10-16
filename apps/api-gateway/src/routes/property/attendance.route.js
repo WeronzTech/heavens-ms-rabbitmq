@@ -3,6 +3,8 @@ import {
   markAttendance,
   getAllAttendance,
   updateAttendance,
+  getAllAttendanceSummary,
+  getAvailableAttendanceDates,
 } from "../../controllers/property/attendance.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
@@ -26,9 +28,21 @@ attendanceRoutes.get(
   getAllAttendance
 );
 
+attendanceRoutes.get("/availableDates/:id", getAvailableAttendanceDates);
+
+attendanceRoutes.get("/summary", getAllAttendanceSummary);
+
 // Update a single attendance record
+// attendanceRoutes.put("/:id", updateAttendance);
+
+// attendanceRoutes.put("/update", updateAttendance);
+// attendanceRoutes.put(
+//   "/:id",
+//   hasPermission(PERMISSIONS.ATTENDANCE_MANAGE),
+//   updateAttendance
+// );
 attendanceRoutes.put(
-  "/:id",
+  "/update",
   hasPermission(PERMISSIONS.ATTENDANCE_MANAGE),
   updateAttendance
 );

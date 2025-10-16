@@ -139,76 +139,158 @@ export const manualAddSalary = async (data) => {
   }
 };
 
+// export const getAllSalaryRecords = async (filters) => {
+//   try {
+//     const { employeeId, propertyId, startDate, endDate } = filters;
+//     const query = {};
+
+//     if (employeeId) query.employeeId = employeeId;
+
+//     if (startDate && endDate) {
+//       query.date = {
+//         $gte: new Date(startDate),
+//         $lte: new Date(endDate),
+//       };
+//     }
+
+//     if (propertyId) {
+//       const [staffResponse, managerResponse] = await Promise.all([
+//         sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID, {
+//           propertyId,
+//         }),
+//         sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, { propertyId }),
+//       ]);
+
+//       // ✅ Ensure both RPC responses are arrays
+//       const staffData = Array.isArray(staffResponse?.data)
+//         ? staffResponse.data
+//         : Array.isArray(staffResponse?.data?.data)
+//         ? staffResponse.data.data
+//         : [];
+
+//       const managerData = Array.isArray(managerResponse?.data)
+//         ? managerResponse.data
+//         : Array.isArray(managerResponse?.data?.data)
+//         ? managerResponse.data.data
+//         : [];
+
+//       const staffIds = staffData
+//         .filter((s) => s.status === "Active")
+//         .map((s) => s._id);
+
+//       const managerIds = managerData
+//         .filter((m) => m.status === "Active")
+//         .map((m) => m._id);
+
+//       const employeeIds = [...staffIds, ...managerIds];
+
+//       if (employeeIds.length === 0) {
+//         return {
+//           success: true,
+//           status: 200,
+//           message: "No employees found for this property.",
+//           data: [],
+//         };
+//       }
+
+//       query.employeeId = { $in: employeeIds };
+//     }
+
+//     const records = await StaffSalaryHistory.find(query)
+//       .populate({
+//         path: "employeeId",
+//         select: "name staffId managerId",
+//       })
+//       .populate("paidBy", "name")
+//       .sort({ date: -1 });
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Salary records retrieved successfully.",
+//       data: records,
+//     };
+//   } catch (error) {
+//     console.error("Get All Salary Records Service Error:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal Server Error",
+//       error: error.message,
+//     };
+//   }
+// };
+
 export const getAllSalaryRecords = async (filters) => {
   try {
-    const { employeeId, propertyId, startDate, endDate } = filters;
+    const {
+      propertyId,
+      type,
+      paymentMethod,
+      search,
+      month,
+      year,
+      page = 1,
+      limit = 20,
+    } = filters;
+
     const query = {};
 
-    if (employeeId) query.employeeId = employeeId;
+    if (propertyId) query.propertyId = propertyId;
+    if (type) query.employeeType = type;
+    if (paymentMethod) query.paymentMethod = paymentMethod;
+    if (search) query.employeeName = { $regex: search, $options: "i" };
 
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
+    // Month & year filter using date range
+    if (month || year) {
+      const now = new Date();
+      const filterYear = year || now.getFullYear();
+      const filterMonth = month ? month - 1 : 0; // JS months 0-11
+
+      const start = new Date(filterYear, filterMonth, 1, 0, 0, 0, 0);
+      const end = month
+        ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
+        : new Date(filterYear, 11, 31, 23, 59, 59, 999);
+
+      query.date = { $gte: start, $lte: end };
     }
 
-    if (propertyId) {
-      const [staffResponse, managerResponse] = await Promise.all([
-        sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID, {
-          propertyId,
-        }),
-        sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, { propertyId }),
-      ]);
+    const skip = (page - 1) * limit;
 
-      // ✅ Ensure both RPC responses are arrays
-      const staffData = Array.isArray(staffResponse?.data)
-        ? staffResponse.data
-        : Array.isArray(staffResponse?.data?.data)
-        ? staffResponse.data.data
-        : [];
-
-      const managerData = Array.isArray(managerResponse?.data)
-        ? managerResponse.data
-        : Array.isArray(managerResponse?.data?.data)
-        ? managerResponse.data.data
-        : [];
-
-      const staffIds = staffData
-        .filter((s) => s.status === "Active")
-        .map((s) => s._id);
-
-      const managerIds = managerData
-        .filter((m) => m.status === "Active")
-        .map((m) => m._id);
-
-      const employeeIds = [...staffIds, ...managerIds];
-
-      if (employeeIds.length === 0) {
-        return {
-          success: true,
-          status: 200,
-          message: "No employees found for this property.",
-          data: [],
-        };
-      }
-
-      query.employeeId = { $in: employeeIds };
-    }
-
+    // Fetch paginated records
     const records = await StaffSalaryHistory.find(query)
-      .populate({
-        path: "employeeId",
-        select: "name staffId managerId",
-      })
-      .populate("paidBy", "name")
-      .sort({ date: -1 });
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalRecords = await StaffSalaryHistory.countDocuments(query);
+
+    // Aggregate total paidAmount
+    const totalPaidResult = await StaffSalaryHistory.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalPaidAmount: { $sum: { $ifNull: ["$paidAmount", 0] } },
+        },
+      },
+    ]);
+
+    const totalPaidAmount =
+      totalPaidResult.length > 0 ? totalPaidResult[0].totalPaidAmount : 0;
 
     return {
       success: true,
       status: 200,
       message: "Salary records retrieved successfully.",
       data: records,
+      totalPaidAmount,
+      pagination: {
+        total: totalRecords,
+        page,
+        limit,
+        totalPages: Math.ceil(totalRecords / limit),
+      },
     };
   } catch (error) {
     console.error("Get All Salary Records Service Error:", error);

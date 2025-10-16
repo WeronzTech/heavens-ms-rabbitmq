@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+handlebars.registerHelper("eq", (a, b) => a === b);
+
 export const renderTemplate = async (templateName, context) => {
   const templatePath = path.join(__dirname, `templates/${templateName}.hbs`);
 

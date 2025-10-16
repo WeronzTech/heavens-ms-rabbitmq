@@ -5,6 +5,7 @@ import DatabaseCounter from "./databaseCounter.model.js";
 const managerSchema = new mongoose.Schema(
   {
     managerId: { type: String, unique: true },
+    jobTitle: { type: String, required: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     contactNumber: { type: String, required: true },

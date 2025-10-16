@@ -1,144 +1,130 @@
-# Define a reusable service template for all Node.js microservices
-# This keeps the configuration DRY (Don't Repeat Yourself)
-x-node-service: &node-service
+# This file is for DEVELOPMENT purposes.
+# It uses nodemon for live-reloading and mounts your local code.
+
+version: "3.8"
+
+# Reusable service template for development
+x-node-service-dev: &node-service-dev
   build:
     context: .
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile # Use the simpler, single-stage Dockerfile
   volumes:
-    # Mount the entire project directory for live-reloading in development.
-    - .:/app
-    # Use the node_modules from the container, don't overwrite it from the host.
-    - /app/node_modules
-  env_file:
-    - ./.env
+    - .:/app # Mounts local code for live-reloading
+    - /app/node_modules # Prevents local node_modules from overwriting container's
+  env_file: ./.env.dev # Use the development environment file
   environment:
     - NODE_ENV=development
-    - CHOKIDAR_USEPOLLING=true # Helps nodemon detect file changes inside Docker
+    - CHOKIDAR_USEPOLLING=true # Helps nodemon detect file changes
     - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
   networks:
-    - heavens-ms-js-net
+    - heavens-ms-dev-net # Use a separate network for development
   restart: unless-stopped
 
 services:
-  # ===================================================================
-  #  1. API Gateway (The only service exposed to the outside world)
-  # ===================================================================
+  # The NGINX proxy for the DEVELOPMENT environment
+  nginx_proxy_dev:
+    build: ./nginx
+    container_name: nginx_proxy_dev
+    restart: unless-stopped
+    ports:
+      - "8000:80" # Maps HOST port 8000 to this container's port 80
+    networks:
+      - heavens-ms-dev-net
+    depends_on:
+      - api-gateway
+      - auth-service
+      - client-service
+      - user-service
+      - property-service
+      - inventory-service
+      - socket-service
+      - notification-service
+      - accounts-service
+
+  # Infrastructure services (can be shared or separate)
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: rabbitmq_dev
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin123
     ports:
-      - "15672:15672" # Management UI
-      - "5672:5672"
+      - "15673:15672" # Use a different host port to avoid conflict
     volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+      - rabbitmq-data-dev:/var/lib/rabbitmq
     networks:
-      - heavens-ms-js-net
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+      - heavens-ms-dev-net
 
   redis:
     image: redis:latest
-    container_name: redis
+    container_name: redis_dev
     ports:
-      - "6379:6379"
+      - "6380:6379" # Use a different host port
     networks:
-      - heavens-ms-js-net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: unless-stopped
+      - heavens-ms-dev-net
 
+  # Application microservices for DEVELOPMENT
   api-gateway:
-    <<: *node-service # Inherit the common configuration
-    command: ["npm", "run", "api-gateway"]
-    ports:
-      - "8080:8080" # Expose to host machine
+    <<: *node-service-dev
+    command: npm run api-gateway # Runs nodemon script
+    expose:
+      - "8080" # Expose internally for the proxy
     depends_on:
-      rabbitmq: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      auth-service: { condition: service_started }
-      client-service: { condition: service_started }
-      user-service: { condition: service_started }
-      property-service: { condition: service_started }
-      inventory-service: { condition: service_started }
-      socket-service: { condition: service_started }
-      notification-service: { condition: service_started }
-      accounts-service: { condition: service_started }
+      - rabbitmq
+      - redis
+      # Add other service dependencies...
 
-  # ===================================================================
-  #  2. Application Microservices (Internal only)
-  # ===================================================================
   auth-service:
-    <<: *node-service
-    command: ["npm", "run", "auth-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run auth-service
+    expose:
+      - "8080"
 
   client-service:
-    <<: *node-service
-    command: ["npm", "run", "client-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run client-service
+    expose:
+      - "8080"
 
   user-service:
-    <<: *node-service
-    command: ["npm", "run", "user-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run user-service
+    expose:
+      - "8080"
 
   property-service:
-    <<: *node-service
-    command: ["npm", "run", "property-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run property-service
+    expose:
+      - "8080"
 
   inventory-service:
-    <<: *node-service
-    command: ["npm", "run", "inventory-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run inventory-service
+    expose:
+      - "8080"
 
   socket-service:
-    <<: *node-service
-    command: ["npm", "run", "socket-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      redis: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run socket-service
+    expose:
+      - "5006" # Use the specific port for the socket service
 
   notification-service:
-    <<: *node-service
-    command: ["npm", "run", "notification-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
+    <<: *node-service-dev
+    command: npm run notification-service
+    expose:
+      - "8080"
 
   accounts-service:
-    <<: *node-service
-    command: ["npm", "run", "accounts-service"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-
-  # ===================================================================
-  #  3. Infrastructure Services
-  # ===================================================================
-  maildev:
-    image: maildev/maildev
-    ports:
-      - "1080:1080" # Web UI
-    networks:
-      - heavens-ms-js-net
+    <<: *node-service-dev
+    command: npm run accounts-service
+    expose:
+      - "8080"
 
 networks:
-  heavens-ms-js-net:
+  heavens-ms-dev-net:
     driver: bridge
 
 volumes:
-  rabbitmq-data:
+  rabbitmq-data-dev:

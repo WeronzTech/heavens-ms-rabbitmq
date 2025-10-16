@@ -9,7 +9,7 @@ export const getDashboardStats = async (data) => {
         ? data.propertyId
         : undefined;
 
-    const [residentCounts, employees, maintenance, occupancy] =
+    const [residentCounts, employees, maintenance, occupancy, reminders] =
       await Promise.all([
         sendRPCRequest(USER_PATTERN.DASHBOARD.GET_USERS_COUNTS, { propertyId }),
         sendRPCRequest(PROPERTY_PATTERN.DASHBOARD.GET_STAFF_COUNTS, {
@@ -21,6 +21,9 @@ export const getDashboardStats = async (data) => {
         sendRPCRequest(PROPERTY_PATTERN.DASHBOARD.GET_OCCUPANCY_RATE, {
           propertyId,
         }),
+        sendRPCRequest(USER_PATTERN.REMINDER_NOTE.GET_ACTIVE_REMINDERS, {
+          propertyId,
+        }),
       ]);
 
     return {
@@ -30,6 +33,7 @@ export const getDashboardStats = async (data) => {
         dailyRenters: residentCounts.dailyRenters,
         employees,
         maintenance,
+        reminders,
         occupancy,
       },
     };

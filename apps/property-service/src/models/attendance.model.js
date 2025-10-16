@@ -6,6 +6,10 @@ const attendanceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
     },
+    employeeName: {
+      type: String,
+      required: true,
+    },
     employeeType: {
       type: String,
       required: true,
@@ -18,13 +22,15 @@ const attendanceSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["Present", "Absent", "Paid Leave"],
+      enum: ["Present", "Absent", "Paid Leave", "Half Day"],
     },
-    propertyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Property",
-      required: true,
-    },
+    propertyId: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Property",
+        required: true,
+      },
+    ],
     remarks: {
       type: String,
       trim: true,

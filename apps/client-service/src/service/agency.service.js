@@ -30,15 +30,28 @@ export const getAllAgenciesWithSearch = async (data) => {
 
 export const addAgency = async (data) => {
   try {
-    const { agencyName } = data;
+    const { hasAgency, agencyName, contactNumber } = data;
 
-    const existingAgency = await Agency.findOne({ agencyName });
-    if (existingAgency) {
-      return {
-        success: false,
-        status: 409,
-        message: `Agency with name '${agencyName}' already exists.`,
-      };
+    if (hasAgency && agencyName) {
+      const existingAgency = await Agency.findOne({ agencyName });
+      if (existingAgency) {
+        return {
+          success: false,
+          status: 409,
+          message: `Agency with name '${agencyName}' already exists.`,
+        };
+      }
+    }
+
+    if (!hasAgency && contactNumber) {
+      const existingContact = await Agency.findOne({ contactNumber });
+      if (existingContact) {
+        return {
+          success: false,
+          status: 409,
+          message: `An agent with the contact number '${contactNumber}' already exists.`,
+        };
+      }
     }
 
     const newAgency = await Agency.create(data);
@@ -46,7 +59,7 @@ export const addAgency = async (data) => {
     return {
       success: true,
       status: 201,
-      message: "Agency created successfully.",
+      message: "Agent created successfully.",
       data: newAgency,
     };
   } catch (error) {

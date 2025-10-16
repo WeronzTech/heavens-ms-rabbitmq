@@ -3,6 +3,7 @@ import {
   addStaff,
   deleteStaff,
   getAllStaff,
+  getAllStaffForAttendance,
   getStaffById,
   getStaffByPropertyId,
   staffStatusChange,
@@ -67,11 +68,14 @@ staffRoutes.put(
   updateStaff
 );
 
+staffRoutes.get("/attendance/getAll", getAllStaffForAttendance);
+
 staffRoutes.delete(
   "/delete/:id",
   hasPermission(PERMISSIONS.STAFF_MANAGE),
   deleteStaff
 );
+
 staffRoutes.get(
   "/by-property/:propertyId",
   hasPermission(PERMISSIONS.STAFF_VIEW),

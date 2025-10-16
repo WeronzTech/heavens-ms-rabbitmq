@@ -3,16 +3,14 @@ import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 
 export const addVoucherController = async (req, res) => {
   try {
-    const { user, description, createdBy, amount, propertyId, propertyName } =
-      req.body;
+    const { recipientName, purpose, amount, date, createdBy } = req.body;
 
     const Voucher = await sendRPCRequest(ACCOUNTS_PATTERN.VOUCHER.ADD_VOUCHER, {
-      user,
-      description,
-      createdBy,
+      recipientName,
+      purpose,
       amount,
-      propertyId,
-      propertyName,
+      date,
+      createdBy,
     });
 
     if (Voucher.status === 200) {
@@ -52,12 +50,12 @@ export const deleteVoucherController = async (req, res) => {
 
 export const getVoucherByPropertyController = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const { status, search, month, year } = req.query;
 
     // If query is not given, send an empty object to fetch all
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.VOUCHER.GET_VOUCHER_BY_PROPERTY,
-      propertyId ? { propertyId } : {}
+      { status, search, month, year }
     );
 
     res.status(response?.status || 500).json(response);

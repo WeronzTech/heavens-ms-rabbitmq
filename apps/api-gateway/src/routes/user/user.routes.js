@@ -1,6 +1,7 @@
 import express from "express";
 import {
   adminUpdateUser,
+  allocateUsersToAgent,
   approveUser,
   createStatusRequest,
   extendUserDays,
@@ -135,6 +136,12 @@ userRoutes.get(
   "/byAgency",
   hasPermission(PERMISSIONS.USER_VIEW),
   getUsersByAgencyController
+);
+
+userRoutes.post(
+  "/allocateUsersToAgent",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  allocateUsersToAgent
 );
 
 userRoutes

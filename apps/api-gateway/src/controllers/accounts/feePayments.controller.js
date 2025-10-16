@@ -260,11 +260,9 @@ export const getUserPaymentsController = async (req, res) => {
 export const getWaveOffedPaymentsController = async (req, res) => {
   try {
     // Get propertyId from query params
-    const { propertyId } = req.query;
-
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
-      { propertyId }
+      req.query
     );
 
     return res.status(response?.status || 500).json(response);

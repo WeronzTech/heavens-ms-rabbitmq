@@ -14,8 +14,7 @@ const alertNotificationRoutes = express.Router();
 alertNotificationRoutes.use(isAuthenticated);
 
 alertNotificationRoutes.post(
-  "/",
-  hasPermission(PERMISSIONS.NOTIFICATION_MANAGE),
+  "/add",
   upload.fields([{ name: "alertNotificationImage", maxCount: 1 }]),
   addAlertNotificationController
 );
