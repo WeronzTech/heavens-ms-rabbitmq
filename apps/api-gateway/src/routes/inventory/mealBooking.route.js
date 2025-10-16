@@ -17,29 +17,49 @@ const messBookingRoutes = Router();
 
 messBookingRoutes.route("/:bookingId/status").patch(updateBookingStatus);
 
-messBookingRoutes.use(isAuthenticated);
-
-messBookingRoutes.route("/get-booking").get(checkNextDayBooking);
+messBookingRoutes
+  .route("/get-booking")
+  .get(isAuthenticated, checkNextDayBooking);
 
 messBookingRoutes
   .route("/")
-  .post(hasPermission(PERMISSIONS.BOOKING_MANAGE), createMealBooking);
+  .post(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_MANAGE),
+    createMealBooking
+  );
 
 messBookingRoutes
   .route("/manual")
-  .post(hasPermission(PERMISSIONS.BOOKING_MANAGE), createManualMealBookings);
+  .post(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_MANAGE),
+    createManualMealBookings
+  );
 
 messBookingRoutes
   .route("/property")
-  .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingByProperty);
+  .get(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_VIEW),
+    getBookingByProperty
+  );
 
 messBookingRoutes
   .route("/:bookingId")
-  .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingById)
-  .delete(hasPermission(PERMISSIONS.BOOKING_MANAGE), deleteBooking);
+  .get(isAuthenticated, hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingById)
+  .delete(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_MANAGE),
+    deleteBooking
+  );
 
 messBookingRoutes
   .route("/user/:userId")
-  .get(hasPermission(PERMISSIONS.BOOKING_VIEW), getUserBookings);
+  .get(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_VIEW),
+    getUserBookings
+  );
 
 export default messBookingRoutes;
