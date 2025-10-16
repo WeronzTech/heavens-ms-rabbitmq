@@ -1,4 +1,7 @@
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import {
   createRazorpayOrderId,
   verifyPayment,
@@ -63,6 +66,7 @@ export const getGamingItemById = async ({ itemId }) => {
 export const updateGamingItem = async (data) => {
   try {
     const { itemId, itemImage, ...updateData } = data;
+     const oldGamingItem = await GamingItem.findById(itemId);
 
     // ✅ FIX: Only process image if it exists and has buffer data
     if (itemImage && itemImage.buffer) {
@@ -74,6 +78,7 @@ export const updateGamingItem = async (data) => {
 
       const itemImageURL = await uploadToFirebase(file, "gaming-images");
       updateData.itemImage = itemImageURL;
+       await deleteFromFirebase(oldGamingItem.itemImage);
     }
     // ✅ If no new image is provided, the existing image remains unchanged
 
@@ -115,6 +120,7 @@ export const deleteGamingItem = async ({ itemId }) => {
     if (!deleted) {
       return { success: false, status: 404, message: "Gaming item not found" };
     }
+    await deleteFromFirebase(deleted.itemImage);
     return {
       success: true,
       status: 200,
@@ -200,7 +206,7 @@ export const verifyPaymentAndConfirmOrder = async (data) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
 
-    if (!razpay_order_id || !razpay_payment_id || !razpay_signature) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return {
         success: false,
         status: 400,
@@ -279,9 +285,17 @@ export const updateOrderStatus = async ({ orderId, deliveryStatus }) => {
   }
 };
 
-export const getAllOrders = async () => {
+export const getAllOrders = async (data) => {
   try {
-    const orders = await GamingOrder.find().populate(
+    const { userId } = data;
+    let filter = {};
+
+    if (userId) {
+      filter.userId = userId;
+    }
+    console.log("Filter", filter);
+
+    const orders = await GamingOrder.find(filter).populate(
       "itemId",
       "itemName price itemImage"
     );
@@ -335,6 +349,41 @@ export const updateGamePlayedStatus = async ({ userId }) => {
     };
   } catch (error) {
     console.error("Update Game Played Status Service Error:", error);
+    return { success: false, status: 500, message: "Internal server error" };
+  }
+};
+
+export const updateGameActiveStatusForAllUsers = async ({ status }) => {
+  try {
+    // Validate that the incoming status is a boolean
+    if (typeof status !== "boolean") {
+      return {
+        success: false,
+        status: 400,
+        message: "A boolean 'status' field is required.",
+      };
+    }
+
+    // Use updateMany with an empty filter {} to match all documents
+    const updateResult = await User.updateMany(
+      {}, // Empty filter matches all users
+      { $set: { "gaming.gameActive": status } }
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: `Successfully updated the game active status for ${updateResult.modifiedCount} users to '${status}'.`,
+      data: {
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount,
+      },
+    };
+  } catch (error) {
+    console.error(
+      "Update Game Active Status For All Users Service Error:",
+      error
+    );
     return { success: false, status: 500, message: "Internal server error" };
   }
 };

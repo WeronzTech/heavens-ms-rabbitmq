@@ -1,0 +1,34 @@
+# This workflow deploys your application to the DEVELOPMENT environment.
+# It is triggered ONLY on pushes to the 'develop' branch.
+
+name: CI/CD Pipeline for Development
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy-dev:
+    name: Deploy to Development Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Navigate to your development directory (which is a git repo)
+            cd /var/www/heavens-ms-js/dev
+
+            # Pull the latest code from the 'develop' branch
+            git pull origin develop
+
+            # Rebuild and restart the services using the development compose file.
+            # The '--build' flag tells Docker to rebuild images based on the new code.
+            docker compose -f docker-compose.yml up -d --build
+
+            # Clean up old, unused Docker images
+            docker image prune -af

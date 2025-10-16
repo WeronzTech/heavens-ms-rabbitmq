@@ -8,6 +8,7 @@ import {
   getGamingItemById,
   getOrderById,
   initiateGamingOrder,
+  updateGameActiveStatusForAllUsers,
   updateGamePlayedStatus,
   updateGamingItem,
   updateGamingItemStatus,
@@ -42,10 +43,15 @@ createResponder(USER_PATTERN.GAMING.ORDER.VERIFY_AND_CONFIRM, (data) =>
 createResponder(USER_PATTERN.GAMING.ORDER.UPDATE_STATUS, (data) =>
   updateOrderStatus(data)
 );
-createResponder(USER_PATTERN.GAMING.ORDER.GET_ALL, () => getAllOrders());
+createResponder(USER_PATTERN.GAMING.ORDER.GET_ALL, (data) =>
+  getAllOrders(data)
+);
 createResponder(USER_PATTERN.GAMING.ORDER.GET_BY_ID, (data) =>
   getOrderById(data)
 );
 createResponder(USER_PATTERN.GAMING.UPDATE_PLAYED_STATUS, (data) =>
   updateGamePlayedStatus(data)
+);
+createResponder(USER_PATTERN.GAMING.UPDATE_GAME_ACTIVE_STATUS_FOR_ALL, (data) =>
+  updateGameActiveStatusForAllUsers(data)
 );
