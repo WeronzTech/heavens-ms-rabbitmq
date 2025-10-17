@@ -1,4 +1,7 @@
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import AlertNotification from "../models/alertNotification.model.js";
 import FcmToken from "../models/fcmToken.model.js";
 import { sendPushNotificationToUser } from "../utils/sendNotificationHelper.js";
@@ -78,6 +81,7 @@ export const deleteAlertNotification = async ({ data }) => {
     const { id } = data;
 
     const deletedNotification = await AlertNotification.findByIdAndDelete(id);
+    await deleteFromFirebase(deletedNotification.imageUrl);
 
     if (!deletedNotification) {
       return { status: 404, message: "Alert notification not found" };
