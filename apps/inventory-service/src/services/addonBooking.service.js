@@ -226,7 +226,7 @@ export const getAddonBookingsByProperty = async (filters) => {
     const limit = parseInt(filters.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
-    const [bookings, totalCount] = await Promise.all([
+    const [bookings, total] = await Promise.all([
       AddonBooking.find(query)
         .populate("addons.addonId")
         .sort({ bookingDate: -1, createdAt: -1 })
@@ -236,39 +236,70 @@ export const getAddonBookingsByProperty = async (filters) => {
       AddonBooking.countDocuments(query),
     ]);
 
-    const userIds = [...new Set(bookings.map((b) => b.userId.toString()))];
-    const userResponse = await sendRPCRequest(
-      USER_PATTERN.USER.GET_USER_BY_ID,
-      {
-        userIds,
-      }
-    );
-    const userMap = new Map(
-      userResponse.body.success
-        ? userResponse.body.data.map((u) => [u._id.toString(), u])
-        : []
+    const enrichedData = await Promise.all(
+      bookings.map(async (booking) => {
+        try {
+          const userServiceResponse = await sendRPCRequest(
+            USER_PATTERN.USER.GET_USER_BY_ID,
+            { userId: booking.userId }
+          );
+
+          const userDetails = userServiceResponse?.body?.data;
+
+          return {
+            ...booking,
+            userName: userDetails?.name || "N/A",
+            contact: userDetails?.contact || "N/A",
+            roomNumber: userDetails?.stayDetails?.roomNumber || "N/A",
+          };
+        } catch {
+          return {
+            ...booking,
+            userName: "User not found",
+            roomNumber: "N/A",
+            contact: "N/A",
+          };
+        }
+      })
     );
 
-    const enrichedData = bookings.map((booking) => {
-      const userDetails = userMap.get(booking.userId.toString());
-      return {
-        ...booking,
-        userName: userDetails?.name || "N/A",
-      };
-    });
+    const responsePayload = {
+      data: enrichedData,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+    };
+
+    // const userIds = [...new Set(bookings.map((b) => b.userId.toString()))];
+    // const userResponse = await sendRPCRequest(
+    //   USER_PATTERN.USER.GET_USER_BY_ID,
+    //   {
+    //     userIds,
+    //   }
+    // );
+    // const userMap = new Map(
+    //   userResponse.body.success
+    //     ? userResponse?.body?.data.map((u) => [u._id.toString(), u])
+    //     : []
+    // );
+    // console.log("userDetxxxxxxxails");
+    // console.log(userMap);
+    // const enrichedData = bookings.map((booking) => {
+    //   const userDetails = userMap.get(booking.userId.toString());
+
+    //   return {
+    //     ...booking,
+    //     userName: userDetails?.name || "N/A",
+    //   };
+    // });
 
     return {
       success: true,
       status: 200,
-      data: {
-        data: enrichedData,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit),
-        },
-      },
+      data: responsePayload,
     };
   } catch (error) {
     return { success: false, status: 500, message: error.message };

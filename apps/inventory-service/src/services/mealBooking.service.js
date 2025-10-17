@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import axios from "axios";
 import { MealBooking } from "../models/mealBooking.model.js";
 import {
   getTomorrowDate,
@@ -9,6 +8,7 @@ import {
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import moment from "moment";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
 
 export const createMealBooking = async (data) => {
@@ -130,15 +130,47 @@ export const getBookingByProperty = async (data) => {
       page = 1,
       limit = 10,
     } = data;
+
     const query = {};
 
+    // ---- Time zone handling (IST) ----
+    const nowUTC = new Date();
+    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000); // convert UTC → IST
+
+    // If current IST time is after 11:00 PM, shift by one more day
+    const hoursIST = nowIST.getHours();
+    const targetIST = new Date(nowIST);
+
+    if (hoursIST >= 23) {
+      targetIST.setDate(targetIST.getDate() + 2); // after 11pm → day after tomorrow
+    } else {
+      targetIST.setDate(targetIST.getDate() + 1); // before 11pm → tomorrow
+    }
+
+    // Normalize target to midnight IST
+    targetIST.setHours(0, 0, 0, 0);
+
+    // Convert back to UTC for Mongo
+    const targetUTC = new Date(targetIST.getTime() - 5.5 * 60 * 60 * 1000);
+
+    // Build start/end range (UTC)
+    const startOfDayUTC = new Date(targetUTC);
+    startOfDayUTC.setUTCHours(0, 0, 0, 0);
+
+    const endOfDayUTC = new Date(targetUTC);
+    endOfDayUTC.setUTCHours(23, 59, 59, 999);
+
+    // ---- Query conditions ----
     if (propertyId) query.propertyId = propertyId;
-    if (date) query.bookingDate = normalizeDate(date);
     if (mealType) query.mealType = mealType;
     if (mealCategory) query.mealCategory = mealCategory;
     if (status) query.status = status;
 
+    query.bookingDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
+
+    // ---- Pagination ----
     const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const [bookingsData, total] = await Promise.all([
       MealBooking.find(query)
         .sort({ bookingDate: 1, mealType: 1 })
@@ -148,6 +180,7 @@ export const getBookingByProperty = async (data) => {
       MealBooking.countDocuments(query),
     ]);
 
+    // ---- Enrich with user info ----
     const enrichedData = await Promise.all(
       bookingsData.map(async (booking) => {
         try {
@@ -155,14 +188,16 @@ export const getBookingByProperty = async (data) => {
             USER_PATTERN.USER.GET_USER_BY_ID,
             { userId: booking.userId }
           );
-          const userDetails = userServiceResponse.body.data;
+
+          const userDetails = userServiceResponse?.body?.data;
+
           return {
             ...booking,
             userName: userDetails?.name || "N/A",
             contact: userDetails?.contact || "N/A",
             roomNumber: userDetails?.stayDetails?.roomNumber || "N/A",
           };
-        } catch (error) {
+        } catch {
           return {
             ...booking,
             userName: "User not found",
@@ -173,6 +208,7 @@ export const getBookingByProperty = async (data) => {
       })
     );
 
+    // ---- Response ----
     const responsePayload = {
       data: enrichedData,
       pagination: {
@@ -181,6 +217,7 @@ export const getBookingByProperty = async (data) => {
         limit: parseInt(limit),
         totalPages: Math.ceil(total / parseInt(limit)),
       },
+      targetDate: targetUTC,
     };
 
     return {
@@ -191,9 +228,89 @@ export const getBookingByProperty = async (data) => {
     };
   } catch (error) {
     console.error("Error getting bookings by property:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+    };
   }
 };
+
+// export const getBookingByProperty = async (data) => {
+//   try {
+//     const {
+//       date,
+//       status,
+//       mealType,
+//       mealCategory,
+//       propertyId,
+//       page = 1,
+//       limit = 10,
+//     } = data;
+//     const query = {};
+
+//     if (propertyId) query.propertyId = propertyId;
+//     if (date) query.bookingDate = normalizeDate(date);
+//     if (mealType) query.mealType = mealType;
+//     if (mealCategory) query.mealCategory = mealCategory;
+//     if (status) query.status = status;
+
+//     const skip = (parseInt(page) - 1) * parseInt(limit);
+//     const [bookingsData, total] = await Promise.all([
+//       MealBooking.find(query)
+//         .sort({ bookingDate: 1, mealType: 1 })
+//         .skip(skip)
+//         .limit(parseInt(limit))
+//         .lean(),
+//       MealBooking.countDocuments(query),
+//     ]);
+
+//     const enrichedData = await Promise.all(
+//       bookingsData.map(async (booking) => {
+//         try {
+//           const userServiceResponse = await sendRPCRequest(
+//             USER_PATTERN.USER.GET_USER_BY_ID,
+//             { userId: booking.userId }
+//           );
+//           const userDetails = userServiceResponse.body.data;
+//           return {
+//             ...booking,
+//             userName: userDetails?.name || "N/A",
+//             contact: userDetails?.contact || "N/A",
+//             roomNumber: userDetails?.stayDetails?.roomNumber || "N/A",
+//           };
+//         } catch (error) {
+//           return {
+//             ...booking,
+//             userName: "User not found",
+//             roomNumber: "N/A",
+//             contact: "N/A",
+//           };
+//         }
+//       })
+//     );
+
+//     const responsePayload = {
+//       data: enrichedData,
+//       pagination: {
+//         total,
+//         page: parseInt(page),
+//         limit: parseInt(limit),
+//         totalPages: Math.ceil(total / parseInt(limit)),
+//       },
+//     };
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Bookings retrieved successfully",
+//       data: responsePayload,
+//     };
+//   } catch (error) {
+//     console.error("Error getting bookings by property:", error);
+//     return { success: false, status: 500, message: "Internal Server Error" };
+//   }
+// };
 
 export const getUserBookings = async (data) => {
   try {
