@@ -8,7 +8,7 @@ import {
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
-import moment from "moment";
+import { UsageForPreparation } from "../models/usageForPreparation.model.js";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
 
 export const createMealBooking = async (data) => {
@@ -352,7 +352,8 @@ export const updateBookingStatus = async (data) => {
         message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
       };
     }
-    const booking = await MealBooking.find({ orderId: bookingId });
+    const booking = await MealBooking.findOne({ orderId: bookingId });
+    console.log("Booking", booking);
     if (!booking) {
       return { success: false, status: 404, message: "Booking not found" };
     }
@@ -543,6 +544,53 @@ export const createManualMealBookings = async (data) => {
     };
   } catch (error) {
     console.error("Error creating manual meal bookings:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const getUsageByDate = async ({ date }) => {
+  console.log(`Fetching usage for preparation data for date: ${date} (IST)`);
+
+  try {
+    // When a date string like "2025-10-18" is passed, new Date() interprets it as UTC midnight.
+    const inputDate = new Date(date);
+
+    // To create a timezone-aware range, we define the start and end in UTC that corresponds to a full day in IST.
+    // IST is UTC+5:30. We get the date parts from the input as if they are UTC to avoid local server timezone interference.
+    const year = inputDate.getUTCFullYear();
+    const month = inputDate.getUTCMonth();
+    const day = inputDate.getUTCDate();
+
+    // Create a UTC date object for the start of the day (00:00:00) using the date parts.
+    const startOfDayUTC = Date.UTC(year, month, day);
+
+    // Subtract the IST offset (5 hours and 30 minutes in milliseconds) to get the exact start of the day in IST, represented in UTC.
+    // For example, 2025-10-18 00:00:00 IST is actually 2025-10-17 18:30:00 UTC.
+    const IST_OFFSET_MS = 5 * 60 * 60 * 1000 + 30 * 60 * 1000;
+    const startDate = new Date(startOfDayUTC - IST_OFFSET_MS);
+
+    // The end date is exactly 24 hours after the start date.
+    const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+    console.log("start date", startDate);
+    console.log("end date", endDate);
+
+    // Find all records where the preparationDate (stored in UTC) falls between the start and end of the day in IST.
+    const usageData = await UsageForPreparation.find({
+      preparationDate: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    }).lean(); // .lean() returns plain JavaScript objects for better performance
+
+    console.log(`Found ${usageData.length} records for the specified date.`);
+    return { success: true, status: 200, data: usageData };
+  } catch (error) {
+    console.error("Error fetching usage for preparation data:", error);
     return {
       success: false,
       status: 500,

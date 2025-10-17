@@ -8,6 +8,7 @@ import {
   updateBookingStatus,
   checkNextDayBooking,
   createManualMealBookings,
+  getUsageForPreparation,
 } from "../../controllers/inventory/mealBooking.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
@@ -15,19 +16,15 @@ import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const messBookingRoutes = Router();
 
-messBookingRoutes.route("/:bookingId/status").patch(updateBookingStatus);
+// --- MOST SPECIFIC STATIC ROUTES FIRST ---
 
 messBookingRoutes
   .route("/get-booking")
   .get(isAuthenticated, checkNextDayBooking);
 
 messBookingRoutes
-  .route("/")
-  .post(
-    isAuthenticated,
-    hasPermission(PERMISSIONS.BOOKING_MANAGE),
-    createMealBooking
-  );
+  .route("/get-usage")
+  .get(isAuthenticated, getUsageForPreparation);
 
 messBookingRoutes
   .route("/manual")
@@ -46,13 +43,16 @@ messBookingRoutes
   );
 
 messBookingRoutes
-  .route("/:bookingId")
-  .get(isAuthenticated, hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingById)
-  .delete(
+  .route("/")
+  .post(
     isAuthenticated,
     hasPermission(PERMISSIONS.BOOKING_MANAGE),
-    deleteBooking
+    createMealBooking
   );
+
+// --- DYNAMIC (PARAMETERIZED) ROUTES LAST ---
+
+messBookingRoutes.route("/status/:bookingId").patch(updateBookingStatus);
 
 messBookingRoutes
   .route("/user/:userId")
@@ -60,6 +60,16 @@ messBookingRoutes
     isAuthenticated,
     hasPermission(PERMISSIONS.BOOKING_VIEW),
     getUserBookings
+  );
+
+// This is the most generic route, so it MUST come after all other specific routes.
+messBookingRoutes
+  .route("/:bookingId")
+  .get(isAuthenticated, hasPermission(PERMISSIONS.BOOKING_VIEW), getBookingById)
+  .delete(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_MANAGE),
+    deleteBooking
   );
 
 export default messBookingRoutes;
