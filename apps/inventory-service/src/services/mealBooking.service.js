@@ -341,9 +341,9 @@ export const getUserBookings = async (data) => {
 export const updateBookingStatus = async (data) => {
   try {
     const { bookingId, status } = data;
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
-      return { success: false, status: 400, message: "Invalid booking ID" };
-    }
+    // if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    //   return { success: false, status: 400, message: "Invalid booking ID" };
+    // }
     const validStatuses = ["Pending", "Delivered", "Cancelled"];
     if (!status || !validStatuses.includes(status)) {
       return {
@@ -352,7 +352,7 @@ export const updateBookingStatus = async (data) => {
         message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
       };
     }
-    const booking = await MealBooking.findById(bookingId);
+    const booking = await MealBooking.find({ orderId: bookingId });
     if (!booking) {
       return { success: false, status: 404, message: "Booking not found" };
     }
