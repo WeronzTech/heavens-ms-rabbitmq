@@ -6,10 +6,11 @@ import { Addon } from "../models/addons.model.js";
 import { MealBooking } from "../models/mealBooking.model.js";
 import { WeeklyMenu } from "../models/messMenu.model.js";
 import Recipe from "../models/recipe.model.js";
-import { normalizeQuantity } from "./helpers.js";
+import { denormalizeQuantity, normalizeQuantity } from "./helpers.js";
 import { UsageForPreparation } from "../models/usageForPreparation.model.js";
 import Kitchen from "../models/kitchen.model.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import mongoose from "mongoose";
 
 export const updateInventoryFromBookings = async () => {
   console.log("Cron job started: Updating inventory for tomorrow's bookings.");
@@ -138,7 +139,10 @@ export const updateInventoryFromBookings = async () => {
     for (const [kitchenId, ingredientMap] of kitchenIngredientMap.entries()) {
       console.log(`Updating inventory for Kitchen ID: ${kitchenId}`);
       // FIX: The key is now the inventoryId, which is much more reliable.
-      for (const [inventoryId, totalQuantity] of ingredientMap.entries()) {
+      for (const [
+        inventoryId,
+        totalQuantityToDeductInBaseUnit,
+      ] of ingredientMap.entries()) {
         // FIX: Find the inventory item by its unique ID.
         const inventoryItem = await Inventory.findById(inventoryId);
 
@@ -156,20 +160,37 @@ export const updateInventoryFromBookings = async () => {
           }
 
           // Step 3a: Log the usage for preparation
+          const normalizedCurrentStock = normalizeQuantity(
+            inventoryItem.stockQuantity,
+            inventoryItem.quantityType
+          );
+
+          // 3b. Perform subtraction in the common base unit
+          const newStockInBaseUnit =
+            normalizedCurrentStock.value - totalQuantityToDeductInBaseUnit;
+
+          // 3c. Convert the result back to the inventory's original unit
+          const newStockInOriginalUnit = denormalizeQuantity(
+            newStockInBaseUnit,
+            inventoryItem.quantityType
+          );
+
+          // Log the usage with the correct base unit
+          const usageUnit = normalizedCurrentStock.baseUnit;
           await UsageForPreparation.create({
             kitchenId: new mongoose.Types.ObjectId(kitchenId),
             inventoryId: inventoryItem._id,
             productName: inventoryItem.productName,
-            quantityUsed: totalQuantity,
-            unit: inventoryItem.quantityType, // Use the base unit from the inventory item
+            quantityUsed: totalQuantityToDeductInBaseUnit,
+            unit: usageUnit, // Log with the base unit (g or ml)
             preparationDate: tomorrow,
           });
           console.log(
-            `+ Logged usage of ${totalQuantity}${inventoryItem.quantityType} of ${inventoryItem.productName}.`
+            `+ Logged usage of ${totalQuantityToDeductInBaseUnit}${usageUnit} of ${inventoryItem.productName}.`
           );
 
-          // Step 3b: Deduct from inventory
-          inventoryItem.stockQuantity -= totalQuantity;
+          // 3d. Update inventory with the correctly converted stock quantity
+          inventoryItem.stockQuantity = newStockInOriginalUnit;
           if (inventoryItem.stockQuantity < 0) {
             console.warn(
               `Stock for ${inventoryItem.productName} in kitchen ${kitchenId} is now negative. Setting to 0.`
@@ -178,7 +199,7 @@ export const updateInventoryFromBookings = async () => {
           }
           await inventoryItem.save();
           console.log(
-            `- Deducted ${totalQuantity}${inventoryItem.quantityType} of ${inventoryItem.productName}. New stock: ${inventoryItem.stockQuantity}${inventoryItem.quantityType}`
+            `- Deducted from ${inventoryItem.productName}. New stock: ${inventoryItem.stockQuantity}${inventoryItem.quantityType}`
           );
         } else {
           console.error(
@@ -405,7 +426,7 @@ export const checkLowStockAndNotify = async () => {
 
             await sendRPCRequest(
               NOTIFICATION_PATTERN.NOTIFICATION.SEND_NOTIFICATION,
-              { data: notificationPayload } // ✅ wrapped in data
+              notificationPayload // ✅ wrapped in data
             );
 
             console.log(
@@ -471,4 +492,37 @@ export const autoApplyQueuedInventory = async () => {
   }
 
   console.log("Queued inventory check complete.");
+};
+
+export const deleteOldMealBookings = async () => {
+  console.log("Cron job started: Deleting meal bookings older than 4 days.");
+
+  // Calculate the date 4 days ago from the current date.
+  const fourDaysAgo = new Date();
+  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+  fourDaysAgo.setHours(0, 0, 0, 0); // Set to the beginning of the day for a clean cutoff.
+
+  try {
+    // Use deleteMany to remove all documents that match the criteria.
+    const result = await MealBooking.deleteMany({
+      bookingDate: { $lt: fourDaysAgo }, // Find bookings with a date before four days ago.
+    });
+
+    if (result.deletedCount > 0) {
+      console.log(
+        `Successfully deleted ${result.deletedCount} old meal bookings.`
+      );
+    } else {
+      console.log("No old meal bookings found to delete.");
+    }
+
+    console.log(
+      "Cron job for deleting old meal bookings finished successfully."
+    );
+  } catch (error) {
+    console.error(
+      "Error running the old meal bookings cleanup cron job:",
+      error
+    );
+  }
 };

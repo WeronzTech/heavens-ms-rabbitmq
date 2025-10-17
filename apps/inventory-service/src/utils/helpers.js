@@ -384,6 +384,20 @@ export const normalizeQuantity = (quantity, unit) => {
   }
 };
 
+export const denormalizeQuantity = (quantityInBaseUnit, originalUnit) => {
+  const lowerCaseUnit = originalUnit.toLowerCase();
+  switch (lowerCaseUnit) {
+    case "kg":
+      return quantityInBaseUnit / 1000;
+    case "l":
+      return quantityInBaseUnit / 1000;
+    case "g":
+    case "ml":
+    default:
+      return quantityInBaseUnit;
+  }
+};
+
 export const drawTable = (doc, logs) => {
   let y = 120;
   const tableTop = y;

@@ -8,6 +8,7 @@ import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import {
   autoApplyQueuedInventory,
   checkLowStockAndNotify,
+  deleteOldMealBookings,
   updateInventoryFromBookings,
 } from "./utils/automation.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
@@ -43,6 +44,7 @@ cron.schedule(
   "0 0 * * *",
   () => {
     updateInventoryFromBookings();
+    deleteOldMealBookings();
   },
   {
     scheduled: true,
