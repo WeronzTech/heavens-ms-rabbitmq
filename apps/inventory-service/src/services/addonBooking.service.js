@@ -263,6 +263,34 @@ export const getAddonBookingsByProperty = async (filters) => {
       })
     );
 
+    // ✅ NEW SECTION: Calculate today's statistics
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0]; // e.g., "2025-10-17"
+
+    // Filter today's bookings
+    const todayBookings = enrichedData.filter((b) => {
+      const bookingDateStr = new Date(b.bookingDate)
+        .toISOString()
+        .split("T")[0];
+      return bookingDateStr === todayStr;
+    });
+
+    // Total bookings today
+    const todayBookingCount = todayBookings.length;
+
+    // Count by status
+    const deliveredCount = todayBookings.filter(
+      (b) => b.status === "Delivered"
+    ).length;
+    const pendingCount = todayBookings.filter(
+      (b) => b.status === "Pending"
+    ).length;
+
+    // Total amount for today's delivered bookings
+    const todayDeliveredTotal = todayBookings
+      .filter((b) => b.status === "Delivered")
+      .reduce((sum, b) => sum + (Number(b.grandTotalPrice) || 0), 0);
+
     const responsePayload = {
       data: enrichedData,
       pagination: {
@@ -271,30 +299,12 @@ export const getAddonBookingsByProperty = async (filters) => {
         limit: parseInt(limit),
         totalPages: Math.ceil(total / parseInt(limit)),
       },
+      // ✅ Added statistics
+      todayBookingCount,
+      deliveredCount,
+      pendingCount,
+      todayDeliveredTotal,
     };
-
-    // const userIds = [...new Set(bookings.map((b) => b.userId.toString()))];
-    // const userResponse = await sendRPCRequest(
-    //   USER_PATTERN.USER.GET_USER_BY_ID,
-    //   {
-    //     userIds,
-    //   }
-    // );
-    // const userMap = new Map(
-    //   userResponse.body.success
-    //     ? userResponse?.body?.data.map((u) => [u._id.toString(), u])
-    //     : []
-    // );
-    // console.log("userDetxxxxxxxails");
-    // console.log(userMap);
-    // const enrichedData = bookings.map((booking) => {
-    //   const userDetails = userMap.get(booking.userId.toString());
-
-    //   return {
-    //     ...booking,
-    //     userName: userDetails?.name || "N/A",
-    //   };
-    // });
 
     return {
       success: true,
