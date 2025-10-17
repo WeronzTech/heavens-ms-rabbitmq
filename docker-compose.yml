@@ -22,24 +22,24 @@ x-node-service-dev: &node-service-dev
 
 services:
   # The NGINX proxy for the DEVELOPMENT environment
-  nginx_proxy_dev:
-    build: ./nginx
-    container_name: nginx_proxy_dev
-    restart: unless-stopped
-    ports:
-      - "8000:80" # Maps HOST port 8000 to this container's port 80
-    networks:
-      - heavens-ms-dev-net
-    depends_on:
-      - api-gateway
-      - auth-service
-      - client-service
-      - user-service
-      - property-service
-      - inventory-service
-      - socket-service
-      - notification-service
-      - accounts-service
+  # nginx_proxy_dev:
+  #   build: ./nginx
+  #   container_name: nginx_proxy_dev
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:80" # Maps HOST port 8000 to this container's port 80
+  #   networks:
+  #     - heavens-ms-dev-net
+  #   depends_on:
+  #     - api-gateway
+  #     - auth-service
+  #     - client-service
+  #     - user-service
+  #     - property-service
+  #     - inventory-service
+  #     - socket-service
+  #     - notification-service
+  #     - accounts-service
 
   # Infrastructure services (can be shared or separate)
   rabbitmq:
@@ -50,6 +50,7 @@ services:
       - RABBITMQ_DEFAULT_PASS=admin123
     ports:
       - "15673:15672" # Use a different host port to avoid conflict
+      - "5672:5672"
     volumes:
       - rabbitmq-data-dev:/var/lib/rabbitmq
     networks:
@@ -59,7 +60,7 @@ services:
     image: redis:latest
     container_name: redis_dev
     ports:
-      - "6380:6379" # Use a different host port
+      - "6379:6379" # Use a different host port
     networks:
       - heavens-ms-dev-net
 

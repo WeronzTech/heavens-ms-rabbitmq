@@ -8,6 +8,7 @@ import {
   updateBookingStatus,
   checkNextDayBooking,
   createManualMealBookings,
+  getUsageForPreparation,
 } from "../../controllers/inventory/mealBooking.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
@@ -15,11 +16,15 @@ import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const messBookingRoutes = Router();
 
-messBookingRoutes.route("/:bookingId/status").patch(updateBookingStatus);
+messBookingRoutes.route("/status/:bookingId").patch(updateBookingStatus);
 
 messBookingRoutes
   .route("/get-booking")
   .get(isAuthenticated, checkNextDayBooking);
+
+messBookingRoutes
+  .route("/get-usage")
+  .get(isAuthenticated, getUsageForPreparation);
 
 messBookingRoutes
   .route("/")

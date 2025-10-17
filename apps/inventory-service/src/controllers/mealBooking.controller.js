@@ -9,6 +9,7 @@ import {
   deleteBooking,
   checkNextDayBooking,
   createManualMealBookings,
+  getUsageByDate,
 } from "../services/mealBooking.service.js";
 
 createResponder(INVENTORY_PATTERN.BOOKING.CREATE_MEAL_BOOKING, async (data) => {
@@ -52,5 +53,12 @@ createResponder(
   INVENTORY_PATTERN.BOOKING.MANUAL_CREATE_BOOKINGS,
   async (data) => {
     return await createManualMealBookings(data);
+  }
+);
+
+createResponder(
+  INVENTORY_PATTERN.BOOKING.GET_USAGE_OF_INVENTORY,
+  async (data) => {
+    return await getUsageByDate(data);
   }
 );

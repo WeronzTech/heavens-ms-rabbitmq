@@ -189,6 +189,50 @@ export const createManualMealBookings = (req, res) =>
     req.body
   );
 
+export const getUsageForPreparation = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    // Validate that the date parameter is provided
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: "The 'date' query parameter is required.",
+      });
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: "Invalid date format. Please use YYYY-MM-DD.",
+      });
+    }
+
+    // Send a request to the inventory microservice via RabbitMQ
+    const response = await sendRPCRequest(
+      INVENTORY_PATTERN.BOOKING.GET_USAGE_OF_INVENTORY,
+      { date }
+    );
+
+    // Respond to the client based on the microservice's response
+    if (response.status === 200) {
+      return res.status(200).json(response);
+    } else {
+      return res.status(response.status || 500).json(response);
+    }
+  } catch (error) {
+    console.error("API Gateway Error in getUsageForPreparation:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Internal Server Error in API Gateway.",
+    });
+  }
+};
+
 export {
   createMealBooking,
   getBookingById,
