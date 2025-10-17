@@ -20,7 +20,7 @@ services:
   nginx_proxy:
     build: ./nginx
     container_name: nginx_proxy_develop
-    image: heavensliving/heavens-ms-proxy:latest # New image for the proxy
+    image: akhilbeliever001222/heavens-ms-proxy:latest # New image for the proxy
     restart: unless-stopped
     ports:
       - "8080:80" # Maps host port 8080 to this container's internal port 80
@@ -34,7 +34,7 @@ services:
   #  2. Application Microservices (Now proxied internally)
   # ===================================================================
   api-gateway:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only api-gateway
     # NOTE: The 'ports' section is REMOVED. It is no longer exposed to the host.
@@ -64,7 +64,7 @@ services:
       accounts-service: { condition: service_started }
 
   auth-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only auth-service
     expose: ["8080"]
@@ -80,7 +80,7 @@ services:
     depends_on: { rabbitmq: { condition: service_healthy } }
 
   client-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only client-service
     expose: ["8080"]
@@ -96,7 +96,7 @@ services:
     depends_on: { rabbitmq: { condition: service_healthy } }
 
   user-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only user-service
     expose: ["8080"]
@@ -112,7 +112,7 @@ services:
     depends_on: { rabbitmq: { condition: service_healthy } }
 
   property-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only property-service
     expose: ["8080"]
@@ -128,7 +128,7 @@ services:
     depends_on: { rabbitmq: { condition: service_healthy } }
 
   inventory-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only inventory-service
     expose: ["8080"]
@@ -144,7 +144,7 @@ services:
     depends_on: { rabbitmq: { condition: service_healthy } }
 
   socket-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only socket-service
     expose: ["5006"] # Assuming socket service runs on a different port
@@ -162,7 +162,7 @@ services:
       redis: { condition: service_healthy }
 
   notification-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only notification-service
     expose: ["8080"]
@@ -178,7 +178,7 @@ services:
     depends_on: { rabbitmq: { condition: service_healthy } }
 
   accounts-service:
-    image: heavensliving/heavens-ms:latest
+    image: akhilbeliever001222/heavens-ms:latest
     <<: *deploy-config
     command: pm2-runtime ecosystem.config.cjs --only accounts-service
     expose: ["8080"]
