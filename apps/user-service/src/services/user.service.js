@@ -1186,9 +1186,11 @@ export const getHeavensUserById = async (data) => {
     };
   }
 };
+
 export const getUsersByRentType = async (data) => {
   try {
-    const { rentType, propertyId, all, page, limit, search, status, joinDate } = data;
+    const { rentType, propertyId, all, page, limit, search, status, joinDate } =
+      data;
 
     // New flag to determine whether to fetch all users (no pagination)
     const fetchAll = all === true || all === "true";
@@ -1235,13 +1237,23 @@ export const getUsersByRentType = async (data) => {
     // Property filter
     if (propertyId && propertyId !== "null") {
       if (rentType === "mess") {
-        const accessibleKitchensResponse = await getAccessibleKitchens({ propertyId });
+        const accessibleKitchensResponse = await getAccessibleKitchens({
+          propertyId,
+        });
 
-        if (accessibleKitchensResponse.success && accessibleKitchensResponse.data) {
-          const kitchenIds = accessibleKitchensResponse.data.map((k) => k._id.toString());
+        if (
+          accessibleKitchensResponse.success &&
+          accessibleKitchensResponse.data
+        ) {
+          const kitchenIds = accessibleKitchensResponse.data.map((k) =>
+            k._id.toString()
+          );
           queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
         } else {
-          console.error("Failed to fetch accessible kitchens:", accessibleKitchensResponse.message);
+          console.error(
+            "Failed to fetch accessible kitchens:",
+            accessibleKitchensResponse.message
+          );
           queryConditions["messDetails.kitchenId"] = { $in: [] };
         }
       } else {
@@ -1414,10 +1426,22 @@ export const getUsersByRentType = async (data) => {
       {
         $facet: {
           totalResidents: [{ $count: "count" }],
-          totalPaid: [{ $match: { paymentStatus: "paid" } }, { $count: "count" }],
-          totalPending: [{ $match: { paymentStatus: "pending" } }, { $count: "count" }],
-          totalCheckedIn: [{ $match: { currentStatus: "checked_in" } }, { $count: "count" }],
-          totalOnLeave: [{ $match: { currentStatus: "on_leave" } }, { $count: "count" }],
+          totalPaid: [
+            { $match: { paymentStatus: "paid" } },
+            { $count: "count" },
+          ],
+          totalPending: [
+            { $match: { paymentStatus: "pending" } },
+            { $count: "count" },
+          ],
+          totalCheckedIn: [
+            { $match: { currentStatus: "checked_in" } },
+            { $count: "count" },
+          ],
+          totalOnLeave: [
+            { $match: { currentStatus: "on_leave" } },
+            { $count: "count" },
+          ],
         },
       },
     ]);
