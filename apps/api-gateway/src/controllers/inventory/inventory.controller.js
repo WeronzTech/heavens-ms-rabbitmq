@@ -16,11 +16,20 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 const handleFileDownload = async (res, pattern, data) => {
   try {
     const response = await sendRPCRequest(pattern, data);
-    if (response.success) {
-      res.set(response.headers);
-      res.send(Buffer.from(response.data.data)); // Assuming data is sent as { type: 'Buffer', data: [...] }
+    console.log("response", response);
+    if (typeof response.data === "string") {
+      // If it's a string, it's our CSV data. Convert it to a buffer.
+      res.send(Buffer.from(response.data, "utf-8"));
+    } else if (
+      response.data &&
+      response.data.type === "Buffer" &&
+      Array.isArray(response.data.data)
+    ) {
+      // If it's a Buffer object from the service, handle it as before.
+      res.send(Buffer.from(response.data.data));
     } else {
-      res.status(response.status || 500).json(response);
+      // Handle any other unexpected format
+      throw new Error("Unexpected response data format for file download.");
     }
   } catch (error) {
     console.error(

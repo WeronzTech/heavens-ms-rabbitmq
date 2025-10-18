@@ -694,7 +694,7 @@ export const downloadWeeklyUsageReport = async (data) => {
       if (kitchenIds.length > 0) {
         query.kitchenId = { $in: kitchenIds };
       } else {
-        return res.status(404).json({ error: "No kitchens found." });
+        return { status: 400, error: "No kitchens found." };
       }
     }
 
@@ -747,11 +747,12 @@ export const downloadWeeklyUsageReport = async (data) => {
       });
     });
 
-    if (reportData.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "No daily usage logs found for the selected period." });
-    }
+    // if (reportData.length === 0) {
+    //   return {
+    //     status: 400,
+    //     error: "No daily usage logs found for the selected period.",
+    //   };
+    // }
 
     if (format.toLowerCase() === "pdf") {
       const doc = new PDFDocument({
