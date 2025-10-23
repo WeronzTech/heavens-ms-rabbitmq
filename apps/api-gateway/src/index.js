@@ -45,6 +45,7 @@ import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
 import reminderRoutes from "./routes/user/reminder.routes.js";
 import logRoutes from "./routes/accounts/accountsLog.routes.js";
 import gamingRoutes from "./routes/user/gaming.routes.js";
+import floorRoutes from "./routes/property/floor.routes.js";
 
 dotenv.config();
 const app = express();
@@ -112,6 +113,7 @@ app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
 app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);
 app.use("/api/v2/property/logs", propertyLogRoutes);
+app.use("/api/v2/property/floor", floorRoutes);
 app.use("/api/v2/expense", expenseRoutes);
 app.use("/api/v2/attendance", attendanceRoutes);
 app.use("/api/v2/staff-salary", salaryRoutes);

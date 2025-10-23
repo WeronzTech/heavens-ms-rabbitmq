@@ -12,6 +12,7 @@ export const addRoom = async (data) => {
     propertyId,
     propertyName,
     isHeavens,
+    revenueGeneration,
     sharingType,
     description,
     adminName,
@@ -69,6 +70,8 @@ export const addRoom = async (data) => {
       sharingType,
       occupant: 0,
       vacantSlot: roomCapacity,
+      revenueGeneration:
+        revenueGeneration !== undefined ? revenueGeneration : true,
       isHeavens,
       description,
     });
@@ -88,17 +91,17 @@ export const addRoom = async (data) => {
     await session.commitTransaction();
     session.endSession();
 
-      try {
-        await PropertyLog.create({
-          propertyId,
-          action: "update",
-          category: "property",
-          changedByName: adminName,
-          message: `Room ${roomNo} (capacity: ${roomCapacity}, sharing type: ${sharingType}) added to property "${propertyName}" by ${adminName}`,
-        });
-      } catch (logError) {
-        console.error("Failed to save property log (addRoom):", logError);
-      }
+    try {
+      await PropertyLog.create({
+        propertyId,
+        action: "update",
+        category: "property",
+        changedByName: adminName,
+        message: `Room ${roomNo} (capacity: ${roomCapacity}, sharing type: ${sharingType}) added to property "${propertyName}" by ${adminName}`,
+      });
+    } catch (logError) {
+      console.error("Failed to save property log (addRoom):", logError);
+    }
 
     return {
       status: 200,
@@ -288,7 +291,8 @@ export const handleRemoveAssignment = async (data) => {
 };
 
 export const updateRoom = async (data) => {
-  const { id, roomNo, roomCapacity, status, adminName } = data;
+  const { id, roomNo, roomCapacity, status, revenueGeneration, adminName } =
+    data;
 
   try {
     // ✅ Find room by ID
@@ -349,6 +353,10 @@ export const updateRoom = async (data) => {
       room.status = status;
     }
 
+    if (revenueGeneration !== undefined) {
+      room.revenueGeneration = revenueGeneration;
+    }
+
     // ✅ Save updated room
     const updatedRoom = await room.save();
 
@@ -378,20 +386,20 @@ export const deleteRoom = async (data) => {
     }
 
     // ✅ Fetch the property for logging
-      const property = await Property.findById(deletedRoom.propertyId);
-      if (property) {
-        try {
-          await PropertyLog.create({
-            propertyId: property._id,
-            action: "delete",
-            category: "property",
-            changedByName: adminName,
-            message: `Room ${deletedRoom.roomNo} deleted from property "${property.propertyName}" by ${adminName}`,
-          });
-        } catch (logError) {
-          console.error("Failed to save property log (deleteRoom):", logError);
-        }
+    const property = await Property.findById(deletedRoom.propertyId);
+    if (property) {
+      try {
+        await PropertyLog.create({
+          propertyId: property._id,
+          action: "delete",
+          category: "property",
+          changedByName: adminName,
+          message: `Room ${deletedRoom.roomNo} deleted from property "${property.propertyName}" by ${adminName}`,
+        });
+      } catch (logError) {
+        console.error("Failed to save property log (deleteRoom):", logError);
       }
+    }
 
     return {
       status: 200,

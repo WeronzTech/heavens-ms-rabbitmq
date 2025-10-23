@@ -29,6 +29,10 @@ managerRoutes.post(
       name: "aadharImage",
       maxCount: 1,
     },
+    {
+      name: "panCardImage",
+      maxCount: 1,
+    },
   ]),
   registerManager
 );
@@ -58,6 +62,10 @@ managerRoutes.put(
     },
     {
       name: "aadharImage",
+      maxCount: 1,
+    },
+    {
+      name: "panCardImage",
       maxCount: 1,
     },
   ]),

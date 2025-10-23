@@ -64,4 +64,11 @@ export const PROPERTY_PATTERN = {
     DELETE_CAROUSEL: "delete_carousel",
     GET_ALL_CAROUSEL: "get_all_carousel",
   },
+  FLOOR: {
+    ADD_FLOOR: "property.floor.add",
+    UPDATE_FLOOR: "property.floor.update",
+    DELETE_FLOOR: "property.floor.delete",
+    GET_FLOORS_BY_PROPERTYID: "property.floor.getByPropertyId",
+    GET_FLOOR_BY_ID: "property.floor.getById",
+  },
 };

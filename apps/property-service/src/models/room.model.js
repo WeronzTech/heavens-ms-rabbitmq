@@ -9,6 +9,7 @@ const roomSchema = new mongoose.Schema({
   vacantSlot: { type: Number, required: true },
   status: { type: String, required: true },
   description: { type: String, required: false },
+  revenueGeneration: { type: Boolean, default: true },
   roomOccupants: [
     {
       userId: { type: mongoose.Schema.Types.ObjectId, required: false },
