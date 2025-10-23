@@ -12,6 +12,7 @@ export const registerUser = async (req, res) => {
     messDetails,
     referralLink,
     isHeavens,
+    isApproved,
     personalDetails,
   } = req.body;
   const response = await sendRPCRequest(USER_PATTERN.USER.REGISTER_USER, {
@@ -24,6 +25,7 @@ export const registerUser = async (req, res) => {
     messDetails,
     referralLink,
     isHeavens,
+    isApproved,
     personalDetails,
   });
 

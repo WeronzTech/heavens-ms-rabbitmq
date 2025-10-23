@@ -194,11 +194,12 @@ export const registerUser = async (data) => {
       stayDetails,
       messDetails,
       isHeavens,
+      isApproved,
       personalDetails,
       referredByCode,
       agent,
     } = data;
-
+    console.log(data)
     let rentType;
     if (userType === "student" || userType === "worker") {
       rentType = "monthly";
@@ -213,9 +214,7 @@ export const registerUser = async (data) => {
       userType,
       rentType,
       name,
-      email,
       contact,
-      password,
       stayDetails,
       messDetails
     );
@@ -245,7 +244,7 @@ export const registerUser = async (data) => {
     // 4. Resident ID + hash password
     const [residentId, hashedPassword] = await Promise.all([
       getNextResidentId(),
-      bcrypt.hash(password, 10),
+      password ? bcrypt.hash(password, 10) : Promise.resolve(null),
     ]);
 
     // 5. Build base user
@@ -258,6 +257,7 @@ export const registerUser = async (data) => {
       userType,
       rentType,
       isVerified: false,
+      isApproved:isApproved|| false,
       isHeavens: isHeavens || false,
       personalDetails,
       referralInfo: { referredByCode: referredByCode || null },
@@ -310,7 +310,13 @@ export const registerUser = async (data) => {
     // 7. Save user
     const newUser = new User(userData);
     await newUser.save();
-
+    if (userType === "messOnly") {
+      await assignRoomToUser({
+        userId: newUser._id,
+        roomId: stayDetails.roomId,
+        userType: "dailyRenter",
+      });
+    }
     await UserLog.create({
       userId: newUser._id,
       action: "create",
