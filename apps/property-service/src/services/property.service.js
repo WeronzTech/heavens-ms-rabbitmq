@@ -70,6 +70,7 @@ export const createProperty = async (data) => {
       kitchenId,
       images,
       adminName,
+      totalFloors,
       clientId,
       ...rest
     } = data;
@@ -94,6 +95,7 @@ export const createProperty = async (data) => {
       ...baseData,
       location: Location,
       sharingPrices,
+      totalFloors,
       deposit,
       kitchenId,
       clientId,
@@ -144,6 +146,7 @@ export const updateProperty = async (data) => {
       propertyName,
       sharingPrices,
       deposit,
+      totalFloors,
       kitchenId,
       images,
       adminName,
@@ -170,6 +173,7 @@ export const updateProperty = async (data) => {
       ...baseData,
       location: Location,
       sharingPrices,
+      totalFloors,
       deposit,
       kitchenId,
       images,

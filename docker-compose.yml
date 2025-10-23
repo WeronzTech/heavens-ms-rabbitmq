@@ -1,7 +1,7 @@
 # This file is for DEVELOPMENT purposes.
 # It uses nodemon for live-reloading and mounts your local code.
 
-version: "3.8"
+# version: "3.8"
 
 # Reusable service template for development
 x-node-service-dev: &node-service-dev
@@ -64,7 +64,7 @@ services:
     networks:
       - heavens-ms-dev-net
 
-  # # Application microservices for DEVELOPMENT
+  # Application microservices for DEVELOPMENT
   # api-gateway:
   #   <<: *node-service-dev
   #   command: npm run api-gateway # Runs nodemon script

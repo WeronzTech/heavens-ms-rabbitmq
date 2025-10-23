@@ -34,6 +34,10 @@ staffRoutes.post(
       name: "aadharBackImage",
       maxCount: 1,
     },
+    {
+      name: "panCardImage",
+      maxCount: 1,
+    },
   ]),
   addStaff
 );
@@ -62,6 +66,10 @@ staffRoutes.put(
     },
     {
       name: "aadharBackImage",
+      maxCount: 1,
+    },
+    {
+      name: "panCardImage",
       maxCount: 1,
     },
   ]),
