@@ -7,6 +7,8 @@ import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pa
 import Manager from "../models/manager.model.js";
 import bcrypt from "bcrypt";
 
+const INDIVIDUAL_PAN_REGEX = /^[A-Z]{3}P[A-Z]{1}[0-9]{4}[A-Z]{1}$/;
+
 export const registerManager = async (data) => {
   try {
     const {
@@ -33,14 +35,35 @@ export const registerManager = async (data) => {
       !propertyId ||
       !files ||
       !files.photo ||
-      !files.aadharImage ||
-      !files.panCardImage ||
-      panCardNumber
+      !files.aadharImage
     ) {
       return {
         success: false,
         status: 400,
         message: "Missing required fields.",
+      };
+    }
+
+    if (!INDIVIDUAL_PAN_REGEX.test(panCardNumber.toUpperCase())) {
+      return {
+        success: false,
+        status: 400,
+        message:
+          "Invalid PAN format. Must be a 10-character individual PAN (e.g., ABCPA1234A).",
+      };
+    }
+
+    const nameParts = name.trim().split(" ");
+    const lastName =
+      nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+    const firstLetterOfLastName = lastName.charAt(0).toUpperCase();
+    const fifthCharOfPan = panCardNumber.charAt(4).toUpperCase();
+
+    if (fifthCharOfPan !== firstLetterOfLastName) {
+      return {
+        success: false,
+        status: 400,
+        message: `PAN card's 5th character ('${fifthCharOfPan}') does not match the first letter of the surname ('${firstLetterOfLastName}').`,
       };
     }
 
