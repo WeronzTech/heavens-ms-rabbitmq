@@ -19,7 +19,9 @@ const staffSchema = new mongoose.Schema(
       required: true,
     },
     photo: { type: String, required: false },
+    panCardNumber: { type: String, required: true },
     aadharFrontImage: { type: String, required: false },
+    panCardImage: { type: String, required: false },
     aadharBackImage: { type: String, required: false },
     joinDate: { type: Date, required: true },
     status: {

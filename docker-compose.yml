@@ -1,7 +1,7 @@
 # This file is for DEVELOPMENT purposes.
 # It uses nodemon for live-reloading and mounts your local code.
 
-version: "3.8"
+# version: "3.8"
 
 # Reusable service template for development
 x-node-service-dev: &node-service-dev
@@ -11,7 +11,7 @@ x-node-service-dev: &node-service-dev
   volumes:
     - .:/app # Mounts local code for live-reloading
     - /app/node_modules # Prevents local node_modules from overwriting container's
-  env_file: ./.env.dev # Use the development environment file
+  env_file: ./.env # Use the development environment file
   environment:
     - NODE_ENV=development
     - CHOKIDAR_USEPOLLING=true # Helps nodemon detect file changes
@@ -65,63 +65,63 @@ services:
       - heavens-ms-dev-net
 
   # Application microservices for DEVELOPMENT
-  api-gateway:
-    <<: *node-service-dev
-    command: npm run api-gateway # Runs nodemon script
-    expose:
-      - "8080" # Expose internally for the proxy
-    depends_on:
-      - rabbitmq
-      - redis
-      # Add other service dependencies...
+  # api-gateway:
+  #   <<: *node-service-dev
+  #   command: npm run api-gateway # Runs nodemon script
+  #   expose:
+  #     - "8080" # Expose internally for the proxy
+  #   depends_on:
+  #     - rabbitmq
+  #     - redis
+  #     # Add other service dependencies...
 
-  auth-service:
-    <<: *node-service-dev
-    command: npm run auth-service
-    expose:
-      - "8080"
+  # auth-service:
+  #   <<: *node-service-dev
+  #   command: npm run auth-service
+  #   expose:
+  #     - "8080"
 
-  client-service:
-    <<: *node-service-dev
-    command: npm run client-service
-    expose:
-      - "8080"
+  # client-service:
+  #   <<: *node-service-dev
+  #   command: npm run client-service
+  #   expose:
+  #     - "8080"
 
-  user-service:
-    <<: *node-service-dev
-    command: npm run user-service
-    expose:
-      - "8080"
+  # user-service:
+  #   <<: *node-service-dev
+  #   command: npm run user-service
+  #   expose:
+  #     - "8080"
 
-  property-service:
-    <<: *node-service-dev
-    command: npm run property-service
-    expose:
-      - "8080"
+  # property-service:
+  #   <<: *node-service-dev
+  #   command: npm run property-service
+  #   expose:
+  #     - "8080"
 
-  inventory-service:
-    <<: *node-service-dev
-    command: npm run inventory-service
-    expose:
-      - "8080"
+  # inventory-service:
+  #   <<: *node-service-dev
+  #   command: npm run inventory-service
+  #   expose:
+  #     - "8080"
 
-  socket-service:
-    <<: *node-service-dev
-    command: npm run socket-service
-    expose:
-      - "5006" # Use the specific port for the socket service
+  # socket-service:
+  #   <<: *node-service-dev
+  #   command: npm run socket-service
+  #   expose:
+  #     - "5006" # Use the specific port for the socket service
 
-  notification-service:
-    <<: *node-service-dev
-    command: npm run notification-service
-    expose:
-      - "8080"
+  # notification-service:
+  #   <<: *node-service-dev
+  #   command: npm run notification-service
+  #   expose:
+  #     - "8080"
 
-  accounts-service:
-    <<: *node-service-dev
-    command: npm run accounts-service
-    expose:
-      - "8080"
+  # accounts-service:
+  #   <<: *node-service-dev
+  #   command: npm run accounts-service
+  #   expose:
+  #     - "8080"
 
 networks:
   heavens-ms-dev-net:

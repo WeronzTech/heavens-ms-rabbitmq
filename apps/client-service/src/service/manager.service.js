@@ -20,6 +20,7 @@ export const registerManager = async (data) => {
       propertyId,
       gender,
       address,
+      panCardNumber,
       files,
     } = data;
 
@@ -32,7 +33,9 @@ export const registerManager = async (data) => {
       !propertyId ||
       !files ||
       !files.photo ||
-      !files.aadharImage
+      !files.aadharImage ||
+      !files.panCardImage ||
+      panCardNumber
     ) {
       return {
         success: false,
@@ -43,6 +46,7 @@ export const registerManager = async (data) => {
 
     let photoUrl = null;
     let aadharUrl = null;
+    let panCardUrl = null;
 
     // Directly handle file data from the payload
     if (files) {
@@ -61,6 +65,14 @@ export const registerManager = async (data) => {
           originalname: files.aadharImage[0].originalname,
         };
         aadharUrl = await uploadToFirebase(aadharFile, "staff-documents");
+      }
+      if (files.panCardImage && files.panCardImage[0].buffer) {
+        const panCardFile = {
+          buffer: Buffer.from(files.panCardImage[0].buffer, "base64"),
+          mimetype: files.panCardImage[0].mimetype,
+          originalname: files.panCardImage[0].originalname,
+        };
+        panCardUrl = await uploadToFirebase(panCardFile, "staff-documents");
       }
     }
 
@@ -85,9 +97,11 @@ export const registerManager = async (data) => {
       salary,
       photo: photoUrl,
       aadhaarImage: aadharUrl,
+      panCardImage: panCardUrl,
       propertyId,
       gender,
       address,
+      panCardNumber,
     });
 
     await newManager.save();
@@ -382,6 +396,19 @@ export const editManager = async (data) => {
         };
         updates.aadhaarImage = await uploadToFirebase(
           aadharFile,
+          "staff-documents"
+        );
+      }
+      if (files.panCardImage && files.panCardImage.buffer) {
+        if (manager.panCardImage)
+          await deleteFromFirebase(manager.panCardImage);
+        const panCardFile = {
+          buffer: Buffer.from(files.panCardImage.buffer, "base64"),
+          mimetype: files.panCardImage.mimetype,
+          originalname: files.panCardImage.originalname,
+        };
+        updates.panCardImage = await uploadToFirebase(
+          panCardFile,
           "staff-documents"
         );
       }

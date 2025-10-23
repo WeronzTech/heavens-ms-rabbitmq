@@ -24,6 +24,8 @@ const managerSchema = new mongoose.Schema(
     advanceSalary: { type: Number, default: 0 },
     photo: { type: String, required: false },
     aadhaarImage: { type: String, required: true },
+    panCardImage: { type: String, required: true },
+    panCardNumber: { type: String, required: true },
     propertyId: [
       {
         type: mongoose.Schema.Types.ObjectId,

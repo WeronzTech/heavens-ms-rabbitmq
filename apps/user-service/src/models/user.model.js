@@ -45,6 +45,7 @@ const userSchema = new mongoose.Schema(
       email: String,
       contact: String,
       occupation: String,
+      address: String,
     },
 
     // Study details (for students)
