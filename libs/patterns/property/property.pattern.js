@@ -72,4 +72,24 @@ export const PROPERTY_PATTERN = {
     GET_FLOORS_BY_PROPERTYID: "property.floor.getByPropertyId",
     GET_FLOOR_BY_ID: "property.floor.getById",
   },
+  ASSET_CATEGORY: {
+    CREATE: "create_asset_category",
+    GET_ALL: "get_all_asset_categories",
+    GET_BY_ID: "get_asset_category_by_id",
+    UPDATE: "update_asset_category",
+    DELETE: "delete_asset_category",
+  },
+
+  // ✅ NEW ASSET PATTERNS
+  ASSET: {
+    CREATE: "create_asset",
+    CREATE_BULK: "create_bulk_assets",
+    GET_ALL: "get_all_assets",
+    GET_BY_ID: "get_asset_by_id",
+    UPDATE: "update_asset",
+    UPDATE_STATUS: "update_asset_status",
+    DELETE: "delete_asset",
+    GET_BY_ROOM: "get_assets_by_room",
+    GET_BY_PROPERTY: "get_assets_by_property",
+  },
 };
