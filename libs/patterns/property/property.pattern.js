@@ -90,5 +90,6 @@ export const PROPERTY_PATTERN = {
     DELETE: "delete_asset",
     GET_BY_ROOM: "get_assets_by_room",
     GET_BY_PROPERTY: "get_assets_by_property",
+     GET_ASSET_LABELS: "get_asset_labels_pdf",
   },
 };

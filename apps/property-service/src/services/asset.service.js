@@ -6,6 +6,68 @@ import {
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
 
+const generateLabelsPDF = (assets) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4", // Standard paper size
+        margins: { top: 36, bottom: 36, left: 36, right: 36 }, // Approx 0.5 inch margins
+      });
+      const buffers = [];
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+      // --- Label Grid Settings ---
+      const pageMargin = 36;
+      const pageWidth = doc.page.width - pageMargin * 2;
+      const pageHeight = doc.page.height - pageMargin * 2;
+      const cols = 3;
+      const rows = 10;
+      const labelWidth = pageWidth / cols;
+      const labelHeight = pageHeight / rows;
+      let currentX = pageMargin;
+      let currentY = pageMargin;
+      let item = 0;
+
+      for (const asset of assets) {
+        if (item > 0 && item % (cols * rows) === 0) {
+          doc.addPage();
+          currentX = pageMargin;
+          currentY = pageMargin;
+        }
+
+        const colIndex = item % cols;
+        const rowIndex = Math.floor(item / cols) % rows;
+
+        currentX = pageMargin + colIndex * labelWidth;
+        currentY = pageMargin + rowIndex * labelHeight;
+
+        // Draw a border for the label (for easy cutting)
+        doc.rect(currentX, currentY, labelWidth, labelHeight).stroke();
+
+        // Center text within the label
+        doc.font("Helvetica-Bold").fontSize(12);
+        doc.text(asset.name, currentX, currentY + labelHeight / 2 - 10, {
+          width: labelWidth,
+          align: "center",
+        });
+
+        doc.font("Helvetica").fontSize(10);
+        doc.text(asset.assetId, currentX, currentY + labelHeight / 2 + 5, {
+          width: labelWidth,
+          align: "center",
+        });
+
+        item++;
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 // --- Asset Category Services ---
 
 export const createAssetCategory = async (data) => {
@@ -320,6 +382,46 @@ export const updateAssetStatus = async (data) => {
       data: updatedAsset,
     };
   } catch (error) {
+    return { success: false, status: 500, message: error.message };
+  }
+};
+
+export const getAssetLabelsPDF = async (filters) => {
+  try {
+    const { propertyId, floorId, roomId } = filters;
+    const query = {};
+
+    if (propertyId) query.propertyId = propertyId;
+    if (floorId) query.floorId = floorId;
+    if (roomId) query.roomId = roomId;
+
+    const assets = await Asset.find(query)
+      .select("name assetId") // Only fetch the fields we need
+      .sort({ name: 1 })
+      .lean();
+
+    if (assets.length === 0) {
+      return {
+        success: false,
+        status: 404,
+        message: "No assets found matching the specified filters.",
+      };
+    }
+
+    const pdfBuffer = await generateLabelsPDF(assets);
+
+    return {
+      success: true,
+      status: 200,
+      message: "Asset labels PDF generated successfully.",
+      data: pdfBuffer,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="asset-labels.pdf"',
+      },
+    };
+  } catch (error) {
+    console.error("Error generating asset labels PDF:", error);
     return { success: false, status: 500, message: error.message };
   }
 };
