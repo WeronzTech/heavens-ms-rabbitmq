@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redisClient = createClient({
-  url: `redis://localhost:${process.env.REDIS_PORT || 6379}`,
+  url: `redis://redis:${process.env.REDIS_PORT || 6379}`,
 });
 
 redisClient.on("error", (err) => console.log("Redis Client Error", err));
