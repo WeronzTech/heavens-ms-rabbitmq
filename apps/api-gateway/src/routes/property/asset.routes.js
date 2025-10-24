@@ -11,6 +11,7 @@ import {
   deleteAsset,
   createMultipleAssets,
   updateAssetStatus,
+  downloadAssetLabels,
 } from "../../controllers/property/asset.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 // import { isAuthenticated, hasPermission } from "../../middleware/auth.middleware.js";
@@ -36,6 +37,7 @@ assetRoutes
   .put(updateAssetCategory)
   .delete(deleteAssetCategory);
 
+assetRoutes.route("/download-labels").get(downloadAssetLabels);
 // --- Asset Routes ---
 assetRoutes
   .route("/")

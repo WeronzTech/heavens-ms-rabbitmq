@@ -83,3 +83,36 @@ export const deleteAsset = (req, res) =>
   handleRPCAndRespond(res, PROPERTY_PATTERN.ASSET.DELETE, {
     id: req.params.id,
   });
+
+export const downloadAssetLabels = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.ASSET.GET_ASSET_LABELS,
+      req.query // Pass filters like ?propertyId=...
+    );
+
+    if (!response.success) {
+      return res.status(response.status || 404).json(response);
+    }
+
+    // On success, the service sends back the PDF as a Base64 string and the headers.
+    // Set the headers provided by the service.
+    res.setHeader("Content-Type", response.headers["Content-Type"]);
+    res.setHeader(
+      "Content-Disposition",
+      response.headers["Content-Disposition"]
+    );
+
+    // Convert the Base64 data back to a binary buffer and send it.
+    const pdfBuffer = Buffer.from(response.data, "base64");
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error(`API Gateway Error in GET_ASSET_LABELS:`, error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Internal Server Error in API Gateway.",
+      });
+  }
+};

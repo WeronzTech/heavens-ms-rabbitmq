@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import DatabaseCounter from "./databaseCounter.model.js";
 
 const AssetSchema = new Schema(
   {
@@ -91,7 +92,7 @@ AssetSchema.pre("save", async function (next) {
         throw new Error("Counter document could not be created or updated.");
       }
 
-      const customId = `HVNS-ASSET${year}${month}${counter.count}`;
+      const customId = `HVNS-AST${year}${month}${counter.count}`;
       this.assetId = customId;
     }
     next();

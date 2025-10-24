@@ -12,6 +12,7 @@ import {
   deleteAsset,
   createMultipleAssets,
   updateAssetStatus,
+  getAssetLabelsPDF,
 } from "../services/asset.service.js";
 
 // --- Asset Category Responders ---
@@ -30,3 +31,4 @@ createResponder(PROPERTY_PATTERN.ASSET.GET_BY_ID, getAssetById);
 createResponder(PROPERTY_PATTERN.ASSET.UPDATE, updateAsset);
 createResponder(PROPERTY_PATTERN.ASSET.UPDATE_STATUS, updateAssetStatus);
 createResponder(PROPERTY_PATTERN.ASSET.DELETE, deleteAsset);
+createResponder(PROPERTY_PATTERN.ASSET.GET_ASSET_LABELS, getAssetLabelsPDF);
