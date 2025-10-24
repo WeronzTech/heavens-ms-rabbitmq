@@ -17,6 +17,7 @@ export const addFloor = async (data) => {
     isHeavens,
     propertyId,
     adminName,
+    roomIds,
   } = data; // Validation
 
   if (!floorName || !floorNo || !roomCapacity || !propertyId) {
@@ -61,7 +62,7 @@ export const addFloor = async (data) => {
       description,
       isHeavens: isHeavens !== undefined ? isHeavens : property.isHeavens, // Inherit from property
       propertyId,
-      roomIds: [], // Start with no rooms
+      roomIds, // Start with no rooms
     });
 
     const savedFloor = await newFloor.save(); // Log the creation
@@ -108,6 +109,7 @@ export const updateFloor = async (data) => {
     status,
     description,
     adminName,
+    roomIds,
   } = data;
 
   if (!id) {

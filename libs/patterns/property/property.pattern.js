@@ -17,6 +17,7 @@ export const PROPERTY_PATTERN = {
     GET_ALL_HEAVENS_ROOMS: "get_all_heavens_rooms",
     CONFIRM_ASSIGNMENT: "confirm_assignment",
     REMOVE_ASSIGNMENT: "remove_assignment",
+    GET_ROOMS_BY_FLOOR_ID: "get_rooms_by_floor_id"
   },
   STAFF: {
     GET_ALL_STAFF: "get_all_staff",

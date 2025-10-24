@@ -6,6 +6,7 @@ import {
   getAllHeavensRooms,
   getAvailableRoomsByProperty,
   getRoomOccupants,
+  getRoomsByFloorId,
   getRoomsByPropertyId,
   handleRemoveAssignment,
   updateRoom,
@@ -49,4 +50,8 @@ createResponder(
 
 createResponder(PROPERTY_PATTERN.ROOM.GET_ALL_HEAVENS_ROOMS, async (data) => {
   return await getAllHeavensRooms(data);
+});
+
+createResponder(PROPERTY_PATTERN.ROOM.GET_ROOMS_BY_FLOOR_ID, async (data) => {
+  return await getRoomsByFloorId(data);
 });

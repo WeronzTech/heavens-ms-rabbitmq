@@ -23,6 +23,7 @@ const roomSchema = new mongoose.Schema({
   ],
   isHeavens: { type: Boolean, default: false },
   propertyId: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
+  floorId: {type: mongoose.Schema.Types.ObjectId}
 });
 
 export default mongoose.model("Room", roomSchema);

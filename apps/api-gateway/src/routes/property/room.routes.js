@@ -6,6 +6,7 @@ import {
   getAllHeavensRooms,
   getAvailableRoomsByProperty,
   getRoomOccupants,
+  getRoomsByFloorId,
   getRoomsByPropertyId,
   updateRoom,
 } from "../../controllers/property/room.controller.js";
@@ -28,6 +29,11 @@ roomRoutes.get(
   getAvailableRoomsByProperty
 );
 roomRoutes.get(
+  "/by-floor",
+  hasPermission(PERMISSIONS.ROOM_VIEW),
+  getRoomsByFloorId
+);
+roomRoutes.get(
   "/occupants/:roomId",
   hasPermission(PERMISSIONS.ROOM_VIEW),
   getRoomOccupants
@@ -37,6 +43,7 @@ roomRoutes.get(
   hasPermission(PERMISSIONS.ROOM_VIEW),
   getRoomsByPropertyId
 );
+
 roomRoutes.post("/add", hasPermission(PERMISSIONS.ROOM_MANAGE), addRoom);
 roomRoutes.put(
   "/update/:id",

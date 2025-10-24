@@ -30,7 +30,7 @@ floorRoutes.get(
 );
 
 // Get a single floor by its ID
-floorRoutes.get("/:id", hasPermission(PERMISSIONS.PROPERTY_VIEW), getFloorById);
+floorRoutes.get("/get-by-id/:id", hasPermission(PERMISSIONS.PROPERTY_VIEW), getFloorById);
 
 // Update an existing floor
 floorRoutes.put(
