@@ -11,7 +11,7 @@ x-node-service-dev: &node-service-dev
   volumes:
     - .:/app # Mounts local code for live-reloading
     - /app/node_modules # Prevents local node_modules from overwriting container's
-  env_file: ./.env.dev # Use the development environment file
+  env_file: ./.env # Use the development environment file
   environment:
     - NODE_ENV=development
     - CHOKIDAR_USEPOLLING=true # Helps nodemon detect file changes

@@ -29,12 +29,11 @@ export function validateRequiredFields(
   name,
   email,
   contact,
-  password,
   stayDetails,
   messDetails
 ) {
   // Common required fields
-  if (!name || !email || !contact || !password || !userType) {
+  if (!name || !email || !contact || !userType) {
     return {
       status: "error",
       message:
@@ -93,22 +92,22 @@ export async function checkExistingUsers(email, contact, userType) {
   try {
     // For all user types except DailyRent, check email if provided
     if (userType !== "dailyRent" && email) {
-      const existingByEmail = await User.findOne({email});
+      const existingByEmail = await User.findOne({ email });
       if (existingByEmail) {
-        return {error: true, message: "Email already registered"};
+        return { error: true, message: "Email already registered" };
       }
     }
 
     // For all user types, check contact
-    const existingByContact = await User.findOne({contact});
+    const existingByContact = await User.findOne({ contact });
     if (existingByContact) {
-      return {error: true, message: "Contact number already registered"};
+      return { error: true, message: "Contact number already registered" };
     }
 
-    return {error: false};
+    return { error: false };
   } catch (err) {
     console.error("Error checking existing users:", err);
-    return {error: true, message: "Error checking existing users"};
+    return { error: true, message: "Error checking existing users" };
   }
 }
 
