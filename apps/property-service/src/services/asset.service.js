@@ -176,6 +176,9 @@ export const createAsset = async (data) => {
   try {
     const { payload, files } = data;
     const assetData = { ...payload };
+    console.log("data", data)
+
+    console.log("assetData",assetData )
 
     if (files && files.invoice) {
       const invoiceFile = {
@@ -291,7 +294,10 @@ export const getAssetById = async (data) => {
 export const updateAsset = async (data) => {
   try {
     const { id, payload, files } = data;
+    // console.log("dataa", data)
     const assetData = { ...payload };
+
+    // console.log("Asset data",assetData )
 
     const asset = await Asset.findById(id);
     if (!asset) {
@@ -315,7 +321,7 @@ export const updateAsset = async (data) => {
       assetData.purchaseDetails.invoiceUrl = invoiceUrl;
     }
 
-    const updatedAsset = await Asset.findByIdAndUpdate(id, assetData, {
+    const updatedAsset = await Asset.findByIdAndUpdate(id, assetData.payload, {
       new: true,
       runValidators: true,
     });

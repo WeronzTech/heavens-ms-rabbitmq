@@ -34,6 +34,7 @@ import {
   getPendingDepositPayments,
   allocateUsersToAgent,
   allocateCommissionToUsers,
+  registerUserFromPanel,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -202,3 +203,7 @@ createResponder(
     return await allocateCommissionToUsers(data);
   }
 );
+
+createResponder(USER_PATTERN.USER.REGISTER_USER_FROM_PANEL, async (data) => {
+  return await registerUserFromPanel(data);
+});
