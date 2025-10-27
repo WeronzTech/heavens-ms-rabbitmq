@@ -66,6 +66,8 @@ const startServer = async () => {
     await import("./controllers/property.controller.js");
     await import("./controllers/room.controller.js");
     await import("./controllers/staff.controller.js");
+    await import("./controllers/floor.controller.js");
+    await import("./controllers/asset.controller.js");
     await import("./controllers/log.controller.js");
     await import("./controllers/internal.controller.js");
     await import("./controllers/dashboard.controller.js");

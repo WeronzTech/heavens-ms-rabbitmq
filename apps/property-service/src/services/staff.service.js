@@ -301,6 +301,7 @@ export const addStaff = async (data) => {
       role,
       salary,
       joinDate,
+      panCardNumber,
       status,
       propertyId,
       createdBy,
@@ -313,7 +314,8 @@ export const addStaff = async (data) => {
       !files ||
       !files.photo ||
       !files.aadharFrontImage ||
-      !files.aadharBackImage
+      !files.aadharBackImage ||
+      !files.panCardImage
     ) {
       return {
         status: 400,
@@ -331,6 +333,7 @@ export const addStaff = async (data) => {
     let photoUrl = null;
     let aadharFrontUrl = null;
     let aadharBackUrl = null;
+    let panCardUrl = null;
 
     if (files) {
       if (files.photo) {
@@ -345,6 +348,12 @@ export const addStaff = async (data) => {
       if (files.aadharBackImage) {
         aadharBackUrl = await uploadToFirebase(
           files.aadharBackImage,
+          "staff-documents"
+        );
+      }
+      if (files.panCardImage) {
+        panCardUrl = await uploadToFirebase(
+          files.panCardImage,
           "staff-documents"
         );
       }
@@ -370,6 +379,8 @@ export const addStaff = async (data) => {
       photo: photoUrl,
       aadharFrontImage: aadharFrontUrl,
       aadharBackImage: aadharBackUrl,
+      panCardImage: panCardUrl,
+      panCardNumber,
     });
 
     const savedStaff = await newStaff.save();
@@ -438,6 +449,15 @@ export const updateStaff = async (data) => {
         }
         updateData.aadharBackImage = await uploadToFirebase(
           files.aadharBackImage,
+          "staff-documents"
+        );
+      }
+      if (files.panCardImage) {
+        if (existingStaff.panCardImage) {
+          await deleteFromFirebase(existingStaff.panCardImage);
+        }
+        updateData.panCardImage = await uploadToFirebase(
+          files.panCardImage,
           "staff-documents"
         );
       }

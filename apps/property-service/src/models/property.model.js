@@ -21,8 +21,9 @@ const propertySchema = new mongoose.Schema({
   phase: String,
   location: String,
   address: String,
-  totalBeds: {type: Number, default: 0},
-  occupiedBeds: {type: Number, default: 0},
+  totalBeds: { type: Number, default: 0 },
+  occupiedBeds: { type: Number, default: 0 },
+  totalFloors: { type: Number, default: 0 },
   startingPrice: Number,
   sharingPrices: {
     type: Map,
@@ -42,13 +43,13 @@ const propertySchema = new mongoose.Schema({
     eventPhotos: [String],
     companyPhotos: [String],
   },
-  isHeavens: {type: Boolean, default: false},
+  isHeavens: { type: Boolean, default: false },
   clientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Client",
     required: false,
   },
-  kitchenId: {type: mongoose.Schema.Types.ObjectId, required: false},
+  kitchenId: { type: mongoose.Schema.Types.ObjectId, required: false },
 });
 
 propertySchema.pre("save", async function (next) {
@@ -64,8 +65,8 @@ propertySchema.pre("save", async function (next) {
           year: parseInt(year, 10),
           month: parseInt(month, 10),
         },
-        {$inc: {count: 1}},
-        {new: true, upsert: true, setDefaultsOnInsert: true}
+        { $inc: { count: 1 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
       );
 
       if (!counter) {

@@ -3,16 +3,19 @@ import Room from "../models/room.model.js";
 import mongoose from "mongoose";
 import { fetchUserData } from "./internal.service.js";
 import PropertyLog from "../models/propertyLog.model.js";
+import Floor from "../models/floor.model.js";
 
 export const addRoom = async (data) => {
   const {
     roomNo,
+    sharingType,
     roomCapacity,
     status,
     propertyId,
     propertyName,
+    floorId,
     isHeavens,
-    sharingType,
+    revenueGeneration,
     description,
     adminName,
   } = data;
@@ -34,12 +37,11 @@ export const addRoom = async (data) => {
     return { status: 404, message: "Property not found" };
   }
 
-  // ✅ Check if sharingType exists
+  // ✅ Validate sharing type availability (if property has sharingPrices)
   if (
-    !(
-      property.sharingPrices instanceof Map &&
-      property.sharingPrices.has(sharingType)
-    )
+    property.sharingPrices &&
+    property.sharingPrices instanceof Map &&
+    !property.sharingPrices.has(sharingType)
   ) {
     return {
       status: 400,
@@ -47,7 +49,7 @@ export const addRoom = async (data) => {
     };
   }
 
-  // ✅ Check if room already exists
+  // ✅ Check if room number already exists under this property
   const existingRoom = await Room.findOne({ propertyId, roomNo });
   if (existingRoom) {
     return {
@@ -60,21 +62,36 @@ export const addRoom = async (data) => {
   session.startTransaction();
 
   try {
+    // ✅ Create the new room
     const newRoom = new Room({
       roomNo,
+      sharingType,
       roomCapacity,
+      occupant: 0,
+      vacantSlot: roomCapacity,
       status: status || "available",
       propertyId,
       propertyName,
-      sharingType,
-      occupant: 0,
-      vacantSlot: roomCapacity,
+      floorId,
       isHeavens,
+      revenueGeneration:
+        revenueGeneration !== undefined ? revenueGeneration : true,
       description,
     });
 
     const savedRoom = await newRoom.save({ session });
 
+    // ✅ Add the new room ID to the floor (if floorId provided)
+    if (floorId) {
+      const Floor = mongoose.model("Floor"); // dynamically get Floor model
+      await Floor.findByIdAndUpdate(
+        floorId,
+        { $addToSet: { roomIds: savedRoom._id } },
+        { new: true, session }
+      );
+    }
+
+    // ✅ Update totalBeds in property
     const updatedProperty = await Property.findByIdAndUpdate(
       propertyId,
       { $inc: { totalBeds: roomCapacity } },
@@ -88,16 +105,17 @@ export const addRoom = async (data) => {
     await session.commitTransaction();
     session.endSession();
 
+    // ✅ Create Property Log (non-blocking)
     try {
       await PropertyLog.create({
         propertyId,
         action: "update",
         category: "property",
         changedByName: adminName,
-        message: `Room ${roomNo} (capacity: ${roomCapacity}, sharing type: ${sharingType}) added to property "${propertyName}" by ${adminName}`,
+        message: `Room ${roomNo} (capacity: ${roomCapacity}, sharing: ${sharingType}) added to property "${propertyName}" by ${adminName}`,
       });
     } catch (logError) {
-      console.error("Failed to save property log (addRoom):", logError);
+      console.error("⚠️ Failed to save property log (addRoom):", logError);
     }
 
     return {
@@ -112,6 +130,7 @@ export const addRoom = async (data) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
+    console.error("❌ Error in addRoom:", error);
     return {
       status: 500,
       message: error.message || "Server error while adding room",
@@ -287,20 +306,28 @@ export const handleRemoveAssignment = async (data) => {
 };
 
 export const updateRoom = async (data) => {
-  const { id, roomNo, roomCapacity, status, adminName } = data;
+  const {
+    id,
+    roomNo,
+    roomCapacity,
+    status,
+    revenueGeneration,
+    adminName,
+    floorId, // ✅ new field
+  } = data;
 
   try {
-    // ✅ Find room by ID
+    // ✅ Find existing room
     const room = await Room.findById(id);
     if (!room) {
       return { status: 404, message: "Room not found" };
     }
 
-    // ✅ Check for duplicate roomNo
+    // ✅ Check for duplicate roomNo in the same property
     if (roomNo && roomNo !== room.roomNo) {
       const existingRoom = await Room.findOne({
         propertyId: room.propertyId,
-        roomNo: roomNo,
+        roomNo,
       });
       if (existingRoom) {
         return {
@@ -311,53 +338,70 @@ export const updateRoom = async (data) => {
       room.roomNo = roomNo;
     }
 
-    // ✅ Fetch property
+    // ✅ Fetch property details
     const property = await Property.findById(room.propertyId);
     if (!property) {
       return { status: 404, message: "Property not found" };
     }
 
-    // ✅ Check if sharingType exists in property
+    // ✅ Validate sharing type in property’s sharingPrices map
+    const sharingTypeKey = `${roomCapacity} Sharing`;
     if (
+      roomCapacity &&
       !(
         property.sharingPrices instanceof Map &&
-        property.sharingPrices.has(`${roomCapacity} Sharing`)
+        property.sharingPrices.has(sharingTypeKey)
       )
     ) {
       return {
         status: 400,
-        message: `${roomCapacity} Sharing is not defined in this property's sharing prices.`,
+        message: `${sharingTypeKey} is not defined in this property's sharing prices.`,
       };
     }
 
-    // ✅ Update roomCapacity
-    if (roomCapacity && roomCapacity !== room.roomCapacity) {
-      if (roomCapacity < room.occupant) {
-        return {
-          status: 400,
-          message: `Room capacity cannot be less than current occupants (${room.occupant})`,
-        };
-      }
+    // ✅ Prevent capacity lower than current occupants
+    if (roomCapacity && roomCapacity < room.occupant) {
+      return {
+        status: 400,
+        message: `Room capacity cannot be less than current occupants (${room.occupant})`,
+      };
+    }
+
+    // ✅ Update main fields
+    if (roomCapacity) {
       room.roomCapacity = roomCapacity;
-      room.sharingType = `${roomCapacity} Sharing`;
+      room.sharingType = sharingTypeKey;
       room.vacantSlot = roomCapacity - room.occupant;
     }
 
-    // ✅ Update status if provided
-    if (status) {
-      room.status = status;
-    }
+    if (status) room.status = status;
+    if (revenueGeneration !== undefined)
+      room.revenueGeneration = revenueGeneration;
+    if (floorId) room.floorId = floorId; // ✅ set new floor
+    room.adminName = adminName || room.adminName;
 
-    // ✅ Save updated room
+    // ✅ Save changes
     const updatedRoom = await room.save();
 
-    // ✅ Return success response
+    // ✅ Log update action
+    try {
+      await PropertyLog.create({
+        propertyId: room.propertyId,
+        action: "update",
+        category: "room",
+        changedByName: adminName,
+        message: `Room ${room.roomNo} updated by ${adminName}`,
+      });
+    } catch (logError) {
+      console.error("Failed to save property log (updateRoom):", logError);
+    }
+
     return {
       status: 200,
       data: updatedRoom,
     };
   } catch (error) {
-    console.error("Error in updateRoom service:", error);
+    console.error("❌ Error in updateRoom service:", error);
     return {
       status: 500,
       message: error.message || "Server error while updating room",
@@ -559,6 +603,62 @@ export const getAllHeavensRooms = async (data) => {
     return {
       status: 500,
       message: error.message || "Server error while fetching Heavens rooms",
+    };
+  }
+};
+
+export const getRoomsByFloorId = async (data) => {
+  const { floorId } = data;
+
+  if (!floorId) {
+    return {
+      success: false,
+      status: 400,
+      message: "Floor ID is required",
+    };
+  }
+
+  try {
+    // ✅ Check if floor exists
+    const floor = await Floor.findById(floorId).populate(
+      "propertyId",
+      "propertyName propertyId"
+    );
+    if (!floor) {
+      return {
+        success: false,
+        status: 404,
+        message: "Floor not found",
+      };
+    }
+
+    // ✅ Fetch rooms belonging to this floor
+    const rooms = await Room.find({ floorId })
+      .populate("propertyId", "propertyName propertyId")
+      .sort({ roomNo: 1 }); // Sort by room number
+
+    if (!rooms || rooms.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No rooms found for this floor",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Rooms fetched successfully",
+      data: rooms,
+    };
+  } catch (error) {
+    console.error("❌ Error in getRoomsByFloorId:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Server error while fetching rooms by floor ID",
+      error: error.message,
     };
   }
 };

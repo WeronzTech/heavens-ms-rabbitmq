@@ -7,6 +7,8 @@ import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pa
 import Manager from "../models/manager.model.js";
 import bcrypt from "bcrypt";
 
+const INDIVIDUAL_PAN_REGEX = /^[A-Z]{3}P[A-Z]{1}[0-9]{4}[A-Z]{1}$/;
+
 export const registerManager = async (data) => {
   try {
     const {
@@ -20,6 +22,7 @@ export const registerManager = async (data) => {
       propertyId,
       gender,
       address,
+      panCardNumber,
       files,
     } = data;
 
@@ -41,8 +44,32 @@ export const registerManager = async (data) => {
       };
     }
 
+    if (!INDIVIDUAL_PAN_REGEX.test(panCardNumber.toUpperCase())) {
+      return {
+        success: false,
+        status: 400,
+        message:
+          "Invalid PAN format. Must be a 10-character individual PAN (e.g., ABCPA1234A).",
+      };
+    }
+
+    const nameParts = name.trim().split(" ");
+    const lastName =
+      nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+    const firstLetterOfLastName = lastName.charAt(0).toUpperCase();
+    const fifthCharOfPan = panCardNumber.charAt(4).toUpperCase();
+
+    if (fifthCharOfPan !== firstLetterOfLastName) {
+      return {
+        success: false,
+        status: 400,
+        message: `PAN card's 5th character ('${fifthCharOfPan}') does not match the first letter of the surname ('${firstLetterOfLastName}').`,
+      };
+    }
+
     let photoUrl = null;
     let aadharUrl = null;
+    let panCardUrl = null;
 
     // Directly handle file data from the payload
     if (files) {
@@ -61,6 +88,14 @@ export const registerManager = async (data) => {
           originalname: files.aadharImage[0].originalname,
         };
         aadharUrl = await uploadToFirebase(aadharFile, "staff-documents");
+      }
+      if (files.panCardImage && files.panCardImage[0].buffer) {
+        const panCardFile = {
+          buffer: Buffer.from(files.panCardImage[0].buffer, "base64"),
+          mimetype: files.panCardImage[0].mimetype,
+          originalname: files.panCardImage[0].originalname,
+        };
+        panCardUrl = await uploadToFirebase(panCardFile, "staff-documents");
       }
     }
 
@@ -85,9 +120,11 @@ export const registerManager = async (data) => {
       salary,
       photo: photoUrl,
       aadhaarImage: aadharUrl,
+      panCardImage: panCardUrl,
       propertyId,
       gender,
       address,
+      panCardNumber,
     });
 
     await newManager.save();
@@ -382,6 +419,19 @@ export const editManager = async (data) => {
         };
         updates.aadhaarImage = await uploadToFirebase(
           aadharFile,
+          "staff-documents"
+        );
+      }
+      if (files.panCardImage && files.panCardImage.buffer) {
+        if (manager.panCardImage)
+          await deleteFromFirebase(manager.panCardImage);
+        const panCardFile = {
+          buffer: Buffer.from(files.panCardImage.buffer, "base64"),
+          mimetype: files.panCardImage.mimetype,
+          originalname: files.panCardImage.originalname,
+        };
+        updates.panCardImage = await uploadToFirebase(
+          panCardFile,
           "staff-documents"
         );
       }

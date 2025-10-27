@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const databaseCounterSchema = mongoose.Schema({
   type: {
     type: String,
-    enum: ["Staff", "Property", "Maintenance"],
+    enum: ["Staff", "Property", "Maintenance", "Asset"],
     required: true,
   },
   year: {

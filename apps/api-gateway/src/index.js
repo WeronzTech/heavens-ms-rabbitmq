@@ -45,6 +45,8 @@ import depositPaymentRoutes from "./routes/accounts/depositPayment.routes.js";
 import reminderRoutes from "./routes/user/reminder.routes.js";
 import logRoutes from "./routes/accounts/accountsLog.routes.js";
 import gamingRoutes from "./routes/user/gaming.routes.js";
+import floorRoutes from "./routes/property/floor.routes.js";
+import assetRoutes from "./routes/property/asset.routes.js";
 
 dotenv.config();
 const app = express();
@@ -59,6 +61,7 @@ app.use(
       "https://hpanel.heavensliving.in",
       "http://192.168.1.73:8082",
       "http://192.168.1.80:8082",
+      "http://192.168.1.74:8082",
       "http://localhost:8082",
     ],
     credentials: true,
@@ -97,6 +100,8 @@ app.use("/api/v2/inventory", inventoryRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
+app.use("/api/v2/property/floor", floorRoutes);
+app.use("/api/v2/property/asset", assetRoutes);
 app.use("/api/v2/property", propertyRoutes);
 app.use("/api/v2/property/dashboard", dashboardRoutes);
 app.use("/api/v2/staff", staffRoutes);

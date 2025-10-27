@@ -3,68 +3,115 @@ import { PROPERTY_PATTERN } from "../../../../../libs/patterns/property/property
 
 
 export const addRoom = async (req, res) => {
+  try {
     const {
-        roomNo,
-        roomCapacity,
-        status,
-        propertyId,
-        propertyName,
-        isHeavens,
-        sharingType,
-        description,
-        adminName,} = req.body;
-    // console.log("create");
-    const response = await sendRPCRequest(PROPERTY_PATTERN.ROOM.CREATE_ROOM, {
-        roomNo,
-        roomCapacity,
-        status,
-        propertyId,
-        propertyName,
-        isHeavens,
-        sharingType,
-        description,
-        adminName,
-    });
-    console.log(response)
-  
-    if (response.status === 200) {
-      return res.status(200).json(response?.data);
-    } else {
-      return res.status(response?.status).json({ message: response.message });
-    }
-  };
+      roomNo,
+      sharingType,
+      roomCapacity,
+      occupant,
+      vacantSlot,
+      status,
+      description,
+      propertyId,
+      propertyName,
+      floorId,
+      adminName,
+      isHeavens,
+    } = req.body;
 
-  export const updateRoom = async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { roomNo, roomCapacity, status, adminName } = req.body;
-  
-      // send RPC request to property-service
-      const response = await sendRPCRequest(PROPERTY_PATTERN.ROOM.UPDATE_ROOM, {
-        id,
-        roomNo,
-        roomCapacity,
-        status,
-        adminName,
+    // Basic validation
+    if (!roomNo || !sharingType || !roomCapacity || !status || !propertyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Required fields are missing.",
       });
-  
-      console.log("🔄 Update Room Response:", response);
-  
-      if (response.status === 200) {
-        return res.status(200).json(response.data);
-      } else {
-        return res
-          .status(response.status)
-          .json({ message: response.message || "Failed to update room" });
-      }
-    } catch (error) {
-      console.error("❌ Error in updateRoom controller:", error);
-      return res
-        .status(500)
-        .json({ message: "Server error while updating room" });
     }
-  };
 
+    const response = await sendRPCRequest(PROPERTY_PATTERN.ROOM.CREATE_ROOM, {
+      roomNo,
+      sharingType,
+      roomCapacity,
+      occupant: occupant || 0,
+      vacantSlot: vacantSlot ?? roomCapacity, // default vacantSlot = roomCapacity if not passed
+      status,
+      description,
+      propertyId,
+      propertyName,
+      floorId,
+      adminName,
+      isHeavens,
+    });
+
+    console.log("✅ Room Create Response:", response);
+
+    if (response.status === 200) {
+      return res.status(200).json(response.data);
+    } else {
+      return res
+        .status(response.status)
+        .json({ message: response.message || "Failed to create room" });
+    }
+  } catch (error) {
+    console.error("❌ Error in addRoom controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while creating room",
+      error: error.message,
+    });
+  }
+};
+
+export const updateRoom = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      roomNo,
+      sharingType,
+      roomCapacity,
+      occupant,
+      vacantSlot,
+      status,
+      description,
+      adminName,
+    } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Room ID is required for update.",
+      });
+    }
+
+    const response = await sendRPCRequest(PROPERTY_PATTERN.ROOM.UPDATE_ROOM, {
+      id,
+      roomNo,
+      sharingType,
+      roomCapacity,
+      occupant,
+      vacantSlot,
+      status,
+      description,
+      adminName,
+    });
+
+    console.log("🔄 Update Room Response:", response);
+
+    if (response.status === 200) {
+      return res.status(200).json(response.data);
+    } else {
+      return res
+        .status(response.status)
+        .json({ message: response.message || "Failed to update room" });
+    }
+  } catch (error) {
+    console.error("❌ Error in updateRoom controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating room",
+      error: error.message,
+    });
+  }
+};
   export const deleteRoom = async (req, res) => {
     try {
       const { id } = req.params;
@@ -188,6 +235,38 @@ export const addRoom = async (req, res) => {
       console.error("❌ Error in getAllHeavensRooms controller:", error);
       return res.status(500).json({
         message: error.message || "Server error while fetching Heavens rooms",
+      });
+    }
+  };
+  
+  export const getRoomsByFloorId = async (req, res) => {
+    try {
+      const { floorId } = req.query;
+  
+      if (!floorId) {
+        return res.status(400).json({ message: "floorId is required" });
+      }
+  
+      const response = await sendRPCRequest(
+        PROPERTY_PATTERN.ROOM.GET_ROOMS_BY_FLOOR_ID,
+        { floorId }
+      );
+  
+      console.log("✨ Get Rooms by Floor ID RPC Response:", response);
+  
+      if (response.status === 200) {
+        return res.status(200).json(response.data);
+      } else {
+        return res
+          .status(response.status)
+          .json({
+            message: response.message || "Failed to fetch rooms by floor ID",
+          });
+      }
+    } catch (error) {
+      console.error("❌ Error in getRoomsByFloorId controller:", error);
+      return res.status(500).json({
+        message: error.message || "Server error while fetching rooms by floor ID",
       });
     }
   };

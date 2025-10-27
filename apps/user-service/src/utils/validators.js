@@ -27,13 +27,12 @@ export function validateRequiredFields(
   userType,
   rentType,
   name,
-  email,
   contact,
   stayDetails,
   messDetails
 ) {
   // Common required fields
-  if (!name || !email || !contact || !userType) {
+  if (!name || !contact || !userType) {
     return {
       status: "error",
       message:
@@ -70,15 +69,22 @@ export function validateRequiredFields(
 export function validateFieldFormats(email, password, contact) {
   const errors = [];
 
-  if (email && !validateEmail(email)) {
-    errors.push("Invalid email format");
+  // Validate email only if value is provided
+  if (email) {
+    if (!validateEmail(email)) {
+      errors.push("Invalid email format");
+    }
   }
 
-  const passwordErrors = validatePassword(password);
-  if (passwordErrors.length > 0) {
-    errors.push(`Password requirements: ${passwordErrors.join(", ")}`);
+  // Validate password only if value is provided
+  if (password) {
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      errors.push(`Password requirements: ${passwordErrors.join(", ")}`);
+    }
   }
 
+  // Always validate contact
   if (!validateContact(contact)) {
     errors.push(
       "Invalid contact number (must be 10 digits, starting with 6-9)"

@@ -17,6 +17,7 @@ export const PROPERTY_PATTERN = {
     GET_ALL_HEAVENS_ROOMS: "get_all_heavens_rooms",
     CONFIRM_ASSIGNMENT: "confirm_assignment",
     REMOVE_ASSIGNMENT: "remove_assignment",
+    GET_ROOMS_BY_FLOOR_ID: "get_rooms_by_floor_id"
   },
   STAFF: {
     GET_ALL_STAFF: "get_all_staff",
@@ -63,5 +64,33 @@ export const PROPERTY_PATTERN = {
     UPDATE_CAROUSEL: "update_carousel",
     DELETE_CAROUSEL: "delete_carousel",
     GET_ALL_CAROUSEL: "get_all_carousel",
+  },
+  FLOOR: {
+    ADD_FLOOR: "property.floor.add",
+    UPDATE_FLOOR: "property.floor.update",
+    DELETE_FLOOR: "property.floor.delete",
+    GET_FLOORS_BY_PROPERTYID: "property.floor.getByPropertyId",
+    GET_FLOOR_BY_ID: "property.floor.getById",
+  },
+  ASSET_CATEGORY: {
+    CREATE: "create_asset_category",
+    GET_ALL: "get_all_asset_categories",
+    GET_BY_ID: "get_asset_category_by_id",
+    UPDATE: "update_asset_category",
+    DELETE: "delete_asset_category",
+  },
+
+  // ✅ NEW ASSET PATTERNS
+  ASSET: {
+    CREATE: "create_asset",
+    CREATE_BULK: "create_bulk_assets",
+    GET_ALL: "get_all_assets",
+    GET_BY_ID: "get_asset_by_id",
+    UPDATE: "update_asset",
+    UPDATE_STATUS: "update_asset_status",
+    DELETE: "delete_asset",
+    GET_BY_ROOM: "get_assets_by_room",
+    GET_BY_PROPERTY: "get_assets_by_property",
+     GET_ASSET_LABELS: "get_asset_labels_pdf",
   },
 };
