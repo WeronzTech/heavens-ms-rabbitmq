@@ -635,3 +635,31 @@ export const allocateUsersToAgent = async (req, res) => {
     });
   }
 };
+
+export const registerUserFromPanel = async (req, res) => {
+  const {
+    userType,
+    name,
+    email,
+    contact,
+    password,
+    stayDetails,
+    messDetails,
+    personalDetails,
+  } = req.body;
+  const response = await sendRPCRequest(
+    USER_PATTERN.USER.REGISTER_USER_FROM_PANEL,
+    {
+      userType,
+      name,
+      email,
+      contact,
+      password,
+      stayDetails,
+      messDetails,
+      personalDetails,
+    }
+  );
+
+  return res.status(response.statusCode).json(response.body);
+};

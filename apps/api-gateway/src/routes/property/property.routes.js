@@ -20,11 +20,7 @@ propertyRoutes.get(
   hasPermission(PERMISSIONS.PROPERTY_VIEW),
   getClientPropertiesController
 );
-propertyRoutes.get(
-  "/heavens-properties",
-  hasPermission(PERMISSIONS.PROPERTY_VIEW),
-  getAllHeavensProperties
-);
+propertyRoutes.get("/heavens-properties", getAllHeavensProperties);
 propertyRoutes.get(
   "/:id",
   hasPermission(PERMISSIONS.PROPERTY_VIEW),

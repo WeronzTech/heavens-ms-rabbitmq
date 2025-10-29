@@ -19,6 +19,7 @@ import {
   getUsersWithBirthdayToday,
   handleBlockStatus,
   registerUser,
+  registerUserFromPanel,
   rejectUser,
   rejoinUser,
   respondToStatusRequest,
@@ -49,6 +50,7 @@ userRoutes.get(
 
 // Authentication
 userRoutes.post("/register", registerUser);
+userRoutes.post("/registerFromPanel", registerUserFromPanel);
 userRoutes.get("/email/verify", verifyEmail);
 
 userRoutes.use(isAuthenticated);

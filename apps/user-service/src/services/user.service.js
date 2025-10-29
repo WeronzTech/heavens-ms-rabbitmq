@@ -199,7 +199,7 @@ export const registerUser = async (data) => {
       referredByCode,
       agent,
     } = data;
-    console.log(data)
+    console.log(data);
     let rentType;
     if (userType === "student" || userType === "worker") {
       rentType = "monthly";
@@ -257,7 +257,7 @@ export const registerUser = async (data) => {
       userType,
       rentType,
       isVerified: false,
-      isApproved:isApproved|| false,
+      isApproved: isApproved || false,
       isHeavens: isHeavens || false,
       personalDetails,
       referralInfo: { referredByCode: referredByCode || null },
@@ -1263,7 +1263,9 @@ export const getUsersByRentType = async (data) => {
           queryConditions["messDetails.kitchenId"] = { $in: [] };
         }
       } else {
-        queryConditions["stayDetails.propertyId"] = propertyId;
+        queryConditions["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
+          propertyId
+        );
       }
     }
 
@@ -3072,14 +3074,12 @@ export const handleBlockStatus = async (data) => {
   }
 };
 
-export const setResetToken = async ({
-  userId,
-  resetPasswordToken,
-  resetPasswordExpires,
-}) => {
+export const setResetToken = async (data) => {
+  const { userId, token, expiry } = data;
+
   await User.updateOne(
     { _id: userId },
-    { resetPasswordToken, resetPasswordExpires }
+    { resetPasswordToken: token, resetPasswordExpires: expiry }
   );
   return { success: true };
 };
@@ -4055,6 +4055,186 @@ export const allocateCommissionToUsers = async (data) => {
       status: 500,
       message: "Internal Server Error",
       error: error.message,
+    };
+  }
+};
+
+export const registerUserFromPanel = async (data) => {
+  try {
+    const {
+      userType,
+      name,
+      email,
+      contact,
+      password,
+      stayDetails,
+      messDetails,
+      personalDetails,
+    } = data;
+    console.log(data);
+    let rentType;
+
+    if (userType === "dailyRent") {
+      rentType = "daily";
+    } else if (userType === "messOnly") {
+      rentType = "mess";
+    }
+
+    // 1. Required field validation
+    const validationError = validateRequiredFields(
+      userType,
+      rentType,
+      name,
+      contact,
+      stayDetails,
+      messDetails
+    );
+    if (validationError) {
+      return { statusCode: 400, body: validationError };
+    }
+
+    // 2. Format validation
+    const formatErrors = validateFieldFormats(email, password, contact);
+    if (formatErrors.length > 0) {
+      return {
+        statusCode: 400,
+        body: {
+          status: "error",
+          message: "Validation errors",
+          errors: formatErrors,
+        },
+      };
+    }
+
+    // 3. Duplicate check
+    const existingUserChecks = await checkExistingUsers(email, contact);
+    if (existingUserChecks.error) {
+      return { statusCode: 400, body: existingUserChecks };
+    }
+
+    // 4. Resident ID + hash password
+    const [residentId, hashedPassword] = await Promise.all([
+      getNextResidentId(),
+      password ? bcrypt.hash(password, 10) : Promise.resolve(null),
+    ]);
+
+    // 5. Build base user
+    const userData = {
+      name,
+      residentId,
+      email,
+      contact,
+      password: hashedPassword,
+      userType,
+      rentType,
+      isApproved: true,
+      isHeavens: true,
+      personalDetails,
+    };
+
+    // 6. Type-specific logic
+    if (userType === "messOnly") {
+      userData.messDetails = {
+        ...messDetails,
+        messStartDate: new Date(messDetails.messStartDate),
+        messEndDate: new Date(messDetails.messEndDate),
+      };
+      userData.financialDetails = {
+        totalAmount: messDetails.rent * messDetails.noOfDays,
+        pendingAmount: messDetails.rent * messDetails.noOfDays,
+        accountBalance: 0,
+      };
+    } else if (rentType === "daily") {
+      userData.stayDetails = {
+        ...stayDetails,
+        checkInDate: stayDetails.checkInDate
+          ? new Date(stayDetails.checkInDate)
+          : new Date(),
+        checkOutDate: stayDetails.checkOutDate
+          ? new Date(stayDetails.checkOutDate)
+          : new Date(),
+      };
+      userData.financialDetails = {
+        totalAmount: stayDetails.dailyRent * stayDetails.noOfDays,
+        pendingAmount: stayDetails.dailyRent * stayDetails.noOfDays,
+        accountBalance: 0,
+      };
+    }
+
+    // 7. Save user
+    const newUser = new User(userData);
+    await newUser.save();
+    if (userType === "dailyRent") {
+      await assignRoomToUser({
+        userId: newUser._id,
+        roomId: stayDetails.roomId,
+        userType: "dailyRenter",
+      });
+    }
+    await UserLog.create({
+      userId: newUser._id,
+      action: "create",
+      changedByName: "resident",
+      message: `New ${newUser.userType} (${newUser.name}) registered for ${
+        newUser.stayDetails?.propertyName ||
+        newUser.messDetails?.kitchenName ||
+        "Unknown Property"
+      } with ${rentType} rent type`,
+      propertyId: newUser.stayDetails?.propertyId || null,
+      kitchenId: newUser.stayDetails?.kitchenId || null,
+      timestamp: new Date(),
+    });
+
+    // 8. Build response
+    const responseData = {
+      userId: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      userType: newUser.userType,
+      rentType: newUser.rentType,
+      ...(userType !== "messOnly"
+        ? {
+            residentId: newUser.residentId,
+            roomNumber: newUser.stayDetails?.roomNumber,
+          }
+        : { kitchenName: newUser.messDetails?.kitchenName }),
+    };
+
+    return {
+      statusCode: 201,
+      body: {
+        status: "success",
+        message: "Registration successful",
+        data: responseData,
+      },
+    };
+  } catch (err) {
+    console.error("Registration Error:", err);
+
+    let errorMessage = "Registration failed";
+    let statusCode = 500;
+
+    if (err.name === "ValidationError") {
+      errorMessage = "Invalid user data";
+      statusCode = 400;
+    } else if (err.code === 11000) {
+      errorMessage = "Duplicate key error";
+      statusCode = 400;
+      if (err.keyPattern?.email) errorMessage = "Email already registered";
+      if (err.keyPattern?.contact)
+        errorMessage = "Contact number already registered";
+      if (err.keyPattern?.residentId)
+        errorMessage = "Resident ID generation error";
+    }
+
+    return {
+      statusCode,
+      body: {
+        status: "error",
+        message: errorMessage,
+        details:
+          process.env.NODE_ENV === "development" ? err.message : undefined,
+      },
     };
   }
 };

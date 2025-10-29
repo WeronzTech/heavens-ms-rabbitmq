@@ -45,10 +45,10 @@ export const forgotPasswordUser = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
-  const { email, password } = req.body;
+  const { token, password } = req.body;
 
   const response = await sendRPCRequest(AUTH_PATTERN.AUTH.RESET_PASSWORD_USER, {
-    email,
+    token,
     password,
   });
 

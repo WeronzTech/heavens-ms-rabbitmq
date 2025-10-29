@@ -29,6 +29,7 @@ export const USER_PATTERN = {
     ALLOCATE_AGENT_TO_USERS: "allocate_agent_to_users",
     ALLOCATE_COMMISSION_AMOUNT_TO_USERS: "allocate_commission_amount_to_users",
     SET_RESET_TOKEN: "set_reset_token",
+    REGISTER_USER_FROM_PANEL: "register_user_from_panel",
   },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",
