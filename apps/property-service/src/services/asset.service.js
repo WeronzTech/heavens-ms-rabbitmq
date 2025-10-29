@@ -174,20 +174,23 @@ export const deleteAssetCategory = async (data) => {
 
 export const createAsset = async (data) => {
   try {
-    const { payload, files } = data;
+    const { payload, files} = data;
+    // console.log("files", files)
     const assetData = { ...payload };
-    console.log("data", data)
+    // console.log("data", data)
 
-    console.log("assetData",assetData )
+    // console.log("assetData",assetData )
 
-    if (files && files.invoice) {
+    if (assetData.files && assetData.files.invoice) {
       const invoiceFile = {
-        buffer: Buffer.from(files.invoice.buffer, "base64"),
-        originalname: files.invoice.originalname,
+        buffer:assetData.files.invoice.buffer,
+        originalname: assetData.files.invoice.originalname,
       };
       const invoiceUrl = await uploadToFirebase(invoiceFile, "asset-invoices");
       assetData.purchaseDetails.invoiceUrl = invoiceUrl;
+      console.log('INvoice',invoiceUrl)
     }
+  
 
     const newAsset = await Asset.create(assetData);
     return {
@@ -207,10 +210,10 @@ export const createMultipleAssets = async (data) => {
     const assetData = { ...payload };
     let invoiceUrl = null;
 
-    if (files && files.invoice) {
+    if (assetData.files && assetData.files.invoice) {
       const invoiceFile = {
-        buffer: Buffer.from(files.invoice.buffer, "base64"),
-        originalname: files.invoice.originalname,
+        buffer: assetData.files.invoice.buffer,
+        originalname: assetData.files.invoice.originalname,
       };
       invoiceUrl = await uploadToFirebase(invoiceFile, "asset-invoices");
     }
@@ -294,24 +297,24 @@ export const getAssetById = async (data) => {
 export const updateAsset = async (data) => {
   try {
     const { id, payload, files } = data;
-    // console.log("dataa", data)
+     console.log("dataa", data)
     const assetData = { ...payload };
 
-    // console.log("Asset data",assetData )
+     console.log("Asset data",assetData )
 
     const asset = await Asset.findById(id);
     if (!asset) {
       return { success: false, status: 404, message: "Asset not found." };
     }
 
-    if (files && files.invoice) {
+    if (assetData.files && files.invoice) {
       // Delete old invoice if it exists
       if (asset.purchaseDetails?.invoiceUrl) {
         await deleteFromFirebase(asset.purchaseDetails.invoiceUrl);
       }
       // Upload new one
       const invoiceFile = {
-        buffer: Buffer.from(files.invoice.buffer, "base64"),
+        buffer: files.invoice.buffer,
         originalname: files.invoice.originalname,
       };
       const invoiceUrl = await uploadToFirebase(invoiceFile, "asset-invoices");
