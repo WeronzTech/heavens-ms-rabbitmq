@@ -5,6 +5,7 @@ import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
+import PDFDocument from "pdfkit";
 
 const generateLabelsPDF = (assets) => {
   return new Promise((resolve, reject) => {
