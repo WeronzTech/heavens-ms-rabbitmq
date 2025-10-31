@@ -13,8 +13,9 @@ export const getActivityLogs = async (data) => {
     // Handle property filtering
     if (propertyId && mongoose.Types.ObjectId.isValid(propertyId)) {
       const accessibleKitchens = await getAccessibleKitchens({ propertyId });
-      const accessibleKitchenIds = accessibleKitchens.map((k) =>
-        k._id.toString()
+      console.log("accessibleKitchens",accessibleKitchens)
+      const accessibleKitchenIds = accessibleKitchens?.data?.map((k) =>
+        k?._id?.toString()
       );
 
       filter.$or = [
