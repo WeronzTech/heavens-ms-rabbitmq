@@ -194,6 +194,7 @@ export const sendPushNotification = async ({ data }) => {
     // Fetch user IDs
     const userResp = await getUserIds(params.toString());
     const userArray = userResp?.body || userResp; // normalize
+    console.log("Target user IDs for push notification:", userArray);
 
     if (!Array.isArray(userArray) || userArray.length === 0) {
       return {
@@ -203,7 +204,8 @@ export const sendPushNotification = async ({ data }) => {
       };
     }
 
-    const ids = userArray.map((item) => item.id);
+    const ids = userArray.map((item) => item);
+    console.log("User IDs:", ids);
 
     // Find FCM tokens
     const tokenDocs = await FcmToken.find({ userId: { $in: ids } });
