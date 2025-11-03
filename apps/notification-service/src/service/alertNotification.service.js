@@ -4,6 +4,7 @@ import {
 } from "../../../../libs/common/imageOperation.js";
 import AlertNotification from "../models/alertNotification.model.js";
 import FcmToken from "../models/fcmToken.model.js";
+import NotificationLog from "../models/notificationLog.model.js";
 import { sendPushNotificationToUser } from "../utils/sendNotificationHelper.js";
 
 export const addAlertNotification = async ({ data }) => {
@@ -20,7 +21,7 @@ export const addAlertNotification = async ({ data }) => {
       imageUrl = await uploadToFirebase(imageFile, "notification");
     }
 
-    const formattedId = userId?.toUpperCase();
+    const formattedId = userId;
 
     const alertNotificationData = {
       title,

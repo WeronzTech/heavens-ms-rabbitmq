@@ -62,7 +62,7 @@ app.use(
       "https://hpanel.heavensliving.in",
       "http://192.168.1.73:8082",
       "http://192.168.1.80:8082",
-      "http://192.168.1.74:8082",
+      "http://192.168.1.75:8082",
       "http://localhost:8082",
     ],
     credentials: true,

@@ -46,13 +46,13 @@ const AssetSchema = new Schema(
     },
     // WarrantyDetails are defined directly in the schema
     warrantyDetails: {
-      provider: { type: String, required: true, trim: true },
-      expiryDate: { type: Date, required: true },
+      provider: { type: String, required: false, trim: true },
+      expiryDate: { type: Date, required: false },
       notes: { type: String, trim: true },
     },
     status: {
       type: String,
-      enum: ["Active", "In-Repair", "Retired", "Sold"],
+      enum: ["Active", "In-Repair", "Retired", "Sold", "In Inventory"],
       default: "Active",
     },
     // Details for when the item is sold
