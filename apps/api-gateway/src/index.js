@@ -47,6 +47,7 @@ import logRoutes from "./routes/accounts/accountsLog.routes.js";
 import gamingRoutes from "./routes/user/gaming.routes.js";
 import floorRoutes from "./routes/property/floor.routes.js";
 import assetRoutes from "./routes/property/asset.routes.js";
+import websiteRoutes from "./routes/property/website.routes.js";
 
 dotenv.config();
 const app = express();
@@ -127,6 +128,7 @@ app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/reminder", reminderRoutes);
 app.use("/api/v2/accounts-log", logRoutes);
 app.use("/api/v2/gaming", gamingRoutes);
+app.use("/api/v2/website", websiteRoutes);
 
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {

@@ -226,7 +226,7 @@ export const getAddonBookingsByProperty = async (filters) => {
     const limit = parseInt(filters.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
-    const [bookings, totalCount] = await Promise.all([
+    const [bookings, total] = await Promise.all([
       AddonBooking.find(query)
         .populate("addons.addonId")
         .sort({ bookingDate: -1, createdAt: -1 })
@@ -236,39 +236,80 @@ export const getAddonBookingsByProperty = async (filters) => {
       AddonBooking.countDocuments(query),
     ]);
 
-    const userIds = [...new Set(bookings.map((b) => b.userId.toString()))];
-    const userResponse = await sendRPCRequest(
-      USER_PATTERN.USER.GET_USER_BY_ID,
-      {
-        userIds,
-      }
-    );
-    const userMap = new Map(
-      userResponse.body.success
-        ? userResponse.body.data.map((u) => [u._id.toString(), u])
-        : []
+    const enrichedData = await Promise.all(
+      bookings.map(async (booking) => {
+        try {
+          const userServiceResponse = await sendRPCRequest(
+            USER_PATTERN.USER.GET_USER_BY_ID,
+            { userId: booking.userId }
+          );
+
+          const userDetails = userServiceResponse?.body?.data;
+
+          return {
+            ...booking,
+            userName: userDetails?.name || "N/A",
+            contact: userDetails?.contact || "N/A",
+            roomNumber: userDetails?.stayDetails?.roomNumber || "N/A",
+          };
+        } catch {
+          return {
+            ...booking,
+            userName: "User not found",
+            roomNumber: "N/A",
+            contact: "N/A",
+          };
+        }
+      })
     );
 
-    const enrichedData = bookings.map((booking) => {
-      const userDetails = userMap.get(booking.userId.toString());
-      return {
-        ...booking,
-        userName: userDetails?.name || "N/A",
-      };
+    // ✅ NEW SECTION: Calculate today's statistics
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0]; // e.g., "2025-10-17"
+
+    // Filter today's bookings
+    const todayBookings = enrichedData.filter((b) => {
+      const bookingDateStr = new Date(b.bookingDate)
+        .toISOString()
+        .split("T")[0];
+      return bookingDateStr === todayStr;
     });
+
+    // Total bookings today
+    const todayBookingCount = todayBookings.length;
+
+    // Count by status
+    const deliveredCount = todayBookings.filter(
+      (b) => b.status === "Delivered"
+    ).length;
+    const pendingCount = todayBookings.filter(
+      (b) => b.status === "Pending"
+    ).length;
+
+    // Total amount for today's delivered bookings
+    const todayDeliveredTotal = todayBookings
+      .filter((b) => b.status === "Delivered")
+      .reduce((sum, b) => sum + (Number(b.grandTotalPrice) || 0), 0);
+
+    const responsePayload = {
+      data: enrichedData,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+      // ✅ Added statistics
+      todayBookingCount,
+      deliveredCount,
+      pendingCount,
+      todayDeliveredTotal,
+    };
 
     return {
       success: true,
       status: 200,
-      data: {
-        data: enrichedData,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit),
-        },
-      },
+      data: responsePayload,
     };
   } catch (error) {
     return { success: false, status: 500, message: error.message };

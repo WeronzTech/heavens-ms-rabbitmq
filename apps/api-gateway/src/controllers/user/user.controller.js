@@ -636,7 +636,6 @@ export const allocateUsersToAgent = async (req, res) => {
   }
 };
 
-
 export const registerUserFromPanel = async (req, res) => {
   const {
     userType,

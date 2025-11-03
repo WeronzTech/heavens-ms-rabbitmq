@@ -35,6 +35,7 @@ import {
   allocateUsersToAgent,
   allocateCommissionToUsers,
   registerUserFromPanel,
+  updatePassword,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";

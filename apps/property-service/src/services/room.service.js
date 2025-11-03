@@ -21,7 +21,13 @@ export const addRoom = async (data) => {
   } = data;
 
   // ✅ Validate required fields
-  if (!propertyId || !roomNo || !roomCapacity || !propertyName || !sharingType) {
+  if (
+    !propertyId ||
+    !roomNo ||
+    !roomCapacity ||
+    !propertyName ||
+    !sharingType
+  ) {
     return { status: 400, message: "Missing required fields" };
   }
 
@@ -249,7 +255,6 @@ export const confirmRoomAssignment = async (data) => {
 export const handleRemoveAssignment = async (data) => {
   const { userId, roomId } = data;
   let session; // Declare session here
-
   try {
     session = await mongoose.startSession(); // Assign it here
     session.startTransaction();
@@ -403,7 +408,6 @@ export const updateRoom = async (data) => {
     };
   }
 };
-
 
 export const deleteRoom = async (data) => {
   try {
@@ -603,8 +607,6 @@ export const getAllHeavensRooms = async (data) => {
   }
 };
 
-
-
 export const getRoomsByFloorId = async (data) => {
   const { floorId } = data;
 
@@ -618,7 +620,10 @@ export const getRoomsByFloorId = async (data) => {
 
   try {
     // ✅ Check if floor exists
-    const floor = await Floor.findById(floorId).populate("propertyId", "propertyName propertyId");
+    const floor = await Floor.findById(floorId).populate(
+      "propertyId",
+      "propertyName propertyId"
+    );
     if (!floor) {
       return {
         success: false,

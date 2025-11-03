@@ -18,6 +18,9 @@ export const upload = multer({
       "application/vnd.ms-excel",
       "application/pdf",
       "audio/mpeg",
+      "video/mp4",
+      "video/mkv",
+      "video/webm",
     ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);

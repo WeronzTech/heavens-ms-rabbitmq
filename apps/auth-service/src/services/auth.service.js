@@ -221,7 +221,7 @@ export const userLogin = async (loginData) => {
 };
 
 const RESET_TOKEN_EXPIRY_HOURS = 1;
-const FRONTEND_URL = "https://hpanel.heavensliving.in";
+const FRONTEND_URL = "http://192.168.1.80:8082";
 
 export const forgotPasswordUser = async (data) => {
   const { email } = data;
@@ -258,7 +258,7 @@ export const forgotPasswordUser = async (data) => {
       expiry: tokenExpiry,
     });
 
-    const resetUrl = `https://hpanel.heavensliving.in/auth/reset-password?token=${rawToken}`;
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}`;
 
     await emailService.sendPasswordResetEmail(
       user,
@@ -282,44 +282,50 @@ export const resetPassword = async (data) => {
   const { token, password } = data;
 
   if (!token || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Token and password are required" });
+    return {
+      success: false,
+      status: 400,
+      message: "Token and password are required",
+    };
   }
 
   try {
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // Ask user-service to validate token + get user
+    // ✅ Ask user-service to validate token + get user
     const userResponse = await sendRPCRequest(
       USER_PATTERN.PASSWORD.GET_USER_BY_RESET_TOKEN,
-      {
-        token: hashedToken,
-      }
+      { token: hashedToken }
     );
 
     if (!userResponse.success) {
-      return res
-        .status(userResponse.status)
-        .json({ success: false, message: userResponse.message });
+      return {
+        success: false,
+        status: userResponse.status || 400,
+        message: userResponse.message || "Invalid or expired token",
+      };
     }
 
     const user = userResponse.data;
 
-    // Tell user-service to update password
+    // ✅ Tell user-service to update password
     await sendRPCRequest(USER_PATTERN.PASSWORD.UPDATE_PASSWORD, {
       userId: user._id,
-      password, // raw password, user-service will hash
+      password, // raw password — user-service will hash internally
     });
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Password has been reset successfully" });
+    return {
+      success: true,
+      status: 200,
+      message: "Password has been reset successfully",
+    };
   } catch (error) {
     console.error("Reset Password Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+    };
   }
 };
 

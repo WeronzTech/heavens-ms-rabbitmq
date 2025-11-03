@@ -199,7 +199,7 @@ export const registerUser = async (data) => {
       referredByCode,
       agent,
     } = data;
-    console.log(data)
+    console.log(data);
     let rentType;
     if (userType === "student" || userType === "worker") {
       rentType = "monthly";
@@ -257,7 +257,7 @@ export const registerUser = async (data) => {
       userType,
       rentType,
       isVerified: false,
-      isApproved:isApproved|| false,
+      isApproved: isApproved || false,
       isHeavens: isHeavens || false,
       personalDetails,
       referralInfo: { referredByCode: referredByCode || null },
@@ -1247,7 +1247,6 @@ export const getUsersByRentType = async (data) => {
           propertyId,
         });
 
-        // Check if the request was successful and data exists
         if (
           accessibleKitchensResponse.success &&
           accessibleKitchensResponse.data
@@ -1264,13 +1263,15 @@ export const getUsersByRentType = async (data) => {
           queryConditions["messDetails.kitchenId"] = { $in: [] };
         }
       } else {
-        queryConditions["stayDetails.propertyId"] = propertyId;
+        queryConditions["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
+          propertyId
+        );
       }
     }
 
-    // Search functionality - enhanced
+    // Search functionality
     if (search) {
-      const searchRegex = new RegExp(search, "i"); // Case-insensitive
+      const searchRegex = new RegExp(search, "i");
       queryConditions.$or = [
         { name: searchRegex },
         { email: searchRegex },
@@ -1280,7 +1281,7 @@ export const getUsersByRentType = async (data) => {
       ];
     }
 
-    // Status filter - fixed mapping
+    // Status filter
     if (status && status !== "All") {
       const statusMapping = {
         Paid: "paid",
@@ -1299,7 +1300,7 @@ export const getUsersByRentType = async (data) => {
       }
     }
 
-    // Date filter - robust handling
+    // Date filter
     if (joinDate) {
       try {
         const startDate = new Date(`${joinDate}T00:00:00.000Z`);
@@ -1314,7 +1315,7 @@ export const getUsersByRentType = async (data) => {
       }
     }
 
-    // Projection to reduce data transfer
+    // Projection
     const projection = {
       name: 1,
       email: 1,
@@ -1359,7 +1360,7 @@ export const getUsersByRentType = async (data) => {
       projection["stayDetails.depositAmountPaid"] = 1;
     }
 
-    // Get total count for pagination metadata
+    // Total count for pagination
     const totalCount = await User.countDocuments(queryConditions);
     const totalPages = Math.ceil(totalCount / limitNumber);
     const skip = (pageNumber - 1) * limitNumber;
@@ -1375,7 +1376,7 @@ export const getUsersByRentType = async (data) => {
 
     const users = await query.lean();
 
-    // Format response
+    // Format users
     const formattedUsers = users.map((user) => {
       const fines = user.financialDetails?.fines || [];
       const outstandingFines = fines
@@ -1427,11 +1428,46 @@ export const getUsersByRentType = async (data) => {
       return formatted;
     });
 
+    // --- Aggregates using $facet ---
+    const aggregates = await User.aggregate([
+      { $match: queryConditions },
+      {
+        $facet: {
+          totalResidents: [{ $count: "count" }],
+          totalPaid: [
+            { $match: { paymentStatus: "paid" } },
+            { $count: "count" },
+          ],
+          totalPending: [
+            { $match: { paymentStatus: "pending" } },
+            { $count: "count" },
+          ],
+          totalCheckedIn: [
+            { $match: { currentStatus: "checked_in" } },
+            { $count: "count" },
+          ],
+          totalOnLeave: [
+            { $match: { currentStatus: "on_leave" } },
+            { $count: "count" },
+          ],
+        },
+      },
+    ]);
+
+    const summary = {
+      totalResidents: aggregates[0].totalResidents[0]?.count || 0,
+      totalPaid: aggregates[0].totalPaid[0]?.count || 0,
+      totalPending: aggregates[0].totalPending[0]?.count || 0,
+      totalCheckedIn: aggregates[0].totalCheckedIn[0]?.count || 0,
+      totalOnLeave: aggregates[0].totalOnLeave[0]?.count || 0,
+    };
+
     // Return consistent response
     return {
       status: 200,
       body: {
         success: true,
+        summary, // <-- new summary field
         pagination: {
           total: totalCount,
           totalPages: fetchAll ? 1 : totalPages,
@@ -1454,6 +1490,268 @@ export const getUsersByRentType = async (data) => {
     };
   }
 };
+
+// export const getUsersByRentType = async (data) => {
+//   try {
+//     const { rentType, propertyId, all, page, limit, search, status, joinDate } =
+//       data;
+
+//     // New flag to determine whether to fetch all users (no pagination)
+//     const fetchAll = all === true || all === "true";
+
+//     // Convert and validate pagination parameters
+//     const pageNumber = parseInt(page);
+//     const limitNumber = parseInt(limit);
+
+//     // Validate pagination only if not fetching all
+//     if (!fetchAll) {
+//       if (
+//         isNaN(pageNumber) ||
+//         pageNumber < 1 ||
+//         isNaN(limitNumber) ||
+//         limitNumber < 1 ||
+//         limitNumber > 100
+//       ) {
+//         return {
+//           status: 400,
+//           body: {
+//             success: false,
+//             error: "Invalid pagination parameters",
+//           },
+//         };
+//       }
+//     }
+
+//     // Base query conditions
+//     const queryConditions = {
+//       isApproved: true,
+//       isVacated: false,
+//     };
+
+//     // Rent Type filter
+//     if (rentType) {
+//       if (rentType === "mess") {
+//         queryConditions.userType = "messOnly";
+//       } else {
+//         queryConditions.rentType = rentType;
+//         queryConditions.userType = { $in: ["student", "worker", "dailyRent"] };
+//       }
+//     }
+
+//     // Property filter
+//     if (propertyId && propertyId !== "null") {
+//       if (rentType === "mess") {
+//         const accessibleKitchensResponse = await getAccessibleKitchens({
+//           propertyId,
+//         });
+
+//         // Check if the request was successful and data exists
+//         if (
+//           accessibleKitchensResponse.success &&
+//           accessibleKitchensResponse.data
+//         ) {
+//           const kitchenIds = accessibleKitchensResponse.data.map((k) =>
+//             k._id.toString()
+//           );
+//           queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+//         } else {
+//           console.error(
+//             "Failed to fetch accessible kitchens:",
+//             accessibleKitchensResponse.message
+//           );
+//           queryConditions["messDetails.kitchenId"] = { $in: [] };
+//         }
+//       } else {
+//         queryConditions["stayDetails.propertyId"] = propertyId;
+//       }
+//     }
+
+//     // Search functionality - enhanced
+//     if (search) {
+//       const searchRegex = new RegExp(search, "i"); // Case-insensitive
+//       queryConditions.$or = [
+//         { name: searchRegex },
+//         { email: searchRegex },
+//         { contact: searchRegex },
+//         { "stayDetails.roomNumber": searchRegex },
+//         { "stayDetails.propertyName": searchRegex },
+//       ];
+//     }
+
+//     // Status filter - fixed mapping
+//     if (status && status !== "All") {
+//       const statusMapping = {
+//         Paid: "paid",
+//         Pending: "pending",
+//         "On Leave": "on_leave",
+//         "Checked Out": "checked_out",
+//         "Incomplete Profile": "incomplete",
+//       };
+
+//       if (status === "Paid" || status === "Pending") {
+//         queryConditions.paymentStatus = statusMapping[status];
+//       } else if (status === "On Leave" || status === "Checked Out") {
+//         queryConditions.currentStatus = statusMapping[status];
+//       } else if (status === "Incomplete Profile") {
+//         queryConditions.profileCompletion = { $ne: 100 };
+//       }
+//     }
+
+//     // Date filter - robust handling
+//     if (joinDate) {
+//       try {
+//         const startDate = new Date(`${joinDate}T00:00:00.000Z`);
+//         const endDate = new Date(`${joinDate}T23:59:59.999Z`);
+
+//         queryConditions.$or = [
+//           { createdAt: { $gte: startDate, $lte: endDate } },
+//           { "stayDetails.joinDate": { $gte: startDate, $lte: endDate } },
+//         ];
+//       } catch (err) {
+//         console.error("Error parsing joinDate:", joinDate, err);
+//       }
+//     }
+
+//     // Projection to reduce data transfer
+//     const projection = {
+//       name: 1,
+//       email: 1,
+//       contact: 1,
+//       userType: 1,
+//       rentType: 1,
+//       profileCompletion: 1,
+//       currentStatus: 1,
+//       paymentStatus: 1,
+//       isBlocked: 1,
+//       "messDetails.kitchenName": 1,
+//       "messDetails.mealType": 1,
+//       "messDetails.messStartDate": 1,
+//       "messDetails.messEndDate": 1,
+//       "messDetails.rent": 1,
+//       "messDetails.noOfDays": 1,
+//       "financialDetails.totalAmount": 1,
+//       "financialDetails.pendingAmount": 1,
+//       "financialDetails.fines": 1,
+//       "stayDetails.nonRefundableDeposit": 1,
+//       "stayDetails.refundableDeposit": 1,
+//       "stayDetails.depositStatus": 1,
+//       "stayDetails.depositAmountPaid": 1,
+//       "stayDetails.roomNumber": 1,
+//       "stayDetails.propertyName": 1,
+//       "stayDetails.joinDate": 1,
+//       "stayDetails.checkInDate": 1,
+//       "stayDetails.checkOutDate": 1,
+//       "stayDetails.noOfDays": 1,
+//       "stayDetails.sharingType": 1,
+//       "stayDetails.dailyRent": 1,
+//       "financialDetails.monthlyRent": 1,
+//       "financialDetails.pendingRent": 1,
+//       "financialDetails.nextDueDate": 1,
+//       createdAt: 1,
+//     };
+
+//     if (rentType !== "daily" && rentType !== "mess") {
+//       projection["stayDetails.nonRefundableDeposit"] = 1;
+//       projection["stayDetails.refundableDeposit"] = 1;
+//       projection["stayDetails.depositStatus"] = 1;
+//       projection["stayDetails.depositAmountPaid"] = 1;
+//     }
+
+//     // Get total count for pagination metadata
+//     const totalCount = await User.countDocuments(queryConditions);
+//     const totalPages = Math.ceil(totalCount / limitNumber);
+//     const skip = (pageNumber - 1) * limitNumber;
+
+//     // Fetch users (skip pagination if fetchAll)
+//     let query = User.find(queryConditions)
+//       .select(projection)
+//       .sort({ createdAt: -1 });
+
+//     if (!fetchAll) {
+//       query = query.skip(skip).limit(limitNumber);
+//     }
+
+//     const users = await query.lean();
+
+//     // Format response
+//     const formattedUsers = users.map((user) => {
+//       const fines = user.financialDetails?.fines || [];
+//       const outstandingFines = fines
+//         .filter((fine) => !fine.paid)
+//         .reduce((sum, fine) => sum + (fine.amount || 0), 0);
+
+//       const formatted = {
+//         _id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         contact: user.contact,
+//         userType: user.userType,
+//         rentType: user.rentType,
+//         isBlocked: user.isBlocked,
+//         profileCompletion: user.profileCompletion,
+//         currentStatus: user.currentStatus,
+//         paymentStatus: user.paymentStatus,
+//         kitchenName: user.messDetails?.kitchenName,
+//         mealType: user.messDetails?.mealType,
+//         noOfDaysMess: user.messDetails?.noOfDays,
+//         totalAmount: user.financialDetails?.totalAmount,
+//         pendingAmount: user.financialDetails?.pendingAmount,
+//         roomNumber: user.stayDetails?.roomNumber,
+//         propertyName: user.stayDetails?.propertyName,
+//         sharingType: user.stayDetails?.sharingType,
+//         rent: user.stayDetails?.dailyRent || user.messDetails?.rent,
+//         monthlyRent: user.financialDetails?.monthlyRent,
+//         pendingRent: user.financialDetails?.pendingRent,
+//         nextDueDate: user.financialDetails?.nextDueDate,
+//         fines,
+//         outstandingFines,
+//         joinedDate: user.stayDetails?.joinDate,
+//         checkInDate: user.stayDetails?.checkInDate,
+//         checkOutDate: user.stayDetails?.checkOutDate,
+//         noOfDays: user.stayDetails?.noOfDays,
+//         messStartDate: user.messDetails?.messStartDate,
+//         messEndDate: user.messDetails?.messEndDate,
+//         noOfDaysForMessOnly: user.messDetails?.noOfDays,
+//       };
+
+//       if (rentType !== "daily" && rentType !== "mess") {
+//         formatted.depositAmount =
+//           (user.stayDetails?.nonRefundableDeposit || 0) +
+//           (user.stayDetails?.refundableDeposit || 0);
+//         formatted.depositPaid = user.stayDetails?.depositAmountPaid;
+//         formatted.depositStatus = user.stayDetails?.depositStatus;
+//       }
+
+//       return formatted;
+//     });
+
+//     // Return consistent response
+//     return {
+//       status: 200,
+//       body: {
+//         success: true,
+//         pagination: {
+//           total: totalCount,
+//           totalPages: fetchAll ? 1 : totalPages,
+//           currentPage: fetchAll ? 1 : pageNumber,
+//           itemsPerPage: fetchAll ? totalCount : limitNumber,
+//           hasNextPage: !fetchAll && pageNumber < totalPages,
+//           hasPreviousPage: !fetchAll && pageNumber > 1,
+//         },
+//         data: formattedUsers,
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Error fetching users by rentType:", error);
+//     return {
+//       status: 500,
+//       body: {
+//         success: false,
+//         error: "Server error while fetching users",
+//       },
+//     };
+//   }
+// };
 
 export const getCheckOutedUsersByRentType = async (data) => {
   try {
@@ -2776,14 +3074,12 @@ export const handleBlockStatus = async (data) => {
   }
 };
 
-export const setResetToken = async ({
-  userId,
-  resetPasswordToken,
-  resetPasswordExpires,
-}) => {
+export const setResetToken = async (data) => {
+  const { userId, token, expiry } = data;
+
   await User.updateOne(
     { _id: userId },
-    { resetPasswordToken, resetPasswordExpires }
+    { resetPasswordToken: token, resetPasswordExpires: expiry }
   );
   return { success: true };
 };
@@ -3763,7 +4059,6 @@ export const allocateCommissionToUsers = async (data) => {
   }
 };
 
-
 export const registerUserFromPanel = async (data) => {
   try {
     const {
@@ -3832,12 +4127,9 @@ export const registerUserFromPanel = async (data) => {
       password: hashedPassword,
       userType,
       rentType,
-      isVerified: true,
       isApproved: true,
       isHeavens: true,
       personalDetails,
-      referralInfo: { referredByCode: referredByCode || null },
-      agent,
     };
 
     // 6. Type-specific logic
@@ -3912,7 +4204,7 @@ export const registerUserFromPanel = async (data) => {
       statusCode: 201,
       body: {
         status: "success",
-        message: "Registration successful. Awaiting approval.",
+        message: "Registration successful",
         data: responseData,
       },
     };

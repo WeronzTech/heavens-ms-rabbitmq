@@ -15,6 +15,7 @@ import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import Deposits from "../models/depositPayments.model.js";
 import Voucher from "../models/voucher.model.js";
 import emailService from "../../../../libs/email/email.service.js";
+import ReceiptCounter from "../models/receiptCounter.model.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -321,6 +322,27 @@ export const getFeePaymentById = async (data) => {
   }
 };
 
+const generateReceiptNumber = async (property, session) => {
+  const monthYear = moment().format("YYYY-MM");
+  const counter = await ReceiptCounter.findOneAndUpdate(
+    { propertyId: property.propertyId, monthYear },
+    { $inc: { sequence: 1 } },
+    { new: true, upsert: true, session }
+  );
+
+  const seq = String(counter.sequence).padStart(4, "0");
+  const propertyCode = property.propertyName
+    ? property.propertyName.replace(/\s+/g, "").toUpperCase().slice(0, 3)
+    : "PRP";
+
+  // Example format: REC-GHS-202510-0007
+  const receiptNumber = `HVNS-${propertyCode}-${moment().format(
+    "YYYYMM"
+  )}-${seq}`;
+
+  return receiptNumber;
+};
+
 const processAndRecordPayment = async ({
   userId,
   amount,
@@ -461,6 +483,11 @@ const processAndRecordPayment = async ({
       user.financialDetails?.pendingAmount ??
       0;
 
+    const receiptNumber = await generateReceiptNumber(
+      user.stayDetails,
+      session
+    );
+
     // Create the Payment Record
     const newPayment = new Payments({
       name: user.name,
@@ -485,6 +512,7 @@ const processAndRecordPayment = async ({
         id: user.stayDetails?.propertyId,
         name: user.stayDetails?.propertyName,
       },
+      receiptNumber,
       userId: user._id,
       collectedBy,
       remarks,
@@ -824,7 +852,7 @@ export const getAllFeePayments = async (data) => {
 
     // Fields to select
     const projection =
-      "name rent paymentMethod userType transactionId collectedBy paymentDate amount";
+      "name rent paymentMethod userType transactionId collectedBy paymentDate amount receiptNumber";
 
     // Query with pagination
     const payments = await Payments.find(filter, projection)
