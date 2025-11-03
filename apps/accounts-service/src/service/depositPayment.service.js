@@ -7,6 +7,28 @@ import {
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Deposits from "../models/depositPayments.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
+import ReceiptCounter from "../models/receiptCounter.model.js";
+
+const generateReceiptNumber = async (property, session) => {
+  const monthYear = moment().format("YYYY-MM");
+  const counter = await ReceiptCounter.findOneAndUpdate(
+    { propertyId: property.propertyId, monthYear },
+    { $inc: { sequence: 1 } },
+    { new: true, upsert: true, session }
+  );
+
+  const seq = String(counter.sequence).padStart(4, "0");
+  const propertyCode = property.propertyName
+    ? property.propertyName.replace(/\s+/g, "").toUpperCase().slice(0, 3)
+    : "PRP";
+
+  // Example format: REC-GHS-202510-0007
+  const receiptNumber = `HVNS-${propertyCode}-${moment().format(
+    "YYYYMM"
+  )}-${seq}`;
+
+  return receiptNumber;
+};
 
 const processAndRecordDepositPayment = async ({
   userId,
@@ -69,6 +91,11 @@ const processAndRecordDepositPayment = async ({
       status = "Paid";
     }
 
+    const receiptNumber = await generateReceiptNumber(
+      user.stayDetails,
+      session
+    );
+
     // Create the Payment Record
     const newDeposit = new Deposits({
       name: user.name,
@@ -83,6 +110,7 @@ const processAndRecordDepositPayment = async ({
       transactionId,
       status,
       property: user.stayDetails?.propertyId,
+      receiptNumber,
       userId: user._id,
       remarks,
       ...razorpayDetails,
@@ -452,14 +480,14 @@ export const getAllDepositPayments = async (data) => {
       const refundFlag = isRefund === true || isRefund === "true";
       if (refundFlag) {
         projection =
-          "name userType nonRefundableDeposit refundableDeposit amountPaid paymentMethod paymentDate transactionId handledBy remarks property";
+          "name userType nonRefundableDeposit refundableDeposit amountPaid paymentMethod paymentDate transactionId handledBy remarks property receiptNumber";
       } else {
         projection =
-          "name userType nonRefundableDeposit refundableDeposit amountPaid paymentMethod transactionId collectedBy paymentDate remarks property";
+          "name userType nonRefundableDeposit refundableDeposit amountPaid paymentMethod transactionId collectedBy paymentDate remarks property receiptNumber";
       }
     } else {
       projection =
-        "name userType nonRefundableDeposit refundableDeposit amountPaid paymentMethod transactionId collectedBy paymentDate remarks property";
+        "name userType nonRefundableDeposit refundableDeposit amountPaid paymentMethod transactionId collectedBy paymentDate remarks property receiptNumber";
     }
 
     // Fetch paginated deposits

@@ -17,7 +17,7 @@ export const PROPERTY_PATTERN = {
     GET_ALL_HEAVENS_ROOMS: "get_all_heavens_rooms",
     CONFIRM_ASSIGNMENT: "confirm_assignment",
     REMOVE_ASSIGNMENT: "remove_assignment",
-    GET_ROOMS_BY_FLOOR_ID: "get_rooms_by_floor_id"
+    GET_ROOMS_BY_FLOOR_ID: "get_rooms_by_floor_id",
   },
   STAFF: {
     GET_ALL_STAFF: "get_all_staff",
@@ -91,6 +91,12 @@ export const PROPERTY_PATTERN = {
     DELETE: "delete_asset",
     GET_BY_ROOM: "get_assets_by_room",
     GET_BY_PROPERTY: "get_assets_by_property",
-     GET_ASSET_LABELS: "get_asset_labels_pdf",
+    GET_ASSET_LABELS: "get_asset_labels_pdf",
+  },
+  WEBSITE_CONTENT: {
+    ADD_PROPERTY_CONTENT: "add_property_content",
+    GET_ALL_PROPERTY_CONTENT: "get_all_property_content",
+    UPDATE_PROPERTY_CONTENT: "update_property_content",
+    PROPERTY_CONTENT_BY_ID: "property_content_by_id",
   },
 };

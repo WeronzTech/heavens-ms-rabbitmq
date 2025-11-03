@@ -49,7 +49,11 @@ const paymentSchema = new mongoose.Schema(
       },
       _id: false,
     },
-    receiptNumber: { type: String },
+    receiptNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     razorpayOrderId: { type: String }, // Store Razorpay order ID
     razorpayPaymentId: { type: String }, // Store transaction ID
     razorpaySignature: { type: String }, // For verifying payment
