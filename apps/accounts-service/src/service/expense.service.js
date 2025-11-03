@@ -6,6 +6,8 @@ import Expense from "../models/expense.model.js";
 import ExpenseCategory from "../models/expenseCategory.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import Voucher from "../models/voucher.model.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
 
 export const addExpense = async (data) => {
   try {
@@ -22,6 +24,8 @@ export const addExpense = async (data) => {
       ...expenseData
     } = data;
     console.log("data", data);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     property = JSON.parse(property);
 
@@ -134,7 +138,7 @@ export const addExpense = async (data) => {
       ...expenseData,
     });
 
-    await expense.save();
+    await expense.save({ session });
 
     await createAccountLog({
       logType: "Expense",
@@ -145,6 +149,36 @@ export const addExpense = async (data) => {
       performedBy: data.handledBy || "System",
       referenceId: expense._id,
     });
+
+    const creditAccount =
+      paymentMethod === "Petty Cash"
+        ? ACCOUNT_NAMES.PETTY_CASH
+        : ACCOUNT_NAMES.BANK_ACCOUNT;
+
+    // Map expense category to debit account (Example mapping)
+    // You should fetch the account by name from ChartOfAccount for robustness
+    const debitAccount = expenseData.category.includes("Maintenance")
+      ? ACCOUNT_NAMES.MAINTENANCE_EXPENSE
+      : expenseData.category.includes("Mess")
+      ? ACCOUNT_NAMES.MESS_SUPPLIES_EXPENSE
+      : expenseData.category.includes("Utility")
+      ? ACCOUNT_NAMES.UTILITIES_EXPENSE
+      : ACCOUNT_NAMES.GENERAL_EXPENSE; // Fallback
+
+    await createJournalEntry(
+      {
+        date: expense.date,
+        description: `Expense: ${expense.title} - ${expense.category}`,
+        propertyId: expense.property.id,
+        transactions: [
+          { accountName: debitAccount, debit: amount },
+          { accountName: creditAccount, credit: amount },
+        ],
+        referenceId: expense._id,
+        referenceType: "Expense",
+      },
+      { session }
+    );
 
     if (fromVoucher && voucher) {
       voucher.totalExpenseAmount += amount;

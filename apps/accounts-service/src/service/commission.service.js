@@ -5,8 +5,12 @@ import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { createAccountLog } from "./accountsLog.service.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
 
 export const addCommission = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     console.log(data);
     const { amount, userIds } = data;
@@ -27,8 +31,7 @@ export const addCommission = async (data) => {
       console.warn("No userIds provided, skipping user update.");
     }
 
-    const newCommission = await Commission.create(data);
-
+    const newCommission = (await Commission.create([data], { session }))[0];
     await createAccountLog({
       logType: "Commission",
       action: "Create",
@@ -39,6 +42,33 @@ export const addCommission = async (data) => {
       referenceId: newCommission._id,
     });
 
+    const paymentAccount =
+      data.paymentType === "Cash"
+        ? ACCOUNT_NAMES.BANK_ACCOUNT
+        : ACCOUNT_NAMES.BANK_ACCOUNT;
+
+    await createJournalEntry(
+      {
+        date: newCommission.paymentDate,
+        description: `Commission of ₹${newCommission.amount} for agency ${newCommission.agencyName}`,
+        propertyId: newCommission.property[0], // Assuming at least one property
+        transactions: [
+          {
+            accountName: ACCOUNT_NAMES.COMMISSION_EXPENSE,
+            debit: newCommission.amount,
+          },
+          { accountName: paymentAccount, credit: newCommission.amount },
+        ],
+        referenceId: newCommission._id,
+        referenceType: "Commission",
+      },
+      { session }
+    ); // ✅ Pass session
+    // ----- NEWLY ADDED END -----
+
+    // ✅ MODIFIED: Commit transaction
+    await session.commitTransaction();
+
     return {
       success: true,
       status: 201,
@@ -46,6 +76,7 @@ export const addCommission = async (data) => {
       data: newCommission,
     };
   } catch (error) {
+    await session.abortTransaction();
     console.error("Add Commission Service Error:", error);
     return {
       success: false,

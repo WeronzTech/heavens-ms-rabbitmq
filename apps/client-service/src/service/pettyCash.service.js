@@ -1,6 +1,12 @@
 import PettyCash from "../models/pettyCash.model.js";
 import Manager from "../models/manager.model.js";
 import mongoose from "mongoose";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+const ACCOUNT_NAMES_CONST = {
+  PETTY_CASH: "Petty Cash",
+  BANK_ACCOUNT: "Bank Account",
+};
 
 export const addPettyCash = async (data) => {
   try {
@@ -86,6 +92,32 @@ export const addPettyCash = async (data) => {
         property: property._id || property,
       });
       await existingPettyCash.save();
+    }
+
+    if (totalAmountTransferred > 0) {
+      try {
+        await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
+          date: new Date(),
+          description: `Petty cash top-up for ${managerName}`,
+          propertyId: property._id || property,
+          transactions: [
+            {
+              accountName: ACCOUNT_NAMES_CONST.PETTY_CASH,
+              debit: totalAmountTransferred,
+            },
+            {
+              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              credit: totalAmountTransferred,
+            },
+          ],
+          referenceId: existingPettyCash._id,
+          referenceType: "PettyCash",
+        });
+      } catch (rpcError) {
+        console.error(
+          `[ClientService] Failed to create journal entry for petty cash ${existingPettyCash._id}: ${rpcError.message}`
+        );
+      }
     }
 
     return {

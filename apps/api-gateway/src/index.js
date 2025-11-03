@@ -48,6 +48,9 @@ import gamingRoutes from "./routes/user/gaming.routes.js";
 import floorRoutes from "./routes/property/floor.routes.js";
 import assetRoutes from "./routes/property/asset.routes.js";
 import websiteRoutes from "./routes/property/website.routes.js";
+import accountingRoutes from "./routes/accounts/accounting.routes.js";
+import reportRoutes from "./routes/accounts/reports.routes.js";
+import coaRoutes from "./routes/accounts/chartOfAccounts.routes.js";
 
 dotenv.config();
 const app = express();
@@ -129,7 +132,9 @@ app.use("/api/v2/reminder", reminderRoutes);
 app.use("/api/v2/accounts-log", logRoutes);
 app.use("/api/v2/gaming", gamingRoutes);
 app.use("/api/v2/website", websiteRoutes);
-
+app.use("/api/v2/accounting", accountingRoutes);
+app.use("/api/v2/reports", reportRoutes);
+app.use("/api/v2/chart-of-accounts", coaRoutes);
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK CI/CD is working fine and running." });
