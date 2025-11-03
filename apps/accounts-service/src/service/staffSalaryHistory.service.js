@@ -3,6 +3,9 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import { createAccountLog } from "./accountsLog.service.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
+import mongoose from "mongoose";
 
 // export const manualAddSalary = async (data) => {
 //   try {
@@ -40,6 +43,8 @@ import { createAccountLog } from "./accountsLog.service.js";
 // };
 
 export const manualAddSalary = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const {
       employeeId,
@@ -56,21 +61,28 @@ export const manualAddSalary = async (data) => {
     } = data;
 
     if (remarkType === "ADVANCE_PAYMENT" && advanceSalary > 0) {
-      const newSalaryRecord = await StaffSalaryHistory.create({
-        employeeId,
-        employeeName,
-        employeeType,
-        propertyId,
-        date,
-        salary: 0,
-        advanceSalary,
-        paidAmount: advanceSalary,
-        status: "paid",
-        remarkType: "ADVANCE_PAYMENT",
-        paidBy,
-        paymentMethod,
-        transactionId,
-      });
+      const newSalaryRecord = (
+        await StaffSalaryHistory.create(
+          [
+            {
+              employeeId,
+              employeeName,
+              employeeType,
+              propertyId,
+              date,
+              salary: 0,
+              advanceSalary,
+              paidAmount: advanceSalary,
+              status: "paid",
+              remarkType: "ADVANCE_PAYMENT",
+              paidBy,
+              paymentMethod,
+              transactionId,
+            },
+          ],
+          { session }
+        )
+      )[0];
 
       await createAccountLog({
         logType: "Salary",
@@ -98,6 +110,8 @@ export const manualAddSalary = async (data) => {
         );
       }
 
+      await session.commitTransaction();
+
       return {
         success: true,
         status: 201,
@@ -105,12 +119,19 @@ export const manualAddSalary = async (data) => {
         data: newSalaryRecord,
       };
     } else {
-      const newSalaryRecord = await StaffSalaryHistory.create({
-        ...data,
-        salaryPending: salary,
-        status: "pending",
-        remarkType: "MANUAL_ADDITION",
-      });
+      const newSalaryRecord = (
+        await StaffSalaryHistory.create(
+          [
+            {
+              ...data,
+              salaryPending: salary,
+              status: "pending",
+              remarkType: "MANUAL_ADDITION",
+            },
+          ],
+          { session }
+        )
+      )[0];
 
       await createAccountLog({
         logType: "Salary",
@@ -121,6 +142,28 @@ export const manualAddSalary = async (data) => {
         performedBy: data.paidBy,
         referenceId: newSalaryRecord._id,
       });
+
+      const paymentAccount =
+        paymentMethod === "Cash"
+          ? ACCOUNT_NAMES.BANK_ACCOUNT
+          : ACCOUNT_NAMES.BANK_ACCOUNT;
+      await createJournalEntry(
+        {
+          date: newSalaryRecord.date,
+          description: `Salary of ₹${salary} paid to ${employeeName}`,
+          propertyId: newSalaryRecord.propertyId,
+          transactions: [
+            { accountName: ACCOUNT_NAMES.SALARIES_EXPENSE, debit: salary },
+            { accountName: paymentAccount, credit: salary },
+          ],
+          referenceId: newSalaryRecord._id,
+          referenceType: "StaffSalaryHistory",
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+
       return {
         success: true,
         status: 201,
@@ -129,6 +172,7 @@ export const manualAddSalary = async (data) => {
       };
     }
   } catch (error) {
+    await session.abortTransaction();
     console.error("Manual Add Salary Service Error:", error);
     return {
       success: false,
@@ -136,6 +180,9 @@ export const manualAddSalary = async (data) => {
       message: "Internal Server Error",
       error: error.message,
     };
+  } finally {
+    // ✅ MODIFIED: End session
+    session.endSession();
   }
 };
 

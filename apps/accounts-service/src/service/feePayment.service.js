@@ -16,6 +16,8 @@ import Deposits from "../models/depositPayments.model.js";
 import Voucher from "../models/voucher.model.js";
 import emailService from "../../../../libs/email/email.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -541,6 +543,28 @@ const processAndRecordPayment = async ({
       referenceId: newPayment._id,
     });
 
+    const paymentAccount =
+      paymentMethod === "Cash"
+        ? ACCOUNT_NAMES.BANK_ACCOUNT
+        : ACCOUNT_NAMES.BANK_ACCOUNT; // Or use a separate Cash account
+
+    await createJournalEntry(
+      {
+        date: newPayment.paymentDate,
+        description: `Rent received from ${
+          user.name
+        } for ${paymentForMonths.join(", ")}`,
+        propertyId: newPayment.property.id,
+        transactions: [
+          { accountName: paymentAccount, debit: amount },
+          { accountName: ACCOUNT_NAMES.RENT_INCOME, credit: amount },
+        ],
+        referenceId: newPayment._id,
+        referenceType: "FeePayment",
+      },
+      { session }
+    );
+
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
       USER_PATTERN.USER.UPDATE_USER,
@@ -850,19 +874,114 @@ export const getAllFeePayments = async (data) => {
       filter.$or = [{ name: regex }, { transactionId: regex }];
     }
 
-    // Fields to select
-    const projection =
-      "name rent paymentMethod userType transactionId collectedBy paymentDate amount receiptNumber";
+    const skip = (page - 1) * limit;
 
-    // Query with pagination
-    const payments = await Payments.find(filter, projection)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ paymentDate: -1, createdAt: -1 })
-      .lean();
+    const aggregationPipeline = [
+      { $match: filter },
+      { $sort: { paymentDate: -1, createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      // Join with journalentries collection
+      {
+        $lookup: {
+          from: "journalentries",
+          localField: "_id",
+          foreignField: "referenceId",
+          as: "journalEntry",
+        },
+      },
+      // Unwind the (usually single) journal entry
+      {
+        $unwind: {
+          path: "$journalEntry",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Join with chartofaccounts to get account names
+      {
+        $lookup: {
+          from: "chartofaccounts",
+          localField: "journalEntry.transactions.accountId",
+          foreignField: "_id",
+          as: "accounts",
+        },
+      },
+      // Re-format transactions to include account names
+      {
+        $addFields: {
+          "journalEntry.transactionsWithNames": {
+            $map: {
+              input: "$journalEntry.transactions",
+              as: "trans",
+              in: {
+                $mergeObjects: [
+                  "$$trans",
+                  {
+                    accountName: {
+                      $let: {
+                        vars: {
+                          accountDoc: {
+                            $first: {
+                              $filter: {
+                                input: "$accounts",
+                                as: "acc",
+                                cond: {
+                                  $eq: ["$$acc._id", "$$trans.accountId"],
+                                },
+                              },
+                            },
+                          },
+                        },
+                        in: "$$accountDoc.name",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      // Project the final shape
+      {
+        $project: {
+          name: 1,
+          rent: 1,
+          paymentMethod: 1,
+          userType: 1,
+          transactionId: 1,
+          collectedBy: 1,
+          paymentDate: 1,
+          amount: 1,
+          receiptNumber: 1,
+          userId: 1,
+          property: 1,
+          // Include the formatted journal entry
+          journalEntry: {
+            _id: "$journalEntry._id",
+            description: "$journalEntry.description",
+            transactions: "$journalEntry.transactionsWithNames",
+          },
+        },
+      },
+    ];
 
-    // Get total count for pagination metadata
+    const payments = await Payments.aggregate(aggregationPipeline);
     const total = await Payments.countDocuments(filter);
+
+    // Fields to select
+    // const projection =
+    //   "name rent paymentMethod userType transactionId collectedBy paymentDate amount receiptNumber";
+
+    // // Query with pagination
+    // const payments = await Payments.find(filter, projection)
+    //   .skip((page - 1) * limit)
+    //   .limit(limit)
+    //   .sort({ paymentDate: -1, createdAt: -1 })
+    //   .lean();
+
+    // // Get total count for pagination metadata
+    // const total = await Payments.countDocuments(filter);
 
     const totalAgg = await Payments.aggregate([
       { $match: filter },

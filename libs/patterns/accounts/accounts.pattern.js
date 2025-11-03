@@ -76,4 +76,23 @@ export const ACCOUNTS_PATTERN = {
   LOG: {
     GET_ACCOUNT_LOGS: "get_account_logs",
   },
+  ACCOUNTING: {
+    CREATE_JOURNAL_ENTRY: "accounting_create_journal_entry",
+    CREATE_MANUAL_JOURNAL_ENTRY: "accounting_create_manual_journal_entry",
+  },
+  REPORT: {
+    GET_PNL: "report_get_pnl",
+    GET_BALANCE_SHEET: "report_get_balance_sheet",
+  },
+  CHART_OF_ACCOUNTS: {
+    CATEGORY_CREATE: "coa_category_create",
+    CATEGORY_GET_ALL: "coa_category_get_all",
+    CATEGORY_UPDATE: "coa_category_update",
+    CATEGORY_DELETE: "coa_category_delete",
+    ACCOUNT_CREATE: "coa_account_create",
+    ACCOUNT_GET_ALL: "coa_account_get_all",
+    ACCOUNT_GET_BY_ID: "coa_account_get_by_id",
+    ACCOUNT_UPDATE: "coa_account_update",
+    ACCOUNT_DELETE: "coa_account_delete",
+  },
 };
