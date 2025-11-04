@@ -6,6 +6,14 @@ import {
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
 import PDFDocument from "pdfkit";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+// Note: You can't import ACCOUNT_NAMES from another service.
+// You must send the names as strings, matching what accounts-service expects.
+const ACCOUNT_NAMES_CONST = {
+  FURNITURE_ASSET: "Furniture & Fixtures",
+  BANK_ACCOUNT: "Bank Account",
+};
 
 const generateLabelsPDF = (assets) => {
   return new Promise((resolve, reject) => {
@@ -193,6 +201,34 @@ export const createAsset = async (data) => {
     }
 
     const newAsset = await Asset.create(assetData);
+
+    if (newAsset.purchaseDetails?.price > 0) {
+      try {
+        await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
+          date: newAsset.purchaseDetails.purchaseDate,
+          description: `Asset purchase: ${newAsset.name} (ID: ${newAsset.assetId})`,
+          propertyId: newAsset.propertyId,
+          transactions: [
+            {
+              accountName: ACCOUNT_NAMES_CONST.FURNITURE_ASSET,
+              debit: newAsset.purchaseDetails.price,
+            },
+            {
+              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              credit: newAsset.purchaseDetails.price,
+            },
+          ],
+          referenceId: newAsset._id,
+          referenceType: "Asset",
+        });
+      } catch (rpcError) {
+        console.error(
+          `[PropertyService] Failed to create journal entry for asset ${newAsset._id}: ${rpcError.message}`
+        );
+        // Don't fail the whole operation, just log the accounting error.
+      }
+    }
+
     return {
       success: true,
       status: 201,
@@ -232,6 +268,37 @@ export const createMultipleAssets = async (data) => {
     }
 
     const createdAssets = await Promise.all(assetPromises);
+
+    const totalCost = createdAssets.reduce(
+      (sum, asset) => sum + (asset.purchaseDetails?.price || 0),
+      0
+    );
+    if (totalCost > 0 && createdAssets.length > 0) {
+      const firstAsset = createdAssets[0];
+      try {
+        await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
+          date: firstAsset.purchaseDetails.purchaseDate,
+          description: `Bulk asset purchase: ${count} x ${firstAsset.name}`,
+          propertyId: firstAsset.propertyId,
+          transactions: [
+            {
+              accountName: ACCOUNT_NAMES_CONST.FURNITURE_ASSET,
+              debit: totalCost,
+            },
+            {
+              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              credit: totalCost,
+            },
+          ],
+          referenceId: firstAsset._id, // Reference the first asset
+          referenceType: "Asset_Bulk",
+        });
+      } catch (rpcError) {
+        console.error(
+          `[PropertyService] Failed to create journal entry for bulk asset purchase: ${rpcError.message}`
+        );
+      }
+    }
 
     return {
       success: true,

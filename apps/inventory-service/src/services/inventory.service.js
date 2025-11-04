@@ -7,6 +7,12 @@ import InventoryLog from "../models/inventoryLog.model.js";
 import QueuedInventory from "../models/queuedInventory.model.js";
 import Kitchen from "../models/kitchen.model.js";
 import { drawTable, drawWeeklyUsageTable } from "../utils/helpers.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+const ACCOUNT_NAMES_CONST = {
+  INVENTORY_ASSET: "Inventory",
+  BANK_ACCOUNT: "Bank Account",
+};
 
 // --- Service Functions ---
 
@@ -128,6 +134,33 @@ export const addInventory = async (data) => {
       operation: "add",
       performedBy: userAuth,
     });
+
+    if (newItem.totalCost > 0) {
+      try {
+        await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
+          date: new Date(),
+          description: `Inventory purchase: ${newItem.productName}`,
+          kitchenId: newItem.kitchenId[0], // Log the kitchen
+          // propertyId: ??? // Need to fetch propertyId from kitchen
+          transactions: [
+            {
+              accountName: ACCOUNT_NAMES_CONST.INVENTORY_ASSET,
+              debit: newItem.totalCost,
+            },
+            {
+              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              credit: newItem.totalCost,
+            },
+          ],
+          referenceId: newItem._id,
+          referenceType: "Inventory",
+        });
+      } catch (rpcError) {
+        console.error(
+          `[InventoryService] Failed to create journal entry for inventory ${newItem._id}: ${rpcError.message}`
+        );
+      }
+    }
 
     return {
       success: true,

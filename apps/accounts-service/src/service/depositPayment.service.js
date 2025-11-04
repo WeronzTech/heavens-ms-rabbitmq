@@ -8,6 +8,8 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Deposits from "../models/depositPayments.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -128,6 +130,29 @@ const processAndRecordDepositPayment = async ({
       referenceId: newDeposit._id,
     });
 
+    const paymentAccount =
+      paymentMethod === "Cash"
+        ? ACCOUNT_NAMES.BANK_ACCOUNT
+        : ACCOUNT_NAMES.BANK_ACCOUNT;
+
+    await createJournalEntry(
+      {
+        date: newDeposit.paymentDate,
+        description: `Deposit received from ${user.name}`,
+        propertyId: newDeposit.property,
+        transactions: [
+          { accountName: paymentAccount, debit: amount },
+          {
+            accountName: ACCOUNT_NAMES.SECURITY_DEPOSIT_LIABILITY,
+            credit: amount,
+          },
+        ],
+        referenceId: newDeposit._id,
+        referenceType: "Deposit",
+      },
+      { session }
+    );
+
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
       USER_PATTERN.USER.UPDATE_USER,
@@ -238,6 +263,29 @@ export const processAndRecordRefundPayment = async ({
       performedBy: handledBy || "System",
       referenceId: newDeposit._id,
     });
+
+    const paymentAccount =
+      paymentMethod === "Cash"
+        ? ACCOUNT_NAMES.BANK_ACCOUNT
+        : ACCOUNT_NAMES.BANK_ACCOUNT;
+
+    await createJournalEntry(
+      {
+        date: newDeposit.paymentDate,
+        description: `Deposit refund to ${user.name}`,
+        propertyId: newDeposit.property,
+        transactions: [
+          {
+            accountName: ACCOUNT_NAMES.SECURITY_DEPOSIT_LIABILITY,
+            debit: Number(amount),
+          },
+          { accountName: paymentAccount, credit: Number(amount) },
+        ],
+        referenceId: newDeposit._id,
+        referenceType: "Deposit", // Use 'Deposit' for consistency
+      },
+      { session }
+    );
 
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
