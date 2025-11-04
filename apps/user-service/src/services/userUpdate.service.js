@@ -4,10 +4,83 @@ import { validateContact, validateEmail } from "../utils/validators.js";
 import { assignRoomToUser, updatePropertyCounts } from "./internal.service.js";
 
 //For student update the profile
+// export const validateUserUpdate = async (user, updateData) => {
+//   const { userType, contact: currentContact, email: currentEmail } = user;
+
+//   // Define required sections for each user type
+//   const REQUIRED_SECTIONS = {
+//     Student: ["personalDetails", "parentsDetails", "studyDetails"],
+//     Worker: ["personalDetails", "workingDetails"],
+//     DailyRent: ["personalDetails"],
+//     MessOnly: ["personalDetails"],
+//   };
+
+//   // Check for missing required sections
+//   const requiredSections = REQUIRED_SECTIONS[userType] || [];
+//   const missingSections = requiredSections.filter(
+//     (section) => !updateData[section]
+//   );
+
+//   if (missingSections.length > 0) {
+//     throw new Error(
+//       `Missing required sections for ${userType}: ${missingSections.join(", ")}`
+//     );
+//   }
+
+//   // Student-specific validations
+//   if (userType === "student" && updateData.parentsDetails) {
+//     const { email, contact } = updateData.parentsDetails;
+
+//     if (email && !validateEmail(email)) {
+//       throw new Error("Invalid parent email format");
+//     }
+
+//     if (contact) {
+//       if (!validateContact(contact)) {
+//         throw new Error("Parent contact must be 10 digits starting with 6-9");
+//       }
+
+//       if (contact === (updateData.contact || currentContact)) {
+//         throw new Error("Parent's contact cannot match student contact");
+//       }
+
+//       const existingUser = await User.findOne({
+//         contact,
+//         _id: { $ne: user._id },
+//       });
+
+//       if (existingUser) {
+//         throw new Error("Parent's contact is already registered");
+//       }
+//     }
+//   }
+
+//   // Email uniqueness check for all users
+//   if (updateData.email && updateData.email !== currentEmail) {
+//     const existingUser = await User.findOne({
+//       email: updateData.email,
+//       _id: { $ne: user._id },
+//     });
+//     if (existingUser) {
+//       throw new Error("Email is already registered");
+//     }
+//   }
+
+//   // Contact uniqueness check for all users
+//   if (updateData.contact && updateData.contact !== currentContact) {
+//     const existingUser = await User.findOne({
+//       contact: updateData.contact,
+//       _id: { $ne: user._id },
+//     });
+//     if (existingUser) {
+//       throw new Error("Contact number is already registered");
+//     }
+//   }
+// };
+
 export const validateUserUpdate = async (user, updateData) => {
   const { userType, contact: currentContact, email: currentEmail } = user;
 
-  // Define required sections for each user type
   const REQUIRED_SECTIONS = {
     Student: ["personalDetails", "parentsDetails", "studyDetails"],
     Worker: ["personalDetails", "workingDetails"],
@@ -15,7 +88,6 @@ export const validateUserUpdate = async (user, updateData) => {
     MessOnly: ["personalDetails"],
   };
 
-  // Check for missing required sections
   const requiredSections = REQUIRED_SECTIONS[userType] || [];
   const missingSections = requiredSections.filter(
     (section) => !updateData[section]
@@ -55,7 +127,7 @@ export const validateUserUpdate = async (user, updateData) => {
     }
   }
 
-  // Email uniqueness check for all users
+  // 🧩 Email uniqueness check for user
   if (updateData.email && updateData.email !== currentEmail) {
     const existingUser = await User.findOne({
       email: updateData.email,
@@ -66,7 +138,7 @@ export const validateUserUpdate = async (user, updateData) => {
     }
   }
 
-  // Contact uniqueness check for all users
+  // 🧩 Contact uniqueness check for user
   if (updateData.contact && updateData.contact !== currentContact) {
     const existingUser = await User.findOne({
       contact: updateData.contact,
@@ -76,7 +148,71 @@ export const validateUserUpdate = async (user, updateData) => {
       throw new Error("Contact number is already registered");
     }
   }
+
+  // 🧩 Coliving partner validations
+  if (updateData.colivingPartner) {
+    const partner = updateData.colivingPartner;
+
+    if (partner.email) {
+      const existingPartnerEmail = await User.findOne({
+        email: partner.email,
+        _id: { $ne: user._id },
+      });
+      if (existingPartnerEmail) {
+        throw new Error("Coliving partner's email is already registered");
+      }
+    }
+
+    if (partner.contact) {
+      const existingPartnerContact = await User.findOne({
+        contact: partner.contact,
+        _id: { $ne: user._id },
+      });
+      if (existingPartnerContact) {
+        throw new Error("Coliving partner's contact is already registered");
+      }
+    }
+  }
 };
+
+// export const updateUserFields = (user, updateData) => {
+//   const CORE_FIELDS = ["name", "email", "contact"];
+//   const PROFILE_SECTIONS = [
+//     "personalDetails",
+//     "parentsDetails",
+//     "studyDetails",
+//     "workingDetails",
+//   ];
+
+//   // Update core fields with validation
+//   CORE_FIELDS.forEach((field) => {
+//     if (updateData[field] !== undefined && updateData[field] !== user[field]) {
+//       if (field === "email" && !validateEmail(updateData[field])) {
+//         throw new Error("Invalid email format");
+//       }
+
+//       if (field === "contact" && !validateContact(updateData[field])) {
+//         throw new Error("Contact must be 10 digits starting with 6-9");
+//       }
+
+//       user[field] = updateData[field];
+//     }
+//   });
+
+//   // Update profile sections
+//   PROFILE_SECTIONS.forEach((section) => {
+//     if (updateData[section]) {
+//       user[section] = {
+//         ...user[section],
+//         ...updateData[section],
+//       };
+//     }
+//   });
+
+//   // Recalculate profile completion
+//   user.profileCompletion = calculateProfileCompletion(user);
+//   user.updatedAt = new Date();
+// };
 
 export const updateUserFields = (user, updateData) => {
   const CORE_FIELDS = ["name", "email", "contact"];
@@ -87,7 +223,7 @@ export const updateUserFields = (user, updateData) => {
     "workingDetails",
   ];
 
-  // Update core fields with validation
+  // ✅ Update core fields with validation
   CORE_FIELDS.forEach((field) => {
     if (updateData[field] !== undefined && updateData[field] !== user[field]) {
       if (field === "email" && !validateEmail(updateData[field])) {
@@ -102,7 +238,7 @@ export const updateUserFields = (user, updateData) => {
     }
   });
 
-  // Update profile sections
+  // ✅ Update profile sections
   PROFILE_SECTIONS.forEach((section) => {
     if (updateData[section]) {
       user[section] = {
@@ -112,12 +248,90 @@ export const updateUserFields = (user, updateData) => {
     }
   });
 
-  // Recalculate profile completion
+  // ✅ Handle coliving partner (new)
+  if (updateData.colivingPartner) {
+    const partnerData = updateData.colivingPartner;
+    user.colivingPartner = {
+      ...user.colivingPartner,
+      ...partnerData,
+    };
+
+    if (partnerData.email && !validateEmail(partnerData.email)) {
+      throw new Error("Invalid coliving partner email format");
+    }
+
+    if (partnerData.contact && !validateContact(partnerData.contact)) {
+      throw new Error(
+        "Coliving partner contact must be 10 digits starting with 6-9"
+      );
+    }
+  }
+
+  // ✅ Recalculate profile completion
   user.profileCompletion = calculateProfileCompletion(user);
   user.updatedAt = new Date();
 };
 
 // Helper function to show completed fields
+// export const getCompletedFields = (user) => {
+//   const fields = {
+//     core: ["name", "email", "contact"],
+//     personalDetails: [
+//       "address",
+//       "dob",
+//       "gender",
+//       "profileImg",
+//       "aadharFront",
+//       "aadharBack",
+//     ],
+//     parentsDetails:
+//       user.userType === "student"
+//         ? ["name", "email", "contact", "occupation"]
+//         : [],
+//     studyDetails:
+//       user.userType === "student"
+//         ? ["course", "yearOfStudy", "institution"]
+//         : [],
+//     workingDetails:
+//       user.userType === "worker"
+//         ? ["jobTitle", "companyName", "location", "emergencyContact"]
+//         : [],
+//   };
+
+//   const completed = {};
+
+//   // Check core fields
+//   completed.core = fields.core.filter((f) => user[f]).length;
+
+//   // Check personal details
+//   completed.personalDetails = fields.personalDetails.filter(
+//     (f) => user.personalDetails?.[f]
+//   ).length;
+
+//   // Check parents details (students only)
+//   if (user.userType === "student") {
+//     completed.parentsDetails = fields.parentsDetails.filter(
+//       (f) => user.parentsDetails?.[f]
+//     ).length;
+//   }
+
+//   // Check study details (students only)
+//   if (user.userType === "student") {
+//     completed.studyDetails = fields.studyDetails.filter(
+//       (f) => user.studyDetails?.[f]
+//     ).length;
+//   }
+
+//   // Check working details (workers only)
+//   if (user.userType === "worker") {
+//     completed.workingDetails = fields.workingDetails.filter(
+//       (f) => user.workingDetails?.[f]
+//     ).length;
+//   }
+
+//   return completed;
+// };
+
 export const getCompletedFields = (user) => {
   const fields = {
     core: ["name", "email", "contact"],
@@ -141,36 +355,45 @@ export const getCompletedFields = (user) => {
       user.userType === "worker"
         ? ["jobTitle", "companyName", "location", "emergencyContact"]
         : [],
+    // ✅ New: coliving partner fields
+    colivingPartner: ["name", "email", "contact", "aadharFront", "aadharBack"],
   };
 
   const completed = {};
 
-  // Check core fields
-  completed.core = fields.core.filter((f) => user[f]).length;
+  // ✅ Core user fields
+  completed.core = fields.core.filter((f) => !!user[f]).length;
 
-  // Check personal details
+  // ✅ Personal details
   completed.personalDetails = fields.personalDetails.filter(
-    (f) => user.personalDetails?.[f]
+    (f) => !!user.personalDetails?.[f]
   ).length;
 
-  // Check parents details (students only)
+  // ✅ Parents details (students only)
   if (user.userType === "student") {
     completed.parentsDetails = fields.parentsDetails.filter(
-      (f) => user.parentsDetails?.[f]
+      (f) => !!user.parentsDetails?.[f]
     ).length;
   }
 
-  // Check study details (students only)
+  // ✅ Study details (students only)
   if (user.userType === "student") {
     completed.studyDetails = fields.studyDetails.filter(
-      (f) => user.studyDetails?.[f]
+      (f) => !!user.studyDetails?.[f]
     ).length;
   }
 
-  // Check working details (workers only)
+  // ✅ Working details (workers only)
   if (user.userType === "worker") {
     completed.workingDetails = fields.workingDetails.filter(
-      (f) => user.workingDetails?.[f]
+      (f) => !!user.workingDetails?.[f]
+    ).length;
+  }
+
+  // ✅ Coliving partner (only if applicable)
+  if (user.isColiving && user.colivingPartner) {
+    completed.colivingPartner = fields.colivingPartner.filter(
+      (f) => !!user.colivingPartner?.[f]
     ).length;
   }
 

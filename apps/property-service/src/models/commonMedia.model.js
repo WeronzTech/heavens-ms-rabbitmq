@@ -1,18 +1,15 @@
 import mongoose from "mongoose";
 
-const mediaItemSchema = new mongoose.Schema(
-  {
-    title: { type: String, default: "" },
-    url: { type: String, required: true },
-    key: { type: String, default: "" },
-    type: {
-      type: String,
-      enum: ["image", "video"],
-      required: true,
-    },
+const mediaItemSchema = new mongoose.Schema({
+  title: { type: String, default: "" },
+  url: { type: String, required: true },
+  key: { type: String, default: "" },
+  type: {
+    type: String,
+    enum: ["image", "video"],
+    required: true,
   },
-  { _id: false }
-);
+});
 
 const commonMediaSchema = new mongoose.Schema(
   {

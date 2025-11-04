@@ -194,6 +194,7 @@ export const registerUser = async (data) => {
       stayDetails,
       messDetails,
       isHeavens,
+      isColiving,
       isApproved,
       personalDetails,
       referredByCode,
@@ -259,6 +260,7 @@ export const registerUser = async (data) => {
       isVerified: false,
       isApproved: isApproved || false,
       isHeavens: isHeavens || false,
+      isColiving,
       personalDetails,
       referralInfo: { referredByCode: referredByCode || null },
       agent,
@@ -877,6 +879,106 @@ export const verifyEmail = async (data) => {
   }
 };
 
+// export const updateProfileCompletion = async (data) => {
+//   const { id, updateData, files } = data;
+
+//   let photoUrl = null;
+//   let aadharFrontUrl = null;
+//   let aadharBackUrl = null;
+
+//   if (files) {
+//     if (files.profileImg && files.profileImg[0]) {
+//       console.log("Uploading photo...");
+//       photoUrl = await uploadToFirebase(files.profileImg[0], "user-photos");
+//       console.log("Photo uploaded to:", photoUrl);
+//     }
+//     if (files.aadharFront && files.aadharFront[0]) {
+//       console.log("Uploading Aadhar front image...");
+//       aadharFrontUrl = await uploadToFirebase(
+//         files.aadharFront[0],
+//         "user-documents"
+//       );
+//       console.log("Aadhar front image uploaded to:", aadharFrontUrl);
+//     }
+//     if (files.aadharBack && files.aadharBack[0]) {
+//       console.log("Uploading Aadhar back image...");
+//       aadharBackUrl = await uploadToFirebase(
+//         files.aadharBack[0],
+//         "user-documents"
+//       );
+//       console.log("Aadhar back image uploaded to:", aadharBackUrl);
+//     }
+//   }
+
+//   if (!updateData.personalDetails) {
+//     updateData.personalDetails = {};
+//   }
+
+//   if (photoUrl) {
+//     updateData.personalDetails.profileImg = photoUrl;
+//   }
+//   if (aadharFrontUrl) {
+//     updateData.personalDetails.aadharFront = aadharFrontUrl;
+//   }
+//   if (aadharBackUrl) {
+//     updateData.personalDetails.aadharBack = aadharBackUrl;
+//   }
+
+//   try {
+//     const user = await User.findById(id);
+//     if (!user) {
+//       return {
+//         status: 404,
+//         body: { success: false, error: "User not found" },
+//       };
+//     }
+
+//     await validateUserUpdate(user, updateData);
+//     updateUserFields(user, updateData);
+//     await user.save();
+
+//     return {
+//       status: 200,
+//       body: {
+//         success: true,
+//         message:
+//           user.profileCompletion === 100
+//             ? "Profile fully completed. You are at 100%."
+//             : `Profile updated successfully. ${
+//                 100 - user.profileCompletion
+//               }% remaining.`,
+//         profileCompletion: user.profileCompletion,
+//         userType: user.userType,
+//         completedFields: getCompletedFields(user),
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Profile update error:", error);
+
+//     const msg = error.message.toLowerCase();
+
+//     const isValidationError =
+//       msg.includes("invalid") ||
+//       msg.includes("missing") ||
+//       msg.includes("already") ||
+//       msg.includes("must") ||
+//       msg.includes("cannot") ||
+//       msg.includes("required");
+
+//     const status = isValidationError ? 400 : 500;
+
+//     return {
+//       status,
+//       body: {
+//         success: false,
+//         error: isValidationError
+//           ? error.message
+//           : "Server error during profile update",
+//       },
+//     };
+//   }
+// };
+
 export const updateProfileCompletion = async (data) => {
   const { id, updateData, files } = data;
 
@@ -884,43 +986,75 @@ export const updateProfileCompletion = async (data) => {
   let aadharFrontUrl = null;
   let aadharBackUrl = null;
 
+  // 🧩 NEW: coliving partner Aadhar URLs
+  let partnerAadharFrontUrl = null;
+  let partnerAadharBackUrl = null;
+
   if (files) {
-    if (files.profileImg && files.profileImg[0]) {
-      console.log("Uploading photo...");
+    // 🖼️ Upload user's profile photo
+    if (files.profileImg?.[0]) {
+      console.log("Uploading profile photo...");
       photoUrl = await uploadToFirebase(files.profileImg[0], "user-photos");
-      console.log("Photo uploaded to:", photoUrl);
+      console.log("Profile photo uploaded to:", photoUrl);
     }
-    if (files.aadharFront && files.aadharFront[0]) {
+
+    // 🪪 Upload user's Aadhar (front & back)
+    if (files.aadharFront?.[0]) {
       console.log("Uploading Aadhar front image...");
       aadharFrontUrl = await uploadToFirebase(
         files.aadharFront[0],
         "user-documents"
       );
-      console.log("Aadhar front image uploaded to:", aadharFrontUrl);
+      console.log("Aadhar front uploaded:", aadharFrontUrl);
     }
-    if (files.aadharBack && files.aadharBack[0]) {
+
+    if (files.aadharBack?.[0]) {
       console.log("Uploading Aadhar back image...");
       aadharBackUrl = await uploadToFirebase(
         files.aadharBack[0],
         "user-documents"
       );
-      console.log("Aadhar back image uploaded to:", aadharBackUrl);
+      console.log("Aadhar back uploaded:", aadharBackUrl);
+    }
+
+    // 🧩 NEW: Upload coliving partner's Aadhar (front & back)
+    if (files.partnerAadharFront?.[0]) {
+      console.log("Uploading coliving partner Aadhar front...");
+      partnerAadharFrontUrl = await uploadToFirebase(
+        files.partnerAadharFront[0],
+        "user-documents"
+      );
+      console.log("Partner Aadhar front uploaded:", partnerAadharFrontUrl);
+    }
+
+    if (files.partnerAadharBack?.[0]) {
+      console.log("Uploading coliving partner Aadhar back...");
+      partnerAadharBackUrl = await uploadToFirebase(
+        files.partnerAadharBack[0],
+        "user-documents"
+      );
+      console.log("Partner Aadhar back uploaded:", partnerAadharBackUrl);
     }
   }
 
-  if (!updateData.personalDetails) {
-    updateData.personalDetails = {};
-  }
+  // 🧩 Ensure nested objects exist
+  updateData.personalDetails = updateData.personalDetails || {};
+  if (updateData.colivingPartner)
+    updateData.colivingPartner.personalDetails =
+      updateData.colivingPartner.personalDetails || {};
 
-  if (photoUrl) {
-    updateData.personalDetails.profileImg = photoUrl;
-  }
-  if (aadharFrontUrl) {
-    updateData.personalDetails.aadharFront = aadharFrontUrl;
-  }
-  if (aadharBackUrl) {
-    updateData.personalDetails.aadharBack = aadharBackUrl;
-  }
+  // 🧩 Assign uploaded URLs
+  if (photoUrl) updateData.personalDetails.profileImg = photoUrl;
+  if (aadharFrontUrl) updateData.personalDetails.aadharFront = aadharFrontUrl;
+  if (aadharBackUrl) updateData.personalDetails.aadharBack = aadharBackUrl;
+
+  // 🧩 Assign partner’s Aadhar URLs if provided
+  if (partnerAadharFrontUrl)
+    updateData.colivingPartner.personalDetails.aadharFront =
+      partnerAadharFrontUrl;
+  if (partnerAadharBackUrl)
+    updateData.colivingPartner.personalDetails.aadharBack =
+      partnerAadharBackUrl;
 
   try {
     const user = await User.findById(id);
@@ -954,7 +1088,6 @@ export const updateProfileCompletion = async (data) => {
     console.error("Profile update error:", error);
 
     const msg = error.message.toLowerCase();
-
     const isValidationError =
       msg.includes("invalid") ||
       msg.includes("missing") ||

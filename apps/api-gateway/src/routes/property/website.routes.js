@@ -1,7 +1,11 @@
 import express from "express";
 import {
+  createCommonMediaContent,
   createWebsitePropertyContent,
+  deleteCommonMediaItemsController,
+  getAllCommonMedia,
   getAllWebsitePropertyContents,
+  getCommonMediaById,
   getWebsitePropertyContentById,
   updateWebsitePropertyContent,
 } from "../../controllers/property/website.controller.js";
@@ -20,7 +24,14 @@ websiteRoutes
   )
   .get(getAllWebsitePropertyContents);
 
-// websiteRoutes.put("/:id", updateWebsitePropertyContent);
+websiteRoutes
+  .route("/common")
+  .post(
+    upload.fields([{ name: "media", maxCount: 30 }]),
+    createCommonMediaContent
+  )
+  .get(getAllCommonMedia);
+
 websiteRoutes
   .route("/:id")
   .put(
@@ -31,5 +42,10 @@ websiteRoutes
     updateWebsitePropertyContent
   )
   .get(getWebsitePropertyContentById);
+
+websiteRoutes
+  .route("/common/:id")
+  .get(getCommonMediaById)
+  .delete(deleteCommonMediaItemsController);
 
 export default websiteRoutes;
