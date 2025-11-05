@@ -7,41 +7,6 @@ import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
 import mongoose from "mongoose";
 
-// export const manualAddSalary = async (data) => {
-//   try {
-//     const { employeeId, employeeType,employeeName, salary, date, paidBy,propertyId,paymentMethod } = data;
-//     // if (!employeeId || !employeeType || !salary || !date || employeeName || propertyId) {
-//     //   return {
-//     //     success: false,
-//     //     status: 400,
-//     //     message:
-//     //       "Missing required fields: employeeId, employeeType, salary, date, paidBy,employeeName, propertyId.",
-//     //   };
-//     // }
-
-//     const newSalaryRecord = await StaffSalaryHistory.create({
-//       ...data,
-//       salaryPending: salary,
-//       status: "pending",
-//       remarkType: "MANUAL_ADDITION",
-//     });
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Salary record added successfully.",
-//       data: newSalaryRecord,
-//     };
-//   } catch (error) {
-//     console.error("Manual Add Salary Service Error:", error);
-//     return {
-//       success: false,
-//       status: 500,
-//       message: "Internal Server Error",
-//       error: error.message,
-//     };
-//   }
-// };
-
 export const manualAddSalary = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -185,89 +150,6 @@ export const manualAddSalary = async (data) => {
     session.endSession();
   }
 };
-
-// export const getAllSalaryRecords = async (filters) => {
-//   try {
-//     const { employeeId, propertyId, startDate, endDate } = filters;
-//     const query = {};
-
-//     if (employeeId) query.employeeId = employeeId;
-
-//     if (startDate && endDate) {
-//       query.date = {
-//         $gte: new Date(startDate),
-//         $lte: new Date(endDate),
-//       };
-//     }
-
-//     if (propertyId) {
-//       const [staffResponse, managerResponse] = await Promise.all([
-//         sendRPCRequest(PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID, {
-//           propertyId,
-//         }),
-//         sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS, { propertyId }),
-//       ]);
-
-//       // ✅ Ensure both RPC responses are arrays
-//       const staffData = Array.isArray(staffResponse?.data)
-//         ? staffResponse.data
-//         : Array.isArray(staffResponse?.data?.data)
-//         ? staffResponse.data.data
-//         : [];
-
-//       const managerData = Array.isArray(managerResponse?.data)
-//         ? managerResponse.data
-//         : Array.isArray(managerResponse?.data?.data)
-//         ? managerResponse.data.data
-//         : [];
-
-//       const staffIds = staffData
-//         .filter((s) => s.status === "Active")
-//         .map((s) => s._id);
-
-//       const managerIds = managerData
-//         .filter((m) => m.status === "Active")
-//         .map((m) => m._id);
-
-//       const employeeIds = [...staffIds, ...managerIds];
-
-//       if (employeeIds.length === 0) {
-//         return {
-//           success: true,
-//           status: 200,
-//           message: "No employees found for this property.",
-//           data: [],
-//         };
-//       }
-
-//       query.employeeId = { $in: employeeIds };
-//     }
-
-//     const records = await StaffSalaryHistory.find(query)
-//       .populate({
-//         path: "employeeId",
-//         select: "name staffId managerId",
-//       })
-//       .populate("paidBy", "name")
-//       .sort({ date: -1 });
-
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Salary records retrieved successfully.",
-//       data: records,
-//     };
-//   } catch (error) {
-//     console.error("Get All Salary Records Service Error:", error);
-//     return {
-//       success: false,
-//       status: 500,
-//       message: "Internal Server Error",
-//       error: error.message,
-//     };
-//   }
-// };
-
 export const getAllSalaryRecords = async (filters) => {
   try {
     const {
@@ -347,5 +229,100 @@ export const getAllSalaryRecords = async (filters) => {
       message: "Internal Server Error",
       error: error.message,
     };
+  }
+};
+
+export const updateSalaryStatus = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { 
+      salaryId, 
+      status, 
+      updatedBy
+    } = data;
+
+    // Validate status
+    if (!["pending", "paid"].includes(status)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid status. Must be either 'pending' or 'paid'.",
+      };
+    }
+
+    // Find the salary record
+    const salaryRecord = await StaffSalaryHistory.findById(salaryId).session(session);
+    
+    if (!salaryRecord) {
+      return {
+        success: false,
+        status: 404,
+        message: "Salary record not found.",
+      };
+    }
+
+    // If status is not changing
+    if (salaryRecord.status === status) {
+      return {
+        success: false,
+        status: 400,
+        message: `Salary record is already ${status}.`,
+      };
+    }
+
+    // Update only the status field
+    const updateData = {
+      status: status,
+    };
+
+    // If changing to paid and no paidAmount exists, set it to salary amount
+    if (status === "paid" && (!salaryRecord.paidAmount || salaryRecord.paidAmount === 0)) {
+      updateData.paidAmount = salaryRecord.salary;
+      updateData.salaryPending = 0;
+    }
+
+    // If changing to pending, reset paid amount
+    if (status === "pending") {
+      updateData.paidAmount = 0;
+      updateData.salaryPending = salaryRecord.salary;
+    }
+
+    const updatedRecord = await StaffSalaryHistory.findByIdAndUpdate(
+      salaryId,
+      updateData,
+      { new: true, session }
+    );
+
+    // Create simple account log for status change (without amount)
+    await createAccountLog({
+      logType: "Salary",
+      action: "Status Update",
+      description: `Salary status changed to ${status} for ${salaryRecord.employeeName}`,
+      propertyId: salaryRecord.propertyId,
+      performedBy: updatedBy,
+      referenceId: salaryRecord._id,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      status: 200,
+      message: `Salary status updated to ${status} successfully.`,
+      data: updatedRecord,
+    };
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Update Salary Status Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  } finally {
+    session.endSession();
   }
 };

@@ -72,6 +72,7 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL: "get_all_salary_records",
     DELETE_VOUCHER: "delete_voucher",
     GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property",
+    UPDATE_STATUS: "update_status",
   },
   LOG: {
     GET_ACCOUNT_LOGS: "get_account_logs",
