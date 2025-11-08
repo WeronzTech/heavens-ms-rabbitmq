@@ -11,6 +11,7 @@ import JournalEntry from "../models/journalEntry.model.js";
  */
 export const createAccountCategory = async (data) => {
   const { name, accountType, parent, description } = data;
+  console.log(data);
   if (!name || !accountType) {
     return {
       success: false,
@@ -46,9 +47,15 @@ export const createAccountCategory = async (data) => {
       parent: parent || null,
       description,
     });
-    return { success: true, status: 201, data: newCategory };
+    return {
+      success: true,
+      status: 201,
+      data: newCategory,
+      message: "Category Created Successfully",
+    };
   } catch (error) {
     if (error.code === 11000) {
+      console.log(error);
       return {
         success: false,
         status: 409,
@@ -200,7 +207,12 @@ export const createAccount = async (data) => {
       categoryId,
       balance: balance || 0,
     });
-    return { success: true, status: 201, data: newAccount };
+    return {
+      success: true,
+      status: 201,
+      data: newAccount,
+      message: "Account Created Successfully",
+    };
   } catch (error) {
     if (error.code === 11000) {
       return {

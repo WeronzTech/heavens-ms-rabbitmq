@@ -13,6 +13,8 @@ import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const propertyRoutes = express.Router();
 
+propertyRoutes.get("/heavens-properties", getAllHeavensProperties);
+
 propertyRoutes.use(isAuthenticated);
 
 propertyRoutes.get(
@@ -20,7 +22,6 @@ propertyRoutes.get(
   hasPermission(PERMISSIONS.PROPERTY_VIEW),
   getClientPropertiesController
 );
-propertyRoutes.get("/heavens-properties", getAllHeavensProperties);
 propertyRoutes.get(
   "/:id",
   hasPermission(PERMISSIONS.PROPERTY_VIEW),

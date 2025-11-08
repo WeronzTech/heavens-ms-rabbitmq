@@ -79,6 +79,8 @@ export const ACCOUNTS_PATTERN = {
   ACCOUNTING: {
     CREATE_JOURNAL_ENTRY: "accounting_create_journal_entry",
     CREATE_MANUAL_JOURNAL_ENTRY: "accounting_create_manual_journal_entry",
+    GET_JOURNAL_ENTRIES: "get_journal_entries",
+    GET_JOURNAL_ENTRY_ID: "get_journal_entry_id",
   },
   REPORT: {
     GET_PNL: "report_get_pnl",

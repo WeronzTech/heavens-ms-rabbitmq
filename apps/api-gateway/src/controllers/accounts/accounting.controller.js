@@ -34,3 +34,25 @@ export const createAdminManualJournalEntry = (req, res) => {
     entryData
   );
 };
+
+export const getAllJournalEntries = (req, res) => {
+  const filters = {
+    ...req.query,
+  };
+  console.log(filters);
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRIES,
+    { filters }
+  );
+};
+
+export const getJournalEntryById = (req, res) => {
+  const ledgerId = req.params.ledgerId;
+  console.log(ledgerId);
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRY_ID,
+    { ledgerId }
+  );
+};

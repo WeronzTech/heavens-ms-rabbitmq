@@ -20,102 +20,228 @@ import ChartOfAccount from "../models/chartOfAccounts.model.js";
  * @param {object} [options] - Mongoose session options.
  * @param {mongoose.ClientSession} [options.session] - The Mongoose session to use for an atomic transaction.
  */
+
+// export const createJournalEntry = async (entryData, options = {}) => {
+//   try {
+//     const {
+//       date,
+//       description,
+//       propertyId,
+//       kitchenId,
+//       referenceId,
+//       referenceType,
+//       transactions,
+//       performedBy,
+//     } = entryData;
+
+//     if (
+//       !date ||
+//       !description ||
+//       !referenceId ||
+//       !referenceType ||
+//       !Array.isArray(transactions) ||
+//       transactions.length < 2
+//     ) {
+//       throw new Error("Invalid journal entry data. Missing required fields.");
+//     }
+
+//     let totalDebits = 0;
+//     let totalCredits = 0;
+//     const processedTransactions = [];
+
+//     // 1. Find account IDs and validate amounts
+//     for (const trans of transactions) {
+//       const { accountName, debit = 0, credit = 0 } = trans;
+
+//       if (!accountName || (debit === 0 && credit === 0)) {
+//         throw new Error(
+//           `Invalid transaction for account: ${accountName}. Must have accountName and non-zero debit/credit.`
+//         );
+//       }
+
+//       // Use findOne to be able to use session
+//       const account = await ChartOfAccount.findOne({ name: accountName })
+//         .select("_id accountType balance")
+//         .session(options.session || null);
+//       if (!account) {
+//         throw new Error(
+//           `Accounting error: ChartOfAccount entry named "${accountName}" not found.`
+//         );
+//       }
+
+//       processedTransactions.push({
+//         accountId: account._id,
+//         debit,
+//         credit,
+//       });
+
+//       totalDebits += debit;
+//       totalCredits += credit;
+
+//       // 2. Update account balances
+//       let balanceChange = 0;
+//       if (["Asset", "Expense"].includes(account.accountType)) {
+//         balanceChange = debit - credit;
+//       } else {
+//         balanceChange = credit - debit;
+//       }
+
+//       await ChartOfAccount.updateOne(
+//         { _id: account._id },
+//         { $inc: { balance: balanceChange } },
+//         { session: options.session || null }
+//       );
+//     }
+
+//     // 3. Verify that the entry is balanced
+//     if (Math.abs(totalDebits - totalCredits) > 0.01) {
+//       // Tolerance for floating point
+//       throw new Error(
+//         `Journal entry is unbalanced. Debits (${totalDebits}) != Credits (${totalCredits}).`
+//       );
+//     }
+
+//     // 4. Create the Journal Entry document
+//     const journalEntry = new JournalEntry({
+//       date,
+//       description,
+//       propertyId,
+//       kitchenId,
+//       referenceId,
+//       referenceType,
+//       transactions: processedTransactions,
+//       performedBy: performedBy || "System", // Or get from session/user context if available
+//     });
+
+//     await journalEntry.save({ session: options.session || null });
+
+//     console.log(
+//       `[Accounting] Journal Entry ${journalEntry._id} created for ${referenceType} ${referenceId}.`
+//     );
+//   } catch (err) {
+//     console.log("expenseeeeee", err);
+//   }
+// };
+
 export const createJournalEntry = async (entryData, options = {}) => {
-  const {
-    date,
-    description,
-    propertyId,
-    kitchenId,
-    referenceId,
-    referenceType,
-    transactions,
-    performedBy,
-  } = entryData;
+  try {
+    const {
+      date,
+      description,
+      propertyId,
+      kitchenId,
+      referenceId,
+      referenceType,
+      transactions,
+      performedBy,
+    } = entryData;
 
-  if (
-    !date ||
-    !description ||
-    !referenceId ||
-    !referenceType ||
-    !Array.isArray(transactions) ||
-    transactions.length < 2
-  ) {
-    throw new Error("Invalid journal entry data. Missing required fields.");
-  }
+    // 🔒 Basic validation
+    if (
+      !date ||
+      !description ||
+      !referenceId ||
+      !referenceType ||
+      !Array.isArray(transactions) ||
+      transactions.length < 2
+    ) {
+      throw new Error("Invalid journal entry data. Missing required fields.");
+    }
 
-  let totalDebits = 0;
-  let totalCredits = 0;
-  const processedTransactions = [];
+    let totalDebits = 0;
+    let totalCredits = 0;
+    const processedTransactions = [];
 
-  // 1. Find account IDs and validate amounts
-  for (const trans of transactions) {
-    const { accountName, debit = 0, credit = 0 } = trans;
+    // 1️⃣ Process each transaction
+    for (const trans of transactions) {
+      const { accountName, debit = 0, credit = 0 } = trans;
 
-    if (!accountName || (debit === 0 && credit === 0)) {
+      if (!accountName || (debit === 0 && credit === 0)) {
+        throw new Error(
+          `Invalid transaction for account: ${accountName}. Must have accountName and non-zero debit/credit.`
+        );
+      }
+
+      // 🔍 Find the account
+      const account = await ChartOfAccount.findOne({ name: accountName })
+        .select("_id accountType balance")
+        .session(options.session || null);
+
+      if (!account) {
+        throw new Error(
+          `Accounting error: ChartOfAccount entry named "${accountName}" not found.`
+        );
+      }
+
+      // 💰 Compute balance change based on account type
+      let balanceChange = 0;
+      if (["Asset", "Expense"].includes(account.accountType)) {
+        balanceChange = debit - credit; // Increases with debit
+      } else {
+        balanceChange = credit - debit; // Increases with credit
+      }
+
+      // 📊 Compute updated balance (after transaction)
+      const updatedBalance = account.balance + balanceChange;
+
+      // 💾 Update account balance in DB
+      await ChartOfAccount.updateOne(
+        { _id: account._id },
+        { $set: { balance: updatedBalance } },
+        { session: options.session || null }
+      );
+
+      // 🧾 Save transaction with *after-transaction* balance
+      processedTransactions.push({
+        accountId: account._id,
+        debit,
+        credit,
+        balance: updatedBalance, // after transaction ✅
+      });
+
+      totalDebits += debit;
+      totalCredits += credit;
+    }
+
+    // 2️⃣ Verify entry is balanced (Debits = Credits)
+    if (Math.abs(totalDebits - totalCredits) > 0.01) {
       throw new Error(
-        `Invalid transaction for account: ${accountName}. Must have accountName and non-zero debit/credit.`
+        `Journal entry is unbalanced. Debits (${totalDebits}) != Credits (${totalCredits}).`
       );
     }
 
-    // Use findOne to be able to use session
-    const account = await ChartOfAccount.findOne({ name: accountName })
-      .select("_id accountType balance")
-      .session(options.session || null);
-    if (!account) {
-      throw new Error(
-        `Accounting error: ChartOfAccount entry named "${accountName}" not found.`
-      );
-    }
-
-    processedTransactions.push({
-      accountId: account._id,
-      debit,
-      credit,
+    // 3️⃣ Create the Journal Entry document
+    const journalEntry = new JournalEntry({
+      date,
+      description,
+      propertyId,
+      kitchenId,
+      referenceId,
+      referenceType,
+      transactions: processedTransactions,
+      performedBy: performedBy || "System",
     });
 
-    totalDebits += debit;
-    totalCredits += credit;
+    await journalEntry.save({ session: options.session || null });
 
-    // 2. Update account balances
-    let balanceChange = 0;
-    if (["Asset", "Expense"].includes(account.accountType)) {
-      balanceChange = debit - credit;
-    } else {
-      balanceChange = credit - debit;
-    }
-
-    await ChartOfAccount.updateOne(
-      { _id: account._id },
-      { $inc: { balance: balanceChange } },
-      { session: options.session || null }
+    console.log(
+      `[Accounting] ✅ Journal Entry ${journalEntry._id} created for ${referenceType} ${referenceId}.`
     );
+
+    return {
+      success: true,
+      status: 201,
+      data: journalEntry,
+      message: "Journal entry created successfully.",
+    };
+  } catch (err) {
+    console.error("[Accounting Error]", err);
+    return {
+      success: false,
+      status: 500,
+      message: err.message || "Error creating journal entry.",
+    };
   }
-
-  // 3. Verify that the entry is balanced
-  if (Math.abs(totalDebits - totalCredits) > 0.01) {
-    // Tolerance for floating point
-    throw new Error(
-      `Journal entry is unbalanced. Debits (${totalDebits}) != Credits (${totalCredits}).`
-    );
-  }
-
-  // 4. Create the Journal Entry document
-  const journalEntry = new JournalEntry({
-    date,
-    description,
-    propertyId,
-    kitchenId,
-    referenceId,
-    referenceType,
-    transactions: processedTransactions,
-    performedBy: performedBy || "System", // Or get from session/user context if available
-  });
-
-  await journalEntry.save({ session: options.session || null });
-
-  console.log(
-    `[Accounting] Journal Entry ${journalEntry._id} created for ${referenceType} ${referenceId}.`
-  );
 };
 
 /**
@@ -134,7 +260,7 @@ export const createJournalEntry = async (entryData, options = {}) => {
  */
 export const createManualJournalEntry = async (data) => {
   const { date, description, propertyId, transactions, performedBy } = data;
-
+  console.log(data);
   if (
     !date ||
     !description ||
@@ -199,7 +325,7 @@ export const createManualJournalEntry = async (data) => {
       transactions: processedTransactions,
       performedBy,
       referenceId: new mongoose.Types.ObjectId(), // A new ID just for reference
-      referenceType: "Manual Entry",
+      referenceType: "JournalEntry",
     });
 
     await manualEntry.save({ session });
@@ -216,5 +342,257 @@ export const createManualJournalEntry = async (data) => {
     return { success: false, status: 400, message: error.message };
   } finally {
     session.endSession();
+  }
+};
+
+// export const getAllJournalEntries = async (data = {}) => {
+//   try {
+//     const { filters } = data;
+//     const query = {};
+
+//     console.log("🧩 Filters received:", filters);
+
+//     // ✅ Property filter
+//     if (filters.propertyId && filters.propertyId !== "all") {
+//       query.propertyId = new mongoose.Types.ObjectId(filters.propertyId);
+//     }
+
+//     // ✅ Date range
+//     const dateRange = filters.dateRange || filters["dateRange[]"];
+//     if (Array.isArray(dateRange) && dateRange.length === 2) {
+//       const [startRaw, endRaw] = dateRange;
+//       const start = new Date(startRaw);
+//       const end = new Date(endRaw);
+
+//       if (!isNaN(start) && !isNaN(end)) {
+//         query.date = { $gte: start, $lte: end };
+//       } else {
+//         console.warn("⚠️ Invalid date range:", dateRange);
+//       }
+//     }
+
+//     // ✅ Account filter — use $elemMatch for nested array
+//     if (filters.accountId && filters.accountId !== "all") {
+//       if (mongoose.Types.ObjectId.isValid(filters.accountId)) {
+//         query.transactions = {
+//           $elemMatch: {
+//             accountId: new mongoose.Types.ObjectId(filters.accountId),
+//           },
+//         };
+//       }
+//     }
+
+//     // ✅ Search filter
+//     if (filters.search && filters.search.trim() !== "") {
+//       query.$or = [
+//         { description: { $regex: filters.search, $options: "i" } },
+//         {
+//           "referenceId.transactionId": {
+//             $regex: filters.search,
+//             $options: "i",
+//           },
+//         },
+//       ];
+//     }
+
+//     console.log("🕵️ Final Mongo Query:", JSON.stringify(query, null, 2));
+
+//     // ✅ Fetch with population
+//     const journalEntries = await JournalEntry.find(query)
+//       .populate({
+//         path: "transactions.accountId",
+//         select: "name accountType balance",
+//       })
+//       .populate({
+//         path: "referenceId",
+//         select: "name title transactionId paymentMethod paymentType",
+//       })
+//       .sort({ date: -1 });
+
+//     return {
+//       success: true,
+//       status: 200,
+//       data: journalEntries,
+//       message: "Journal entries fetched successfully.",
+//     };
+//   } catch (error) {
+//     console.error("❌ Error fetching journal entries:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: error.message,
+//     };
+//   }
+// };
+
+export const getAllJournalEntries = async (data = {}) => {
+  try {
+    const { filters } = data;
+    const query = {};
+
+    console.log("🧩 Filters received:", filters);
+
+    // ✅ Property filter
+    if (filters.propertyId && filters.propertyId !== "all") {
+      query.propertyId = new mongoose.Types.ObjectId(filters.propertyId);
+    }
+
+    // ✅ Date range
+    const dateRange = filters.dateRange || filters["dateRange[]"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const [startRaw, endRaw] = dateRange;
+      const start = new Date(startRaw);
+      const end = new Date(endRaw);
+
+      if (!isNaN(start) && !isNaN(end)) {
+        query.date = { $gte: start, $lte: end };
+      } else {
+        console.warn("⚠️ Invalid date range:", dateRange);
+      }
+    }
+
+    // ✅ Account filter — use $elemMatch for nested array
+    if (filters.accountId && filters.accountId !== "all") {
+      if (mongoose.Types.ObjectId.isValid(filters.accountId)) {
+        query.transactions = {
+          $elemMatch: {
+            accountId: new mongoose.Types.ObjectId(filters.accountId),
+          },
+        };
+      }
+    }
+
+    // ✅ Search filter
+    if (filters.search && filters.search.trim() !== "") {
+      query.$or = [
+        { description: { $regex: filters.search, $options: "i" } },
+        {
+          "referenceId.transactionId": {
+            $regex: filters.search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    console.log("🕵️ Final Mongo Query:", JSON.stringify(query, null, 2));
+
+    // ✅ Fetch with population
+    const journalEntries = await JournalEntry.find(query)
+      .populate({
+        path: "transactions.accountId",
+        select: "name accountType balance",
+      })
+      .populate({
+        path: "referenceId",
+        select: "name title transactionId paymentMethod paymentType",
+      })
+      .sort({ date: -1 });
+
+    // ✅ Compute totals if accountId is provided
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let balance = 0;
+
+    if (filters.accountId && filters.accountId !== "all") {
+      for (const entry of journalEntries) {
+        for (const txn of entry.transactions || []) {
+          if (txn.accountId?._id?.toString() === filters.accountId.toString()) {
+            totalDebit += txn.debit || 0;
+            totalCredit += txn.credit || 0;
+          }
+        }
+      }
+      balance = Math.abs(totalDebit - totalCredit);
+    }
+
+    return {
+      success: true,
+      status: 200,
+      data: journalEntries,
+      totals:
+        filters.accountId && filters.accountId !== "all"
+          ? {
+              totalDebit,
+              totalCredit,
+              balance,
+            }
+          : null,
+      message: "Journal entries fetched successfully.",
+    };
+  } catch (error) {
+    console.error("❌ Error fetching journal entries:", error);
+    return {
+      success: false,
+      status: 500,
+      message: error.message,
+    };
+  }
+};
+export const getJournalEntryById = async (data) => {
+  try {
+    console.log(data);
+    const { ledgerId } = data;
+    // ✅ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(ledgerId)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid journal entry ID.",
+      };
+    }
+
+    console.log("🔍 Fetching journal entry:", ledgerId);
+
+    // ✅ Fetch and populate
+    const journalEntry = await JournalEntry.findById(ledgerId)
+      .populate({
+        path: "transactions.accountId",
+        select: "name accountType balance",
+      })
+      .populate({
+        path: "referenceId",
+        select: "name title transactionId paymentMethod paymentType",
+      });
+
+    // ✅ Handle not found
+    if (!journalEntry) {
+      return {
+        success: false,
+        status: 404,
+        message: "Journal entry not found.",
+      };
+    }
+
+    // ✅ Compute totals for this entry
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    for (const txn of journalEntry.transactions || []) {
+      totalDebit += txn.debit || 0;
+      totalCredit += txn.credit || 0;
+    }
+
+    const balance = Math.abs(totalDebit - totalCredit);
+
+    // ✅ Return same response shape as getAllJournalEntries
+    return {
+      success: true,
+      status: 200,
+      data: journalEntry,
+      totals: {
+        totalDebit,
+        totalCredit,
+        balance,
+      },
+      message: "Journal entry fetched successfully.",
+    };
+  } catch (error) {
+    console.error("❌ Error fetching journal entry:", error);
+    return {
+      success: false,
+      status: 500,
+      message: error.message,
+    };
   }
 };

@@ -3,6 +3,8 @@ import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pa
 import {
   createJournalEntry,
   createManualJournalEntry,
+  getAllJournalEntries,
+  getJournalEntryById,
 } from "../service/accounting.service.js";
 
 createResponder(
@@ -28,5 +30,19 @@ createResponder(
   async (data) => {
     // We expect 'performedBy' (admin name/ID) to be in the data
     return await createManualJournalEntry(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRIES,
+  async (data) => {
+    return await getAllJournalEntries(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRY_ID,
+  async (data) => {
+    return await getJournalEntryById(data);
   }
 );
