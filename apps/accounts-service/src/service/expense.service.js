@@ -10,6 +10,8 @@ import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
 
 export const addExpense = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     let {
       transactionId,
@@ -24,13 +26,10 @@ export const addExpense = async (data) => {
       ...expenseData
     } = data;
     console.log("data", data);
-    const session = await mongoose.startSession();
-    session.startTransaction();
 
     property = JSON.parse(property);
 
     amount = Number(amount);
-    console.log("data", property);
 
     // ✅ Required field validation
     if (
@@ -97,7 +96,7 @@ export const addExpense = async (data) => {
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
         { managerId: handledBy }
       );
-      console.log(pettyCashResponse);
+      // console.log(pettyCashResponse);
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
         return {
           success: false,
@@ -139,7 +138,7 @@ export const addExpense = async (data) => {
     });
 
     await expense.save({ session });
-
+    console.log(expense);
     await createAccountLog({
       logType: "Expense",
       action: "Create",
@@ -219,7 +218,7 @@ export const addExpense = async (data) => {
         inAccountAmount: -amount, // 👈 deduct instead of add
       });
     }
-
+    await session.commitTransaction();
     return {
       success: true,
       status: 201,
@@ -227,6 +226,8 @@ export const addExpense = async (data) => {
       data: expense,
     };
   } catch (error) {
+    await session.abortTransaction();
+
     console.error("[ACCOUNTS] Error in addExpense:", error);
     return {
       success: false,
@@ -234,6 +235,8 @@ export const addExpense = async (data) => {
       message: "An internal server error occurred while adding expense.",
       error: error.message,
     };
+  } finally {
+    session.endSession();
   }
 };
 

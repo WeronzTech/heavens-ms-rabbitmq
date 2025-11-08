@@ -98,5 +98,9 @@ export const PROPERTY_PATTERN = {
     GET_ALL_PROPERTY_CONTENT: "get_all_property_content",
     UPDATE_PROPERTY_CONTENT: "update_property_content",
     PROPERTY_CONTENT_BY_ID: "property_content_by_id",
+    ADD_COMMON_MEDIA_CONTENT: "add_common_media_content",
+    GET_ALL_COMMON_MEDIA_CONTENT: "get_all_common_media_content",
+    COMMON_CONTENT_BY_ID: "common_content_by_id",
+    DELETE_COMMON_MEDIA_CONTENT: "update_common_media_content",
   },
 };

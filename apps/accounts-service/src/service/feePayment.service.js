@@ -560,7 +560,7 @@ const processAndRecordPayment = async ({
           { accountName: ACCOUNT_NAMES.RENT_INCOME, credit: amount },
         ],
         referenceId: newPayment._id,
-        referenceType: "FeePayment",
+        referenceType: "Payments",
       },
       { session }
     );
@@ -833,7 +833,7 @@ export const getAllFeePayments = async (data) => {
       rentType,
       userType,
       page,
-      limit,
+      limit = 10,
       paymentMethod,
       paymentMonth,
       paymentYear,
@@ -879,8 +879,8 @@ export const getAllFeePayments = async (data) => {
     const aggregationPipeline = [
       { $match: filter },
       { $sort: { paymentDate: -1, createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
+      { $skip: Number(skip) },
+      { $limit: Number(limit) },
       // Join with journalentries collection
       {
         $lookup: {

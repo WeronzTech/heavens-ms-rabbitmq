@@ -18,6 +18,11 @@ const transactionSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    balance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { _id: false }
 );
@@ -42,6 +47,7 @@ const journalEntrySchema = new mongoose.Schema(
     // Link to the original document (e.g., the FeePayment, Expense) for reference
     referenceId: {
       type: Schema.Types.ObjectId,
+      refPath: "referenceType",
     },
     referenceType: {
       type: String,

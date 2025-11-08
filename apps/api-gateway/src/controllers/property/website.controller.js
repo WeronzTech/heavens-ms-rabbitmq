@@ -1,10 +1,11 @@
 import { uploadToFirebase } from "../../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../../libs/patterns/property/property.pattern.js";
+
 export const createWebsitePropertyContent = async (req, res) => {
   try {
-    console.log("=== Incoming multipart request ===");
-    console.log(req.body);
+    // console.log("=== Incoming multipart request ===");
+    // console.log(req.body);
 
     // ✅ Normalize fields that might come as arrays
     const propertyId = Array.isArray(req.body.propertyId)
@@ -39,7 +40,10 @@ export const createWebsitePropertyContent = async (req, res) => {
       console.log(`Uploading ${files.images.length} image(s)...`);
       for (let i = 0; i < files.images.length; i++) {
         const file = files.images[i];
-        const imageUrl = await uploadToFirebase(file, "property-images");
+        const imageUrl = await uploadToFirebase(
+          file,
+          "website-property-images"
+        );
         uploadedImages.push({
           title: Array.isArray(imageTitles)
             ? imageTitles[i]
@@ -57,7 +61,10 @@ export const createWebsitePropertyContent = async (req, res) => {
       console.log(`Uploading ${files.videos.length} video(s)...`);
       for (let i = 0; i < files.videos.length; i++) {
         const file = files.videos[i];
-        const videoUrl = await uploadToFirebase(file, "property-videos");
+        const videoUrl = await uploadToFirebase(
+          file,
+          "website-property-videos"
+        );
         uploadedVideos.push({
           title: Array.isArray(videoTitles)
             ? videoTitles[i]
@@ -92,10 +99,10 @@ export const createWebsitePropertyContent = async (req, res) => {
       videos: uploadedVideos,
     };
 
-    console.log(
-      "📤 Sending payload to PROPERTY microservice (no binary data):"
-    );
-    console.log(JSON.stringify(payload, null, 2));
+    // console.log(
+    //   "📤 Sending payload to PROPERTY microservice (no binary data):"
+    // );
+    // console.log(JSON.stringify(payload, null, 2));
 
     // ✅ Send metadata to microservice
     const response = await sendRPCRequest(
@@ -115,103 +122,6 @@ export const createWebsitePropertyContent = async (req, res) => {
     });
   }
 };
-
-// export const createWebsitePropertyContent = async (req, res) => {
-//   try {
-//     console.log("=== Incoming multipart request ===");
-//     console.log(req.body);
-
-//     // ✅ Handle possible array form-data case (when using FormData)
-//     const propertyId = Array.isArray(req.body.propertyId)
-//       ? req.body.propertyId[0]
-//       : req.body.propertyId;
-
-//     const {
-//       propertyName,
-//       description,
-//       subDescription,
-//       fullAddress,
-//       mainArea,
-//       mapLink,
-//       amenities,
-//       imageTitles,
-//       imageKeys,
-//       videoTitles,
-//       videoKeys,
-//     } = req.body;
-
-//     // ✅ Extract files (handled by multer)
-//     const files = {
-//       images: req.files?.images || [],
-//       videos: req.files?.videos || [],
-//     };
-
-//     // ✅ Prepare payload for RPC call
-//     const payload = {
-//       propertyId,
-//       propertyName,
-//       description,
-//       subDescription,
-//       location: {
-//         fullAddress,
-//         mainArea,
-//       },
-//       fullAddress,
-//       mainArea,
-//       mapLink,
-//       amenities:
-//         typeof amenities === "string" ? JSON.parse(amenities) : amenities,
-
-//       // Handle possible stringified arrays
-//       imageTitles:
-//         typeof imageTitles === "string"
-//           ? JSON.parse(imageTitles)
-//           : imageTitles || [],
-//       imageKeys:
-//         typeof imageKeys === "string" ? JSON.parse(imageKeys) : imageKeys || [],
-//       videoTitles:
-//         typeof videoTitles === "string"
-//           ? JSON.parse(videoTitles)
-//           : videoTitles || [],
-//       videoKeys:
-//         typeof videoKeys === "string" ? JSON.parse(videoKeys) : videoKeys || [],
-//       files,
-//     };
-
-//     console.log("📤 Sending payload to PROPERTY microservice:", payload);
-
-//     if (files?.videos?.length) {
-//       for (let i = 0; i < files.videos.length; i++) {
-//         const file = files.videos[i];
-//         const videoUrl = await uploadToFirebase(file, "property-videos");
-
-//         uploadedVideos.push({
-//           title: videoTitles[i] || file.originalname || "",
-//           url: videoUrl,
-//           description: videoTitles[i] || "",
-//           key: videoKeys[i] || "",
-//         });
-//       }
-//     }
-
-//     const response = await sendRPCRequest(
-//       PROPERTY_PATTERN.WEBSITE_CONTENT.ADD_PROPERTY_CONTENT,
-//       payload
-//     );
-
-//     console.log("📨 Received RPC response:", response);
-
-//     return res.status(response.status).json(response);
-//   } catch (error) {
-//     console.error("❌ Error in addWebsitePropertyContent controller:", error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message:
-//         error.message || "Server error while creating website property content",
-//     });
-//   }
-// };
 
 export const getAllWebsitePropertyContents = async (req, res) => {
   try {
@@ -236,8 +146,8 @@ export const updateWebsitePropertyContent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log("🟢 req.body:", req.body);
-    console.log("🟢 req.files:", req.files);
+    // console.log("🟢 req.body:", req.body);
+    // console.log("🟢 req.files:", req.files);
 
     const {
       propertyName,
@@ -316,7 +226,7 @@ export const updateWebsitePropertyContent = async (req, res) => {
       uploadedVideos,
     };
 
-    console.log("📤 Sending payload to PROPERTY microservice:", payload);
+    // console.log("📤 Sending payload to PROPERTY microservice:", payload);
 
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.WEBSITE_CONTENT.UPDATE_PROPERTY_CONTENT,
@@ -336,108 +246,6 @@ export const updateWebsitePropertyContent = async (req, res) => {
   }
 };
 
-// export const updateWebsitePropertyContent = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     console.log("🟢 req.body:", req.body);
-//     console.log("🟢 req.files:", req.files);
-
-//     const {
-//       propertyName,
-//       description,
-//       subDescription,
-//       amenities,
-//       mapLink,
-//       mainArea,
-//       fullAddress,
-//       keepExistingImages,
-//       keepExistingVideos,
-//       existingImagesMeta,
-//       imagesToDelete,
-//       imageTitles,
-//       imageKeys,
-//     } = req.body;
-
-//     // ✅ Normalize imageTitles and imageKeys (might come as strings or arrays)
-//     const titles =
-//       typeof imageTitles === "string"
-//         ? [imageTitles]
-//         : Array.isArray(imageTitles)
-//         ? imageTitles
-//         : [];
-
-//     const keys =
-//       typeof imageKeys === "string"
-//         ? [imageKeys]
-//         : Array.isArray(imageKeys)
-//         ? imageKeys
-//         : [];
-
-//     // ✅ Attach title & key to each uploaded file
-//     let imageFiles = req.files?.images || [];
-//     imageFiles = imageFiles.map((file, idx) => ({
-//       ...file,
-//       description: titles[idx] || "",
-//       key: keys[idx] || "",
-//     }));
-
-//     const files = {
-//       images: imageFiles,
-//       videos: req.files?.videos || [],
-//     };
-
-//     const locationData = { mainArea, fullAddress };
-
-//     const response = await sendRPCRequest(
-//       PROPERTY_PATTERN.WEBSITE_CONTENT.UPDATE_PROPERTY_CONTENT,
-//       {
-//         id,
-//         propertyName,
-//         description,
-//         subDescription,
-//         location: locationData,
-//         amenities:
-//           typeof amenities === "string" ? JSON.parse(amenities) : amenities,
-//         mapLink,
-//         files,
-//         keepExistingImages:
-//           keepExistingImages === "false"
-//             ? false
-//             : keepExistingImages === "true"
-//             ? true
-//             : true,
-//         keepExistingVideos:
-//           keepExistingVideos === "false"
-//             ? false
-//             : keepExistingVideos === "true"
-//             ? true
-//             : true,
-//         existingImagesMeta:
-//           typeof existingImagesMeta === "string"
-//             ? JSON.parse(existingImagesMeta)
-//             : existingImagesMeta,
-//         imagesToDelete:
-//           typeof imagesToDelete === "string"
-//             ? JSON.parse(imagesToDelete)
-//             : imagesToDelete,
-//       }
-//     );
-
-//     return res.status(response.status).json(response);
-//   } catch (error) {
-//     console.error(
-//       "❌ Error in updateWebsitePropertyContent controller:",
-//       error
-//     );
-//     return res.status(500).json({
-//       success: false,
-//       message:
-//         error.message || "Server error while updating website property content",
-//     });
-//   }
-// };
-
 export const getWebsitePropertyContentById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -446,7 +254,7 @@ export const getWebsitePropertyContentById = async (req, res) => {
       { id }
     );
 
-    console.log("📨 Website Property Content by id RPC Response:", response);
+    // console.log("📨 Website Property Content by id RPC Response:", response);
 
     return res.status(response.status).json(response);
   } catch (error) {
@@ -458,6 +266,178 @@ export const getWebsitePropertyContentById = async (req, res) => {
       success: false,
       message:
         error.message || "Server error while fetching property content by id",
+    });
+  }
+};
+
+// common media
+
+export const createCommonMediaContent = async (req, res) => {
+  try {
+    // console.log("=== Incoming multipart request for common media ===");
+    // console.log(req.body);
+
+    // 🧩 Normalize array fields (handles single + multiple values)
+    const normalizeArray = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === "string") return [value];
+      return [];
+    };
+
+    const category = req.body.category;
+    const mediaTitles = normalizeArray(req.body.mediaTitles);
+    const mediaKeys = normalizeArray(req.body.mediaKeys);
+    const mediaTypes = normalizeArray(req.body.mediaTypes);
+
+    if (!category) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Category is required" });
+    }
+
+    // ✅ Extract uploaded files
+    const files = req.files?.media || [];
+    const uploadedMedia = [];
+
+    if (files.length) {
+      // console.log(`Uploading ${files.length} media file(s)...`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // ✅ Determine file type
+        const fileType =
+          mediaTypes[i] ||
+          (file.mimetype?.startsWith("video/") ? "video" : "image");
+
+        // ✅ Decide upload folder
+        const uploadFolder =
+          fileType === "video"
+            ? "website-common-videos"
+            : "website-common-images";
+
+        // ✅ Upload to Firebase
+        const fileUrl = await uploadToFirebase(file, uploadFolder);
+
+        // ✅ Push formatted media
+        uploadedMedia.push({
+          title: mediaTitles[i] || file.originalname || "",
+          url: fileUrl,
+          key: mediaKeys[i] || "",
+          type: fileType,
+        });
+      }
+    }
+
+    // ✅ Build payload for RPC
+    const payload = {
+      category,
+      mediaItems: uploadedMedia,
+    };
+
+    // console.log("📤 Sending payload to COMMON MEDIA microservice:");
+    // console.log(JSON.stringify(payload, null, 2));
+
+    // ✅ Send metadata via RPC
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.WEBSITE_CONTENT.ADD_COMMON_MEDIA_CONTENT,
+      payload
+    );
+
+    // console.log("📨 Received RPC response:", response);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("❌ Error in createCommonMediaContent:", error);
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message || "Server error while uploading common media content",
+    });
+  }
+};
+
+export const getAllCommonMedia = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.WEBSITE_CONTENT.GET_ALL_COMMON_MEDIA_CONTENT,
+      {}
+    );
+
+    // console.log("📨 Website common Contents RPC Response:", response);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("❌ Error in getAllCommonMedia controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while fetching common contents",
+    });
+  }
+};
+
+export const getCommonMediaById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.WEBSITE_CONTENT.COMMON_CONTENT_BY_ID,
+      { id }
+    );
+
+    // console.log("📨 common website Content by id RPC Response:", response);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("❌ Error in getCommonMediaById controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while fetching  content by id",
+    });
+  }
+};
+
+export const deleteCommonMediaItemsController = async (req, res) => {
+  try {
+    // console.log("=== Incoming delete request for common media ===");
+    // console.log(req.body);
+    const { id } = req.params;
+    const { mediaIds } = req.body;
+
+    if (!id && !mediaIds) {
+      return res.status(400).json({
+        success: false,
+        message: "Either ID or category is required to delete media.",
+      });
+    }
+
+    if (!mediaIds || !Array.isArray(mediaIds) || mediaIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one media id must be provided for deletion.",
+      });
+    }
+
+    // ✅ Payload for microservice
+    const payload = { id, mediaIds };
+
+    // console.log("📤 Sending delete payload to COMMON MEDIA microservice:");
+    // console.log(JSON.stringify(payload, null, 2));
+
+    // ✅ Send RPC to microservice
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.WEBSITE_CONTENT.DELETE_COMMON_MEDIA_CONTENT,
+      payload
+    );
+
+    console.log("📨 Received RPC delete response:", response);
+
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("❌ Error in deleteCommonMediaItemsController:", error);
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message || "Server error while deleting common media items.",
     });
   }
 };

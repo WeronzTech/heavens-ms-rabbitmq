@@ -94,28 +94,101 @@ export function validateFieldFormats(email, password, contact) {
   return errors;
 }
 
-export async function checkExistingUsers(email, contact, userType) {
+export async function checkExistingUsers(
+  email,
+  contact,
+  userType,
+  colivingPartner = null
+) {
   try {
-    // For all user types except DailyRent, check email if provided
-    if (userType !== "dailyRent" && email) {
-      const existingByEmail = await User.findOne({ email });
-      if (existingByEmail) {
-        return { error: true, message: "Email already registered" };
-      }
+    // Normalize inputs into arrays (for unified checking)
+    const emailsToCheck = [];
+    const contactsToCheck = [];
+
+    if (email) emailsToCheck.push(email);
+    if (contact) contactsToCheck.push(contact);
+
+    if (colivingPartner) {
+      if (colivingPartner.email) emailsToCheck.push(colivingPartner.email);
+      if (colivingPartner.contact)
+        contactsToCheck.push(colivingPartner.contact);
     }
 
-    // For all user types, check contact
-    const existingByContact = await User.findOne({ contact });
-    if (existingByContact) {
-      return { error: true, message: "Contact number already registered" };
+    // Build dynamic query
+    const query = {
+      $or: [],
+    };
+
+    // For all user types except dailyRent, include emails
+    if (userType !== "dailyRent" && emailsToCheck.length > 0) {
+      query.$or.push(...emailsToCheck.map((e) => ({ email: e })));
+    }
+
+    // Add contacts for all user types
+    if (contactsToCheck.length > 0) {
+      query.$or.push(...contactsToCheck.map((c) => ({ contact: c })));
+    }
+
+    if (query.$or.length === 0) {
+      return { error: false }; // nothing to check
+    }
+
+    const existingUser = await User.findOne(query);
+
+    if (existingUser) {
+      // Determine whether it’s the main user or coliving partner duplicate
+      const duplicateEmail = emailsToCheck.includes(existingUser.email);
+      const duplicateContact = contactsToCheck.includes(existingUser.contact);
+
+      let message = "User already exists";
+      if (duplicateEmail) message = "Email already registered";
+      if (duplicateContact) message = "Contact number already registered";
+
+      // More specific context for coliving duplicates
+      if (colivingPartner) {
+        if (duplicateEmail && colivingPartner.email === existingUser.email) {
+          message = "Coliving partner's email already registered";
+        }
+        if (
+          duplicateContact &&
+          colivingPartner.contact === existingUser.contact
+        ) {
+          message = "Coliving partner's contact number already registered";
+        }
+      }
+
+      return { error: true, message };
     }
 
     return { error: false };
   } catch (err) {
-    console.error("Error checking existing users:", err);
+    console.error("❌ Error checking existing users:", err);
     return { error: true, message: "Error checking existing users" };
   }
 }
+
+// export async function checkExistingUsers(email, contact, userType) {
+//   try {
+//     // For all user types except DailyRent, check email if provided
+//     if (userType !== "dailyRent" && email) {
+//       const existingByEmail = await User.findOne({ email });
+//       if (existingByEmail) {
+//         return { error: true, message: "Email already registered" };
+//       }
+//     }
+
+//     // For all user types, check contact
+//     const existingByContact = await User.findOne({ contact });
+//     if (existingByContact) {
+//       return { error: true, message: "Contact number already registered" };
+//     }
+
+//     return { error: false };
+//   } catch (err) {
+//     console.error("Error checking existing users:", err);
+//     return { error: true, message: "Error checking existing users" };
+//   }
+// }
 
 export function calculateNextDueDate(joinDate) {
   const nextDate = new Date(joinDate);

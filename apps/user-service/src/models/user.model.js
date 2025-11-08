@@ -62,7 +62,15 @@ const userSchema = new mongoose.Schema(
       location: String,
       emergencyContact: String,
     },
-
+    colivingPartner: {
+      name: String,
+      contact: String,
+      email: String,
+      profileImg: String,
+      aadharFront: String,
+      aadharBack: String,
+      relation: String,
+    },
     // Stay details - for monthlyRent & dailyRent Residents
     stayDetails: {
       // Common fields
@@ -239,6 +247,7 @@ const userSchema = new mongoose.Schema(
     isAccessBlockExtendDate: Date,
     isVacated: { type: Boolean, default: false },
     isHeavens: { type: Boolean, default: false },
+    isColiving: { type: Boolean, default: false },
     vacatedAt: Date,
 
     // Profile completion
