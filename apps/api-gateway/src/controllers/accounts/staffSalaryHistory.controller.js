@@ -28,3 +28,16 @@ export const manualAddSalary = (req, res) => {
 export const getAllSalaryRecords = (req, res) => {
   return handleRPCAndRespond(res, ACCOUNTS_PATTERN.SALARY.GET_ALL, req.query);
 };
+
+export const updateSalaryStatus = (req, res) => {
+  const payload = {
+    ...req.body,
+    updatedBy: req.userAuth,
+    salaryId: req.params.id, 
+  };
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.SALARY.UPDATE_STATUS,
+    payload
+  );
+};
