@@ -17,7 +17,7 @@ import Voucher from "../models/voucher.model.js";
 import emailService from "../../../../libs/email/email.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
 import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountSystemNames.config.js";
 
 export const addFeePayment = async (data) => {
   try {
@@ -543,10 +543,22 @@ const processAndRecordPayment = async ({
       referenceId: newPayment._id,
     });
 
-    const paymentAccount =
+    const paymentSystemName =
       paymentMethod === "Cash"
-        ? ACCOUNT_NAMES.BANK_ACCOUNT
-        : ACCOUNT_NAMES.BANK_ACCOUNT; // Or use a separate Cash account
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+    // Determine the correct income account system name
+    let incomeSystemName;
+    if (user.rentType === "monthly") {
+      incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_RENT_MONTHLY;
+    } else if (user.rentType === "daily") {
+      incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_RENT_DAILY;
+    } else if (user.rentType === "mess") {
+      incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_RENT_MESS;
+    } else {
+      incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_MISCELLANEOUS; // Fallback
+    }
 
     await createJournalEntry(
       {
@@ -556,15 +568,15 @@ const processAndRecordPayment = async ({
         } for ${paymentForMonths.join(", ")}`,
         propertyId: newPayment.property.id,
         transactions: [
-          { accountName: paymentAccount, debit: amount },
-          { accountName: ACCOUNT_NAMES.RENT_INCOME, credit: amount },
+          // Use systemName instead of accountName
+          { systemName: paymentSystemName, debit: amount },
+          { systemName: incomeSystemName, credit: amount },
         ],
         referenceId: newPayment._id,
         referenceType: "FeePayment",
       },
       { session }
     );
-
     // Update user via RPC
     const updateUserResponse = await sendRPCRequest(
       USER_PATTERN.USER.UPDATE_USER,

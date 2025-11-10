@@ -4,6 +4,11 @@ import {
   createJournalEntry,
   createManualJournalEntry,
 } from "../service/accounting.service.js";
+import {
+  createContraVoucher,
+  createPaymentVoucher,
+  createReceiptVoucher,
+} from "../service/accountingVoucher.service.js";
 
 createResponder(
   ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY,
@@ -30,3 +35,17 @@ createResponder(
     return await createManualJournalEntry(data);
   }
 );
+
+createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_PAYMENT, async (data) => {
+  return await createPaymentVoucher(data);
+});
+
+// NEW: Receipt Voucher (F6)
+createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_RECEIPT, async (data) => {
+  return await createReceiptVoucher(data);
+});
+
+// NEW: Contra Voucher (F4)
+createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_CONTRA, async (data) => {
+  return await createContraVoucher(data);
+});

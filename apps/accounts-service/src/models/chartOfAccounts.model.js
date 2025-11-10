@@ -22,6 +22,10 @@ const accountSchema = new mongoose.Schema(
       required: false, // Make it optional if some accounts don't need categorization initially
       index: true,
     },
+    maintainsBillWise: {
+      type: Boolean,
+      default: false,
+    },
     // For tracking GST specifically
     gstType: {
       type: String,

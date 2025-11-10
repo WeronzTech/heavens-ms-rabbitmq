@@ -68,6 +68,7 @@ const startServer = async () => {
     await import("./controllers/accounting.controller.js");
     await import("./controllers/report.controller.js");
     await import("./controllers/chartOfAccounts.controller.js");
+    await import("./controllers/accountSetting.controller.js");
     console.log("[ACCOUNTS] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.
