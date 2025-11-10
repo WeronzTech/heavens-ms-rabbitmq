@@ -8,12 +8,13 @@ import {
 import PDFDocument from "pdfkit";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../../../accounts-service/src/config/accountMapping.config.js";
 // Note: You can't import ACCOUNT_NAMES from another service.
 // You must send the names as strings, matching what accounts-service expects.
-const ACCOUNT_NAMES_CONST = {
-  FURNITURE_ASSET: "Furniture & Fixtures",
-  BANK_ACCOUNT: "Bank Account",
-};
+// const ACCOUNT_NAMES_CONST = {
+//   FURNITURE_ASSET: "Furniture & Fixtures",
+//   BANK_ACCOUNT: "Bank Account",
+// };
 
 const generateLabelsPDF = (assets) => {
   return new Promise((resolve, reject) => {
@@ -210,11 +211,11 @@ export const createAsset = async (data) => {
           propertyId: newAsset.propertyId,
           transactions: [
             {
-              accountName: ACCOUNT_NAMES_CONST.FURNITURE_ASSET,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_FURNITURE_FIXTURES,
               debit: newAsset.purchaseDetails.price,
             },
             {
-              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
               credit: newAsset.purchaseDetails.price,
             },
           ],
@@ -282,11 +283,11 @@ export const createMultipleAssets = async (data) => {
           propertyId: firstAsset.propertyId,
           transactions: [
             {
-              accountName: ACCOUNT_NAMES_CONST.FURNITURE_ASSET,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_FURNITURE_FIXTURES,
               debit: totalCost,
             },
             {
-              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
               credit: totalCost,
             },
           ],

@@ -3,10 +3,11 @@ import Manager from "../models/manager.model.js";
 import mongoose from "mongoose";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
-const ACCOUNT_NAMES_CONST = {
-  PETTY_CASH: "Petty Cash",
-  BANK_ACCOUNT: "Bank Account",
-};
+import { ACCOUNT_SYSTEM_NAMES } from "../../../accounts-service/src/config/accountMapping.config.js";
+// const ACCOUNT_NAMES_CONST = {
+//   PETTY_CASH: "Petty Cash",
+//   BANK_ACCOUNT: "Bank Account",
+// };
 
 export const addPettyCash = async (data) => {
   try {
@@ -102,11 +103,11 @@ export const addPettyCash = async (data) => {
           propertyId: property._id || property,
           transactions: [
             {
-              accountName: ACCOUNT_NAMES_CONST.PETTY_CASH,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH,
               debit: totalAmountTransferred,
             },
             {
-              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
               credit: totalAmountTransferred,
             },
           ],
