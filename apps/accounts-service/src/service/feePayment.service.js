@@ -17,7 +17,7 @@ import Voucher from "../models/voucher.model.js";
 import emailService from "../../../../libs/email/email.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
 import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_SYSTEM_NAMES } from "../config/accountSystemNames.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 
 export const addFeePayment = async (data) => {
   try {

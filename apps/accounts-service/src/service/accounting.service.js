@@ -3,7 +3,7 @@ import JournalEntry from "../models/journalEntry.model.js";
 import ChartOfAccount from "../models/chartOfAccounts.model.js";
 import BillLedger from "../models/billLedger.model.js";
 import { getAccountId } from "./accountSetting.service.js";
-import { ACCOUNT_SYSTEM_NAMES } from "../config/accountSystemNames.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 
 // Helper to find GST accounts based on rate and type
 const getGstAccountIds = async (rate, isIntraState, isPurchase) => {
