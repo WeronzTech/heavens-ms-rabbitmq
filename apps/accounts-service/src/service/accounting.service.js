@@ -122,7 +122,7 @@ export const createJournalEntry = async (entryData, options = {}) => {
 
   // 1. Find account IDs and validate amounts
   for (const trans of transactions) {
-    const { systemName, debit = 0, credit = 0 } = trans;
+    const { accountName: systemName, debit = 0, credit = 0 } = trans;
 
     if (!systemName || (debit === 0 && credit === 0)) {
       throw new Error(
