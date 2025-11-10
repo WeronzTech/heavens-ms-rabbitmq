@@ -9,7 +9,7 @@ import Deposits from "../models/depositPayments.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
 import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -132,8 +132,8 @@ const processAndRecordDepositPayment = async ({
 
     const paymentAccount =
       paymentMethod === "Cash"
-        ? ACCOUNT_NAMES.BANK_ACCOUNT
-        : ACCOUNT_NAMES.BANK_ACCOUNT;
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     await createJournalEntry(
       {
@@ -143,7 +143,7 @@ const processAndRecordDepositPayment = async ({
         transactions: [
           { accountName: paymentAccount, debit: amount },
           {
-            accountName: ACCOUNT_NAMES.SECURITY_DEPOSIT_LIABILITY,
+            accountName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
             credit: amount,
           },
         ],
@@ -266,8 +266,8 @@ export const processAndRecordRefundPayment = async ({
 
     const paymentAccount =
       paymentMethod === "Cash"
-        ? ACCOUNT_NAMES.BANK_ACCOUNT
-        : ACCOUNT_NAMES.BANK_ACCOUNT;
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     await createJournalEntry(
       {
@@ -276,7 +276,7 @@ export const processAndRecordRefundPayment = async ({
         propertyId: newDeposit.property,
         transactions: [
           {
-            accountName: ACCOUNT_NAMES.SECURITY_DEPOSIT_LIABILITY,
+            accountName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
             debit: Number(amount),
           },
           { accountName: paymentAccount, credit: Number(amount) },

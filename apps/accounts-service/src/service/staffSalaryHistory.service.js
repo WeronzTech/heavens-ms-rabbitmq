@@ -4,7 +4,7 @@ import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pa
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import mongoose from "mongoose";
 
 // export const manualAddSalary = async (data) => {
@@ -145,15 +145,18 @@ export const manualAddSalary = async (data) => {
 
       const paymentAccount =
         paymentMethod === "Cash"
-          ? ACCOUNT_NAMES.BANK_ACCOUNT
-          : ACCOUNT_NAMES.BANK_ACCOUNT;
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
       await createJournalEntry(
         {
           date: newSalaryRecord.date,
           description: `Salary of ₹${salary} paid to ${employeeName}`,
           propertyId: newSalaryRecord.propertyId,
           transactions: [
-            { accountName: ACCOUNT_NAMES.SALARIES_EXPENSE, debit: salary },
+            {
+              accountName: ACCOUNT_SYSTEM_NAMES.EXPENSE_SALARIES,
+              debit: salary,
+            },
             { accountName: paymentAccount, credit: salary },
           ],
           referenceId: newSalaryRecord._id,
