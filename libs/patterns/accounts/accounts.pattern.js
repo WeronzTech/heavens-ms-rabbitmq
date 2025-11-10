@@ -79,10 +79,25 @@ export const ACCOUNTS_PATTERN = {
   ACCOUNTING: {
     CREATE_JOURNAL_ENTRY: "accounting_create_journal_entry",
     CREATE_MANUAL_JOURNAL_ENTRY: "accounting_create_manual_journal_entry",
+    VOUCHER_PAYMENT: "accounting_voucher_payment_create",
+    VOUCHER_RECEIPT: "accounting_voucher_receipt_create",
+    VOUCHER_CONTRA: "accounting_voucher_contra_create",
   },
   REPORT: {
     GET_PNL: "report_get_pnl",
     GET_BALANCE_SHEET: "report_get_balance_sheet",
+    GET_DAY_BOOK: "report_get_day_book",
+    GET_LEDGER_REPORT: "report_get_ledger_report",
+    GET_GSTR1_REPORT: "report_get_gstr1",
+  },
+  RECONCILIATION: {
+    GET_UNRECONCILED: "reconciliation_get_unreconciled",
+    RECONCILE_ENTRIES: "reconciliation_reconcile_entries",
+  },
+  // NEW BILL-WISE PATTERNS
+  BILL_LEDGER: {
+    GET_OUTSTANDING_BILLS: "bill_ledger_get_outstanding",
+    GET_BILL_DETAILS: "bill_ledger_get_details",
   },
   CHART_OF_ACCOUNTS: {
     CATEGORY_CREATE: "coa_category_create",
@@ -94,5 +109,11 @@ export const ACCOUNTS_PATTERN = {
     ACCOUNT_GET_BY_ID: "coa_account_get_by_id",
     ACCOUNT_UPDATE: "coa_account_update",
     ACCOUNT_DELETE: "coa_account_delete",
+  },
+  ACCOUNT_SETTING: {
+    SET_MAPPING: "account_setting_set_mapping",
+    GET_MAPPINGS: "account_setting_get_mappings",
+    GET_SYSTEM_NAMES: "account_setting_get_system_names",
+    CLEAR_CACHE: "account_setting_clear_cache",
   },
 };

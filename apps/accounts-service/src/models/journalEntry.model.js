@@ -18,6 +18,15 @@ const transactionSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    billReference: {
+      type: {
+        type: String,
+        enum: ["NewRef", "AgainstRef", "None"],
+        default: "None",
+      },
+      refNo: { type: String, trim: true },
+      _id: false,
+    },
   },
   { _id: false }
 );
@@ -46,6 +55,10 @@ const journalEntrySchema = new mongoose.Schema(
     referenceType: {
       type: String,
       // e.g., "FeePayment", "Expense", "StaffSalaryHistory", "RazorpayPayment"
+    },
+    bankReconciliation: {
+      isReconciled: { type: Boolean, default: false },
+      bankDate: { type: Date, default: null },
     },
     // Who created this entry
     performedBy: {

@@ -1,6 +1,78 @@
 import mongoose from "mongoose";
 import JournalEntry from "../models/journalEntry.model.js";
 import ChartOfAccount from "../models/chartOfAccounts.model.js";
+import BillLedger from "../models/billLedger.model.js";
+import { getAccountId } from "./accountSetting.service.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountSystemNames.config.js";
+
+// Helper to find GST accounts based on rate and type
+const getGstAccountIds = async (rate, isIntraState, isPurchase) => {
+  const rateMap = {
+    "Taxable-5": {
+      cgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_CGST_2_5
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_CGST_2_5,
+      sgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_SGST_2_5
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_SGST_2_5,
+      igst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_IGST_5
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_IGST_5,
+    },
+    "Taxable-12": {
+      cgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_CGST_6
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_CGST_6,
+      sgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_SGST_6
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_SGST_6,
+      igst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_IGST_12
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_IGST_12,
+    },
+    "Taxable-18": {
+      cgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_CGST_9
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_CGST_9,
+      sgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_SGST_9
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_SGST_9,
+      igst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_IGST_18
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_IGST_18,
+    },
+    "Taxable-28": {
+      cgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_CGST_14
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_CGST_14,
+      sgst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_SGST_14
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_SGST_14,
+      igst: isPurchase
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_GST_INPUT_IGST_28
+        : ACCOUNT_SYSTEM_NAMES.LIABILITY_GST_OUTPUT_IGST_28,
+    },
+  };
+
+  const names = rateMap[rate];
+  if (!names) {
+    return { cgstId: null, sgstId: null, igstId: null };
+  }
+
+  if (isIntraState) {
+    return {
+      cgstId: await getAccountId(names.cgst),
+      sgstId: await getAccountId(names.sgst),
+      igstId: null,
+    };
+  } else {
+    return {
+      cgstId: null,
+      sgstId: null,
+      igstId: await getAccountId(names.igst),
+    };
+  }
+};
 
 /**
  * Creates a balanced, double-entry journal transaction.
@@ -46,31 +118,39 @@ export const createJournalEntry = async (entryData, options = {}) => {
   let totalDebits = 0;
   let totalCredits = 0;
   const processedTransactions = [];
+  let hitsBankAccount = false;
 
   // 1. Find account IDs and validate amounts
   for (const trans of transactions) {
-    const { accountName, debit = 0, credit = 0 } = trans;
+    const { systemName, debit = 0, credit = 0 } = trans;
 
-    if (!accountName || (debit === 0 && credit === 0)) {
+    if (!systemName || (debit === 0 && credit === 0)) {
       throw new Error(
-        `Invalid transaction for account: ${accountName}. Must have accountName and non-zero debit/credit.`
+        `Invalid transaction for account: ${systemName}. Must have systemName and non-zero debit/credit.`
       );
     }
 
+    const accountId = await getAccountId(systemName);
+
     // Use findOne to be able to use session
-    const account = await ChartOfAccount.findOne({ name: accountName })
-      .select("_id accountType balance")
+    const account = await ChartOfAccount.findById(accountId)
+      .select("_id accountType balance name") //  NEW: Added name
       .session(options.session || null);
     if (!account) {
       throw new Error(
-        `Accounting error: ChartOfAccount entry named "${accountName}" not found.`
+        `Accounting error: Mapped account for "${systemName}" (ID: ${accountId}) not found.`
       );
+    }
+
+    if (account.name.toLowerCase().includes("bank")) {
+      hitsBankAccount = true;
     }
 
     processedTransactions.push({
       accountId: account._id,
       debit,
       credit,
+      billReference: { type: "None" },
     });
 
     totalDebits += debit;
@@ -109,6 +189,10 @@ export const createJournalEntry = async (entryData, options = {}) => {
     referenceType,
     transactions: processedTransactions,
     performedBy: performedBy || "System", // Or get from session/user context if available
+    bankReconciliation: {
+      isReconciled: !hitsBankAccount, // Auto-reconcile non-bank entries
+      bankDate: null,
+    },
   });
 
   await journalEntry.save({ session: options.session || null });
@@ -133,15 +217,24 @@ export const createJournalEntry = async (entryData, options = {}) => {
  * @param {string} data.performedBy - The name or ID of the admin creating the entry.
  */
 export const createManualJournalEntry = async (data) => {
-  const { date, description, propertyId, transactions, performedBy } = data;
+  const {
+    date,
+    description,
+    propertyId,
+    transactions,
+    performedBy,
+    referenceType, // e.g., "Manual_Payment", "Manual_Sales"
+    gstDetails,
+  } = data;
 
   if (
     !date ||
     !description ||
     !propertyId ||
     !Array.isArray(transactions) ||
-    transactions.length < 2 ||
-    !performedBy
+    transactions.length < 1 || // Can be 1 if GST is added
+    !performedBy ||
+    !referenceType
   ) {
     return {
       success: false,
@@ -155,10 +248,85 @@ export const createManualJournalEntry = async (data) => {
   try {
     let totalDebits = 0;
     let totalCredits = 0;
-    const processedTransactions = [];
+    const processedTransactions = [...transactions]; // Copy user-provided transactions
+    let hitsBankAccount = false;
 
-    for (const trans of transactions) {
-      const { accountId, debit = 0, credit = 0 } = trans;
+    if (
+      gstDetails &&
+      gstDetails.taxableAmount > 0 &&
+      gstDetails.gstRate !== "Exempt" &&
+      gstDetails.gstRate !== "Nil-Rated" &&
+      gstDetails.gstRate !== "Not-Applicable"
+    ) {
+      const { gstRate, taxableAmount, isIntraState, isPurchase } = gstDetails;
+
+      const rateValue = parseFloat(gstRate.split("-")[1]); // e.g., 18
+      const totalGst = (taxableAmount * rateValue) / 100;
+
+      // Find the correct GST accounts to use
+      const { cgstId, sgstId, igstId } = await getGstAccountIds(
+        gstRate,
+        isIntraState,
+        isPurchase
+      );
+
+      if (isIntraState) {
+        const halfGst = totalGst / 2;
+        if (isPurchase) {
+          // Debit Input GST
+          processedTransactions.push({
+            accountId: cgstId,
+            debit: halfGst,
+            credit: 0,
+            billReference: { type: "None" },
+          });
+          processedTransactions.push({
+            accountId: sgstId,
+            debit: halfGst,
+            credit: 0,
+            billReference: { type: "None" },
+          });
+        } else {
+          // Credit Output GST
+          processedTransactions.push({
+            accountId: cgstId,
+            debit: 0,
+            credit: halfGst,
+            billReference: { type: "None" },
+          });
+          processedTransactions.push({
+            accountId: sgstId,
+            debit: 0,
+            credit: halfGst,
+            billReference: { type: "None" },
+          });
+        }
+      } else {
+        // Inter-State (IGST)
+        if (isPurchase) {
+          processedTransactions.push({
+            accountId: igstId,
+            debit: totalGst,
+            credit: 0,
+            billReference: { type: "None" },
+          });
+        } else {
+          processedTransactions.push({
+            accountId: igstId,
+            debit: 0,
+            credit: totalGst,
+            billReference: { type: "None" },
+          });
+        }
+      }
+    }
+
+    // --- 2. Process all transactions (user-provided + GST) ---
+    const billLedgerEntries = []; // To queue up bill ledger changes
+
+    for (const trans of processedTransactions) {
+      const { accountId, debit = 0, credit = 0, billReference } = trans;
+
       if (!accountId || (debit === 0 && credit === 0)) {
         throw new Error(
           "Invalid transaction. 'accountId' and a non-zero debit/credit are required."
@@ -170,7 +338,11 @@ export const createManualJournalEntry = async (data) => {
         throw new Error(`Account with ID "${accountId}" not found.`);
       }
 
-      processedTransactions.push({ accountId, debit, credit });
+      // Check for BRS
+      if (account.name.toLowerCase().includes("bank")) {
+        hitsBankAccount = true;
+      }
+
       totalDebits += debit;
       totalCredits += credit;
 
@@ -183,26 +355,120 @@ export const createManualJournalEntry = async (data) => {
       }
       account.balance += balanceChange;
       await account.save({ session });
+
+      // --- 3. Bill-wise Logic ---
+      if (account.maintainsBillWise) {
+        if (
+          !billReference ||
+          billReference.type === "None" ||
+          !billReference.refNo
+        ) {
+          throw new Error(
+            `Account ${account.name} requires bill-wise details (NewRef or AgainstRef).`
+          );
+        }
+
+        // For AR (Asset), a debit is a new bill. For AP (Liability), a credit is a new bill.
+        const isNewBill =
+          (account.accountType === "Asset" && debit > 0) ||
+          (account.accountType === "Liability" && credit > 0);
+
+        if (billReference.type === "NewRef") {
+          if (!isNewBill) {
+            throw new Error(
+              `'NewRef' is invalid for this transaction type on ${account.name}. Use 'AgainstRef' to settle a bill.`
+            );
+          }
+          const billAmount = debit > 0 ? debit : credit;
+          // Queue up the new bill to be created
+          billLedgerEntries.push({
+            model: BillLedger,
+            op: "create",
+            doc: {
+              accountId,
+              journalEntryId: null, // Will be updated after JE is saved
+              billRefNo: billReference.refNo,
+              billDate: date,
+              dueDate: new Date(new Date(date).setDate(date.getDate() + 30)), // Default 30 days
+              totalAmount: billAmount,
+              pendingAmount: billAmount,
+              status: "Pending",
+              propertyId,
+            },
+          });
+        } else if (billReference.type === "AgainstRef") {
+          if (isNewBill) {
+            throw new Error(
+              `'AgainstRef' is invalid for this transaction type on ${account.name}. Use 'NewRef' to create a new bill.`
+            );
+          }
+          // Find and apply payment against an existing bill
+          const bill = await BillLedger.findOne({
+            accountId,
+            billRefNo: billReference.refNo,
+            status: "Pending",
+          }).session(session);
+          if (!bill) {
+            throw new Error(
+              `Pending bill with reference "${billReference.refNo}" for account ${account.name} not found.`
+            );
+          }
+
+          const paymentAmount =
+            account.accountType === "Asset" && credit > 0 ? credit : debit;
+          bill.pendingAmount -= paymentAmount;
+
+          if (bill.pendingAmount < -0.01) {
+            // Allow for small floating point errors
+            throw new Error(
+              `Payment (₹${paymentAmount}) exceeds pending amount (₹${
+                bill.pendingAmount + paymentAmount
+              }) for bill ${billReference.refNo}.`
+            );
+          }
+
+          if (bill.pendingAmount <= 0.01) {
+            bill.pendingAmount = 0;
+            bill.status = "Cleared";
+          }
+          // Queue up the bill update
+          billLedgerEntries.push({ model: bill, op: "save" });
+        }
+      }
     }
 
+    // 4. Final Balance Check
     if (Math.abs(totalDebits - totalCredits) > 0.01) {
       throw new Error(
-        `Journal entry is unbalanced. Debits (${totalDebits}) != Credits (${totalCredits}).`
+        `Journal entry is unbalanced. Debits (₹${totalDebits}) != Credits (₹${totalCredits}).`
       );
     }
 
-    // Create the Journal Entry
+    // 5. Create the Journal Entry
     const manualEntry = new JournalEntry({
       date,
       description,
       propertyId,
-      transactions: processedTransactions,
+      transactions: processedTransactions, // This now includes GST
       performedBy,
       referenceId: new mongoose.Types.ObjectId(), // A new ID just for reference
-      referenceType: "Manual Entry",
+      referenceType, // "Manual_Payment", "Manual_Sales", etc.
+      bankReconciliation: {
+        isReconciled: !hitsBankAccount, // Auto-reconcile non-bank entries
+        bankDate: null,
+      },
     });
-
     await manualEntry.save({ session });
+
+    // --- 6. Process BillLedger changes ---
+    for (const entry of billLedgerEntries) {
+      if (entry.op === "create") {
+        entry.doc.journalEntryId = manualEntry._id; // Link to the JE we just created
+        await BillLedger.create([entry.doc], { session });
+      } else if (entry.op === "save") {
+        await entry.model.save({ session });
+      }
+    }
 
     await session.commitTransaction();
     return {
@@ -213,6 +479,7 @@ export const createManualJournalEntry = async (data) => {
     };
   } catch (error) {
     await session.abortTransaction();
+    console.error("Error in createManualJournalEntry:", error);
     return { success: false, status: 400, message: error.message };
   } finally {
     session.endSession();
