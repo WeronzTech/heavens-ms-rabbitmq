@@ -3,6 +3,8 @@ import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pa
 import {
   createJournalEntry,
   createManualJournalEntry,
+  getAllJournalEntries,
+  getJournalEntryById,
 } from "../service/accounting.service.js";
 import {
   createContraVoucher,
@@ -49,3 +51,17 @@ createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_RECEIPT, async (data) => {
 createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_CONTRA, async (data) => {
   return await createContraVoucher(data);
 });
+
+createResponder(
+  ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRIES,
+  async (data) => {
+    return await getAllJournalEntries(data);
+  }
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRY_ID,
+  async (data) => {
+    return await getJournalEntryById(data);
+  }
+);

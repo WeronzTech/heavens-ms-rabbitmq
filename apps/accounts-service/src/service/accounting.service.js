@@ -485,3 +485,256 @@ export const createManualJournalEntry = async (data) => {
     session.endSession();
   }
 };
+
+// export const getAllJournalEntries = async (data = {}) => {
+//   try {
+//     const { filters } = data;
+//     const query = {};
+
+//     console.log("🧩 Filters received:", filters);
+
+//     // ✅ Property filter
+//     if (filters.propertyId && filters.propertyId !== "all") {
+//       query.propertyId = new mongoose.Types.ObjectId(filters.propertyId);
+//     }
+
+//     // ✅ Date range
+//     const dateRange = filters.dateRange || filters["dateRange[]"];
+//     if (Array.isArray(dateRange) && dateRange.length === 2) {
+//       const [startRaw, endRaw] = dateRange;
+//       const start = new Date(startRaw);
+//       const end = new Date(endRaw);
+
+//       if (!isNaN(start) && !isNaN(end)) {
+//         query.date = { $gte: start, $lte: end };
+//       } else {
+//         console.warn("⚠️ Invalid date range:", dateRange);
+//       }
+//     }
+
+//     // ✅ Account filter — use $elemMatch for nested array
+//     if (filters.accountId && filters.accountId !== "all") {
+//       if (mongoose.Types.ObjectId.isValid(filters.accountId)) {
+//         query.transactions = {
+//           $elemMatch: {
+//             accountId: new mongoose.Types.ObjectId(filters.accountId),
+//           },
+//         };
+//       }
+//     }
+
+//     // ✅ Search filter
+//     if (filters.search && filters.search.trim() !== "") {
+//       query.$or = [
+//         { description: { $regex: filters.search, $options: "i" } },
+//         {
+//           "referenceId.transactionId": {
+//             $regex: filters.search,
+//             $options: "i",
+//           },
+//         },
+//       ];
+//     }
+
+//     console.log("🕵️ Final Mongo Query:", JSON.stringify(query, null, 2));
+
+//     // ✅ Fetch with population
+//     const journalEntries = await JournalEntry.find(query)
+//       .populate({
+//         path: "transactions.accountId",
+//         select: "name accountType balance",
+//       })
+//       .populate({
+//         path: "referenceId",
+//         select: "name title transactionId paymentMethod paymentType",
+//       })
+//       .sort({ date: -1 });
+
+//     return {
+//       success: true,
+//       status: 200,
+//       data: journalEntries,
+//       message: "Journal entries fetched successfully.",
+//     };
+//   } catch (error) {
+//     console.error("❌ Error fetching journal entries:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: error.message,
+//     };
+//   }
+// };
+
+export const getAllJournalEntries = async (data = {}) => {
+  try {
+    const { filters } = data;
+    const query = {};
+
+    console.log("🧩 Filters received:", filters);
+
+    // ✅ Property filter
+    if (filters.propertyId && filters.propertyId !== "all") {
+      query.propertyId = new mongoose.Types.ObjectId(filters.propertyId);
+    }
+
+    // ✅ Date range
+    const dateRange = filters.dateRange || filters["dateRange[]"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const [startRaw, endRaw] = dateRange;
+      const start = new Date(startRaw);
+      const end = new Date(endRaw);
+
+      if (!isNaN(start) && !isNaN(end)) {
+        query.date = { $gte: start, $lte: end };
+      } else {
+        console.warn("⚠️ Invalid date range:", dateRange);
+      }
+    }
+
+    // ✅ Account filter — use $elemMatch for nested array
+    if (filters.accountId && filters.accountId !== "all") {
+      if (mongoose.Types.ObjectId.isValid(filters.accountId)) {
+        query.transactions = {
+          $elemMatch: {
+            accountId: new mongoose.Types.ObjectId(filters.accountId),
+          },
+        };
+      }
+    }
+
+    // ✅ Search filter
+    if (filters.search && filters.search.trim() !== "") {
+      query.$or = [
+        { description: { $regex: filters.search, $options: "i" } },
+        {
+          "referenceId.transactionId": {
+            $regex: filters.search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    console.log("🕵️ Final Mongo Query:", JSON.stringify(query, null, 2));
+
+    // ✅ Fetch with population
+    const journalEntries = await JournalEntry.find(query)
+      .populate({
+        path: "transactions.accountId",
+        select: "name accountType balance",
+      })
+      .populate({
+        path: "referenceId",
+        select: "name title transactionId paymentMethod paymentType",
+      })
+      .sort({ date: -1 });
+
+    // ✅ Compute totals if accountId is provided
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let balance = 0;
+
+    if (filters.accountId && filters.accountId !== "all") {
+      for (const entry of journalEntries) {
+        for (const txn of entry.transactions || []) {
+          if (txn.accountId?._id?.toString() === filters.accountId.toString()) {
+            totalDebit += txn.debit || 0;
+            totalCredit += txn.credit || 0;
+          }
+        }
+      }
+      balance = Math.abs(totalDebit - totalCredit);
+    }
+
+    return {
+      success: true,
+      status: 200,
+      data: journalEntries,
+      totals:
+        filters.accountId && filters.accountId !== "all"
+          ? {
+              totalDebit,
+              totalCredit,
+              balance,
+            }
+          : null,
+      message: "Journal entries fetched successfully.",
+    };
+  } catch (error) {
+    console.error("❌ Error fetching journal entries:", error);
+    return {
+      success: false,
+      status: 500,
+      message: error.message,
+    };
+  }
+};
+
+export const getJournalEntryById = async (data) => {
+  try {
+    console.log(data);
+    const { ledgerId } = data;
+    // ✅ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(ledgerId)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid journal entry ID.",
+      };
+    }
+
+    console.log("🔍 Fetching journal entry:", ledgerId);
+
+    // ✅ Fetch and populate
+    const journalEntry = await JournalEntry.findById(ledgerId)
+      .populate({
+        path: "transactions.accountId",
+        select: "name accountType balance",
+      })
+      .populate({
+        path: "referenceId",
+        select: "name title transactionId paymentMethod paymentType",
+      });
+
+    // ✅ Handle not found
+    if (!journalEntry) {
+      return {
+        success: false,
+        status: 404,
+        message: "Journal entry not found.",
+      };
+    }
+
+    // ✅ Compute totals for this entry
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    for (const txn of journalEntry.transactions || []) {
+      totalDebit += txn.debit || 0;
+      totalCredit += txn.credit || 0;
+    }
+
+    const balance = Math.abs(totalDebit - totalCredit);
+
+    // ✅ Return same response shape as getAllJournalEntries
+    return {
+      success: true,
+      status: 200,
+      data: journalEntry,
+      totals: {
+        totalDebit,
+        totalCredit,
+        balance,
+      },
+      message: "Journal entry fetched successfully.",
+    };
+  } catch (error) {
+    console.error("❌ Error fetching journal entry:", error);
+    return {
+      success: false,
+      status: 500,
+      message: error.message,
+    };
+  }
+};
