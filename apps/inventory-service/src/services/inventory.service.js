@@ -9,10 +9,11 @@ import Kitchen from "../models/kitchen.model.js";
 import { drawTable, drawWeeklyUsageTable } from "../utils/helpers.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
-const ACCOUNT_NAMES_CONST = {
-  INVENTORY_ASSET: "Inventory",
-  BANK_ACCOUNT: "Bank Account",
-};
+import { ACCOUNT_SYSTEM_NAMES } from "../../../accounts-service/src/config/accountMapping.config.js";
+// const ACCOUNT_NAMES_CONST = {
+//   INVENTORY_ASSET: "Inventory",
+//   BANK_ACCOUNT: "Bank Account",
+// };
 
 // --- Service Functions ---
 
@@ -144,11 +145,11 @@ export const addInventory = async (data) => {
           // propertyId: ??? // Need to fetch propertyId from kitchen
           transactions: [
             {
-              accountName: ACCOUNT_NAMES_CONST.INVENTORY_ASSET,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_INVENTORY,
               debit: newItem.totalCost,
             },
             {
-              accountName: ACCOUNT_NAMES_CONST.BANK_ACCOUNT,
+              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
               credit: newItem.totalCost,
             },
           ],

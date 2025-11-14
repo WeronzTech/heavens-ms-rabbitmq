@@ -3,9 +3,12 @@ import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pa
 import {
   createJournalEntry,
   createManualJournalEntry,
-  getAllJournalEntries,
-  getJournalEntryById,
 } from "../service/accounting.service.js";
+import {
+  createContraVoucher,
+  createPaymentVoucher,
+  createReceiptVoucher,
+} from "../service/accountingVoucher.service.js";
 
 createResponder(
   ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY,
@@ -33,16 +36,16 @@ createResponder(
   }
 );
 
-createResponder(
-  ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRIES,
-  async (data) => {
-    return await getAllJournalEntries(data);
-  }
-);
+createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_PAYMENT, async (data) => {
+  return await createPaymentVoucher(data);
+});
 
-createResponder(
-  ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRY_ID,
-  async (data) => {
-    return await getJournalEntryById(data);
-  }
-);
+// NEW: Receipt Voucher (F6)
+createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_RECEIPT, async (data) => {
+  return await createReceiptVoucher(data);
+});
+
+// NEW: Contra Voucher (F4)
+createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_CONTRA, async (data) => {
+  return await createContraVoucher(data);
+});

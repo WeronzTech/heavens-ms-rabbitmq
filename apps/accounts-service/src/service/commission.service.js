@@ -6,7 +6,7 @@ import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pa
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 
 export const addCommission = async (data) => {
   const session = await mongoose.startSession();
@@ -44,8 +44,8 @@ export const addCommission = async (data) => {
 
     const paymentAccount =
       data.paymentType === "Cash"
-        ? ACCOUNT_NAMES.BANK_ACCOUNT
-        : ACCOUNT_NAMES.BANK_ACCOUNT;
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     await createJournalEntry(
       {
@@ -54,7 +54,7 @@ export const addCommission = async (data) => {
         propertyId: newCommission.property[0], // Assuming at least one property
         transactions: [
           {
-            accountName: ACCOUNT_NAMES.COMMISSION_EXPENSE,
+            accountName: ACCOUNT_SYSTEM_NAMES.EXPENSE_COMMISSION,
             debit: newCommission.amount,
           },
           { accountName: paymentAccount, credit: newCommission.amount },

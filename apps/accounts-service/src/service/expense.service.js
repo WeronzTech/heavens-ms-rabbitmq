@@ -7,7 +7,7 @@ import ExpenseCategory from "../models/expenseCategory.model.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import Voucher from "../models/voucher.model.js";
 import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_NAMES } from "../config/accountMapping.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 
 export const addExpense = async (data) => {
   const session = await mongoose.startSession();
@@ -151,18 +151,18 @@ export const addExpense = async (data) => {
 
     const creditAccount =
       paymentMethod === "Petty Cash"
-        ? ACCOUNT_NAMES.PETTY_CASH
-        : ACCOUNT_NAMES.BANK_ACCOUNT;
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     // Map expense category to debit account (Example mapping)
     // You should fetch the account by name from ChartOfAccount for robustness
     const debitAccount = expenseData.category.includes("Maintenance")
-      ? ACCOUNT_NAMES.MAINTENANCE_EXPENSE
+      ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MAINTENANCE
       : expenseData.category.includes("Mess")
-      ? ACCOUNT_NAMES.MESS_SUPPLIES_EXPENSE
+      ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
       : expenseData.category.includes("Utility")
-      ? ACCOUNT_NAMES.UTILITIES_EXPENSE
-      : ACCOUNT_NAMES.GENERAL_EXPENSE; // Fallback
+      ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+      : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL; // Fallback
 
     await createJournalEntry(
       {
