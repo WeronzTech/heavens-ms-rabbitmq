@@ -230,7 +230,7 @@ export const deleteManager = async (req, res) => {
   }
 };
 
-export const changeManagerStatus = async (data) => {
+export const changeManagerStatus = async (req, res) => {
   try {
     const id = req.params.id;
 

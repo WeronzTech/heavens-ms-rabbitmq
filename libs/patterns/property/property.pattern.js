@@ -34,6 +34,7 @@ export const PROPERTY_PATTERN = {
   },
   INTERNAL: {
     UPDATE_PROPERTY_COUNTS: "update_property_counts",
+    GET_ASSET_DATA_BY_ID: "get_asset_data_by_id",
   },
   MAINTENANCE: {
     CREATE: "property_maintenance_create",

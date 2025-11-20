@@ -56,3 +56,28 @@ export const getJournalEntryById = (req, res) => {
     { ledgerId }
   );
 };
+
+export const getAccountMappings = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.ACCOUNT_SETTING.GET_MAPPINGS,
+    {}
+  );
+};
+
+export const getAvailableSystemNames = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.ACCOUNT_SETTING.GET_SYSTEM_NAMES,
+    {}
+  );
+};
+
+export const setAccountMapping = (req, res) => {
+  const { systemName, accountId, updatedBy } = req.body;
+  return handleRPCAndRespond(
+    res,
+    ACCOUNTS_PATTERN.ACCOUNT_SETTING.SET_MAPPING,
+    { systemName, accountId, updatedBy }
+  );
+};

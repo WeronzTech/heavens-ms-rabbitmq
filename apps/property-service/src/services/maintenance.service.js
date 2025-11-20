@@ -540,11 +540,14 @@ export const createMaintenance = async (data) => {
 export const getMaintenanceByPropertyId = async (data) => {
   try {
     const { propertyId, filters = {} } = data;
-    validateIds(propertyId, "Property ID");
 
-    const matchStage = {
-      propertyId: new mongoose.Types.ObjectId(propertyId),
-    };
+    const matchStage = {};
+
+    // Property filtering only if propertyId is valid
+    if (propertyId && propertyId !== "null" && propertyId !== "undefined") {
+      validateIds(propertyId, "Property ID");
+      matchStage.propertyId = new mongoose.Types.ObjectId(propertyId);
+    }
 
     const validStatuses = ["Pending", "Ongoing", "Resolved"];
     if (filters.status && validStatuses.includes(filters.status)) {
@@ -604,6 +607,74 @@ export const getMaintenanceByPropertyId = async (data) => {
     };
   }
 };
+
+// export const getMaintenanceByPropertyId = async (data) => {
+//   try {
+//     const { propertyId, filters = {} } = data;
+//     validateIds(propertyId, "Property ID");
+
+//     const matchStage = {
+//       propertyId: new mongoose.Types.ObjectId(propertyId),
+//     };
+
+//     const validStatuses = ["Pending", "Ongoing", "Resolved"];
+//     if (filters.status && validStatuses.includes(filters.status)) {
+//       matchStage.status = filters.status;
+//     }
+
+//     const page = parseInt(filters.page) || 1;
+//     const limit = parseInt(filters.limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     const aggregationPipeline = [
+//       { $match: matchStage },
+//       {
+//         $lookup: {
+//           from: "staffs",
+//           localField: "assignedStaffId",
+//           foreignField: "_id",
+//           as: "staffInfo",
+//         },
+//       },
+//       { $unwind: { path: "$staffInfo", preserveNullAndEmptyArrays: true } },
+//       { $addFields: { staffName: "$staffInfo.name" } },
+//       { $project: { staffInfo: 0 } },
+//       { $sort: { createdAt: -1 } },
+//       {
+//         $facet: {
+//           data: [{ $skip: skip }, { $limit: limit }],
+//           totalCount: [{ $count: "count" }],
+//         },
+//       },
+//     ];
+
+//     const result = await Maintenance.aggregate(aggregationPipeline);
+//     const records = result[0]?.data || [];
+//     const total = result[0]?.totalCount[0]?.count || 0;
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Maintenance records retrieved successfully.",
+//       data: {
+//         data: records,
+//         pagination: {
+//           total,
+//           page,
+//           limit,
+//           totalPages: Math.ceil(total / limit),
+//         },
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Error getting maintenance by property:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: error.message || "Server error.",
+//     };
+//   }
+// };
 
 export const assignStaffToMaintenance = async (data) => {
   try {

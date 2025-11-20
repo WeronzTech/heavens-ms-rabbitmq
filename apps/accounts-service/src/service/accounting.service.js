@@ -4,6 +4,8 @@ import ChartOfAccount from "../models/chartOfAccounts.model.js";
 import BillLedger from "../models/billLedger.model.js";
 import { getAccountId } from "./accountSetting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 
 // Helper to find GST accounts based on rate and type
 const getGstAccountIds = async (rate, isIntraState, isPurchase) => {
@@ -122,7 +124,8 @@ export const createJournalEntry = async (entryData, options = {}) => {
 
   // 1. Find account IDs and validate amounts
   for (const trans of transactions) {
-    const { accountName: systemName, debit = 0, credit = 0 } = trans;
+    // const { accountName: systemName, debit = 0, credit = 0 } = trans;
+    const { systemName, debit = 0, credit = 0 } = trans;
 
     if (!systemName || (debit === 0 && credit === 0)) {
       throw new Error(
@@ -624,10 +627,10 @@ export const getAllJournalEntries = async (data = {}) => {
         path: "transactions.accountId",
         select: "name accountType balance",
       })
-      .populate({
-        path: "referenceId",
-        select: "name title transactionId paymentMethod paymentType",
-      })
+      // .populate({
+      //   path: "referenceId",
+      //   select: "name title transactionId paymentMethod paymentType",
+      // })
       .sort({ date: -1 });
 
     // ✅ Compute totals if accountId is provided
@@ -671,11 +674,79 @@ export const getAllJournalEntries = async (data = {}) => {
   }
 };
 
+// export const getJournalEntryById = async (data) => {
+//   try {
+//     console.log(data);
+//     const { ledgerId } = data;
+//     // ✅ Validate ObjectId
+//     if (!mongoose.Types.ObjectId.isValid(ledgerId)) {
+//       return {
+//         success: false,
+//         status: 400,
+//         message: "Invalid journal entry ID.",
+//       };
+//     }
+
+//     console.log("🔍 Fetching journal entry:", ledgerId);
+
+//     // ✅ Fetch and populate
+//     const journalEntry = await JournalEntry.findById(ledgerId)
+//       .populate({
+//         path: "transactions.accountId",
+//         select: "name accountType balance",
+//       })
+//       .populate({
+//         path: "referenceId",
+//         select: "name title transactionId paymentMethod paymentType",
+//       });
+
+//     // ✅ Handle not found
+//     if (!journalEntry) {
+//       return {
+//         success: false,
+//         status: 404,
+//         message: "Journal entry not found.",
+//       };
+//     }
+
+//     // ✅ Compute totals for this entry
+//     let totalDebit = 0;
+//     let totalCredit = 0;
+
+//     for (const txn of journalEntry.transactions || []) {
+//       totalDebit += txn.debit || 0;
+//       totalCredit += txn.credit || 0;
+//     }
+
+//     const balance = Math.abs(totalDebit - totalCredit);
+
+//     // ✅ Return same response shape as getAllJournalEntries
+//     return {
+//       success: true,
+//       status: 200,
+//       data: journalEntry,
+//       totals: {
+//         totalDebit,
+//         totalCredit,
+//         balance,
+//       },
+//       message: "Journal entry fetched successfully.",
+//     };
+//   } catch (error) {
+//     console.error("❌ Error fetching journal entry:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: error.message,
+//     };
+//   }
+// };
+
 export const getJournalEntryById = async (data) => {
   try {
-    console.log(data);
     const { ledgerId } = data;
-    // ✅ Validate ObjectId
+
+    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(ledgerId)) {
       return {
         success: false,
@@ -684,20 +755,12 @@ export const getJournalEntryById = async (data) => {
       };
     }
 
-    console.log("🔍 Fetching journal entry:", ledgerId);
+    // Fetch journal entry WITHOUT populating referenceId
+    const journalEntry = await JournalEntry.findById(ledgerId).populate({
+      path: "transactions.accountId",
+      select: "name accountType balance",
+    });
 
-    // ✅ Fetch and populate
-    const journalEntry = await JournalEntry.findById(ledgerId)
-      .populate({
-        path: "transactions.accountId",
-        select: "name accountType balance",
-      })
-      .populate({
-        path: "referenceId",
-        select: "name title transactionId paymentMethod paymentType",
-      });
-
-    // ✅ Handle not found
     if (!journalEntry) {
       return {
         success: false,
@@ -706,7 +769,40 @@ export const getJournalEntryById = async (data) => {
       };
     }
 
-    // ✅ Compute totals for this entry
+    // Extract needed fields
+    const { referenceId, referenceType } = journalEntry;
+
+    let referenceData = null;
+
+    // ---------------------------
+    // ✅ Fetch external reference if type = Asset
+    // ---------------------------
+    if (referenceId && referenceType === "Asset") {
+      try {
+        referenceData = await sendRPCRequest(
+          PROPERTY_PATTERN.INTERNAL.GET_ASSET_DATA_BY_ID,
+          { assetId: referenceId.toString() }
+        );
+      } catch (err) {
+        console.error("❌ RPC fetch asset failed:", err);
+        referenceData = null; // do not break entire response
+      }
+    }
+
+    // ---------------------------
+    // ✅ Populate referenceId only if NOT asset
+    // ---------------------------
+    if (referenceId && referenceType !== "Asset") {
+      const populated = await JournalEntry.populate(journalEntry, {
+        path: "referenceId",
+        select:
+          "name title transactionId paymentMethod paymentType paymentDate date",
+      });
+
+      referenceData = populated.referenceId;
+    }
+
+    // Compute totals
     let totalDebit = 0;
     let totalCredit = 0;
 
@@ -717,11 +813,13 @@ export const getJournalEntryById = async (data) => {
 
     const balance = Math.abs(totalDebit - totalCredit);
 
-    // ✅ Return same response shape as getAllJournalEntries
     return {
       success: true,
       status: 200,
-      data: journalEntry,
+      data: {
+        ...journalEntry.toObject(),
+        referenceData, // 🔥 consistent merged reference
+      },
       totals: {
         totalDebit,
         totalCredit,
