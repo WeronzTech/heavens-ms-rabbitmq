@@ -15,6 +15,11 @@ const categoryRoutes = Router();
 
 categoryRoutes.get("/", getAllProductCategories);
 categoryRoutes.get("/:id", getProductCategoryById);
+categoryRoutes.post(
+  "/",
+  upload.fields([{ name: "categoryImage", maxCount: 1 }]),
+  createProductCategory
+);
 
 categoryRoutes.use(isAuthenticated);
 

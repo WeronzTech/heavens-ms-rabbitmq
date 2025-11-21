@@ -14,6 +14,7 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 };
 
 export const createProduct = (req, res) => {
+  console.log("data:",req.body);
   const payload = { ...req.body };
   // Handle File Upload
   if (req.files?.productImage?.[0]) {
