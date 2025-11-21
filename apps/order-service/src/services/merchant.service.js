@@ -34,7 +34,7 @@ const handleMerchantImages = async (file, existingDetails = {}) => {
   return updates;
 };
 
-export const addMerchantDetails = async ({ data }) => {
+export const addMerchantDetails = async ( data ) => {
   try {
     const { shopOwnerId, merchantDetail, file } = data;
 
@@ -200,7 +200,7 @@ export const deleteMerchant = async ({ data }) => {
   }
 };
 
-export const getMerchantByShopOwnerId = async ({ data }) => {
+export const getMerchantByShopOwnerId = async ( data ) => {
   try {
     const { shopOwnerId } = data;
     const merchant = await Merchant.findOne({ shopOwnerId });

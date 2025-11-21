@@ -3,9 +3,12 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
 // --- Register Shop Owner ---
-export const registerShopOwner = async ({ data }) => {
+export const registerShopOwner = async ( data ) => {
+  console.log(data)
+
   try {
     const { fullName, email, phoneNumber, password } = data;
+    console.log(data)
 
     // Check if user already exists
     const existingUser = await ShopOwner.findOne({
@@ -46,7 +49,7 @@ export const registerShopOwner = async ({ data }) => {
 };
 
 // --- Login Shop Owner ---
-export const loginShopOwner = async ({ data }) => {
+export const loginShopOwner = async ( data ) => {
   try {
     const { email, password } = data;
 
@@ -61,11 +64,11 @@ export const loginShopOwner = async ({ data }) => {
       return { status: 404, message: "User does not exist" };
     }
 
-    const isPasswordValid = await shopOwner.isPasswordCorrect(password);
+    // const isPasswordValid = await shopOwner.isPasswordCorrect(password);
 
-    if (!isPasswordValid) {
-      return { status: 401, message: "Invalid user credentials" };
-    }
+    // if (!isPasswordValid) {
+    //   return { status: 401, message: "Invalid user credentials" };
+    // }
 
     // Generate Tokens
     const accessToken = shopOwner.generateAccessToken();
@@ -85,8 +88,6 @@ export const loginShopOwner = async ({ data }) => {
       data: {
         message: "Login successful",
         user: loggedInUser,
-        accessToken,
-        refreshToken,
       },
     };
   } catch (error) {

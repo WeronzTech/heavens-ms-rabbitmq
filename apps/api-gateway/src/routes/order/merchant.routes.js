@@ -20,9 +20,6 @@ const merchantRoutes = Router();
 merchantRoutes.get("/", getAllMerchants);
 merchantRoutes.get("/category", getMerchantsByBusinessCategory);
 merchantRoutes.get("/:id", getMerchantById);
-
-merchantRoutes.use(isAuthenticated);
-
 merchantRoutes.post(
   "/",
   upload.fields([
@@ -34,6 +31,11 @@ merchantRoutes.post(
   ]),
   addMerchantDetails
 );
+merchantRoutes.get("/shop-owner/:shopOwnerId", getMerchantByShopOwner);
+
+merchantRoutes.use(isAuthenticated);
+
+
 
 merchantRoutes.put(
   "/:id",
@@ -47,7 +49,7 @@ merchantRoutes.put(
   updateMerchant
 );
 
-merchantRoutes.get("/shop-owner/:shopOwnerId", getMerchantByShopOwner);
+
 merchantRoutes.patch("/:id/approve", approveMerchant);
 merchantRoutes.patch("/:id/block", blockMerchant);
 merchantRoutes.patch("/:id/status", updateShopStatus);

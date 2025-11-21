@@ -4,7 +4,7 @@ import {
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
 
-export const createProductCategory = async ({ data }) => {
+export const createProductCategory = async ( data ) => {
   try {
     const {
       businessCategoryId,
