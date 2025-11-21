@@ -34,7 +34,7 @@ const handleMerchantImages = async (file, existingDetails = {}) => {
   return updates;
 };
 
-export const addMerchantDetails = async ({ data }) => {
+export const addMerchantDetails = async (data) => {
   try {
     const { shopOwnerId, merchantDetail, file } = data;
 

@@ -21,8 +21,6 @@ merchantRoutes.get("/", getAllMerchants);
 merchantRoutes.get("/category", getMerchantsByBusinessCategory);
 merchantRoutes.get("/:id", getMerchantById);
 
-merchantRoutes.use(isAuthenticated);
-
 merchantRoutes.post(
   "/",
   upload.fields([
@@ -34,6 +32,8 @@ merchantRoutes.post(
   ]),
   addMerchantDetails
 );
+
+merchantRoutes.use(isAuthenticated);
 
 merchantRoutes.put(
   "/:id",

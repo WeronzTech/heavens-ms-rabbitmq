@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
 // --- Register Shop Owner ---
-export const registerShopOwner = async ({ data }) => {
+export const registerShopOwner = async (data) => {
   try {
     const { fullName, email, phoneNumber, password } = data;
 
@@ -46,7 +46,7 @@ export const registerShopOwner = async ({ data }) => {
 };
 
 // --- Login Shop Owner ---
-export const loginShopOwner = async ({ data }) => {
+export const loginShopOwner = async (data) => {
   try {
     const { email, password } = data;
 

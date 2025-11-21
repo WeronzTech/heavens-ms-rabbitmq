@@ -45,6 +45,9 @@ const startServer = async () => {
     await import("./controllers/merchantDiscount.controller.js");
     await import("./controllers/productDiscount.controller.js");
     await import("./controllers/productCategory.controller.js");
+    await import("./controllers/product.controller.js");
+    await import("./controllers/order.controller.js");
+
     console.log("[ORDER] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

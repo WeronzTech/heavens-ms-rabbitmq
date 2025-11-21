@@ -207,7 +207,7 @@ const merchantDetailSchema = new mongoose.Schema(
 
 const merchantSchema = new mongoose.Schema(
   {
-    _id: {
+    merchantId: {
       type: String,
     },
     shopOwnerId: {
@@ -289,7 +289,7 @@ merchantSchema.pre("save", async function (next) {
       }
 
       const customId = `HVNS-M${year}${month}${counter.count}`;
-      this._id = customId;
+      this.merchantId = customId;
     }
     next();
   } catch (error) {

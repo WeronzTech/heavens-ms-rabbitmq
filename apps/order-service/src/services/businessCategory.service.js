@@ -48,7 +48,7 @@ export const createBusinessCategory = async ({ data }) => {
   }
 };
 
-export const getAllBusinessCategories = async ({ data }) => {
+export const getAllBusinessCategories = async (data) => {
   try {
     const { page = 1, limit = 10, status } = data;
     const query = {};
@@ -81,7 +81,7 @@ export const getAllBusinessCategories = async ({ data }) => {
   }
 };
 
-export const getBusinessCategoryById = async ({ data }) => {
+export const getBusinessCategoryById = async (data) => {
   try {
     const { id } = data;
     const category = await BusinessCategory.findById(id);

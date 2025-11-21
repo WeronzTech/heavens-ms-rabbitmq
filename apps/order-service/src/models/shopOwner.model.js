@@ -67,7 +67,7 @@ shopOwnerSchema.methods.generateRefreshToken = function () {
     {
       _id: this._id,
     },
-    process.env.REFRESH_TOKEN_SECRET,
+    process.env.JWT_REFRESH_SECRET,
     {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY, // e.g., "7d"
     }
@@ -82,7 +82,7 @@ shopOwnerSchema.methods.generateAccessToken = function () {
       email: this.email,
       fullName: this.fullName,
     },
-    process.env.ACCESS_TOKEN_SECRET,
+    process.env.JWT_SECRET_KEY,
     {
       expiresIn: process.env.ACCESS_TOKEN_EXPIRY, // e.g., "15m"
     }
