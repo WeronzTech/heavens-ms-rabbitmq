@@ -263,11 +263,12 @@ export const updateShopStatus = async ({ data }) => {
 
 export const getAllMerchants = async ({ data }) => {
   try {
-    const { status, isApproved, page = 1, limit = 10 } = data;
+    const { status, isApproved, page = 1, limit = 10, propertyId } = data;
     const query = {};
 
     if (status !== undefined) query.status = status;
     if (isApproved) query.isApproved = isApproved;
+    if (propertyId) query["merchantDetail.propertyId"] = propertyId;
 
     const merchants = await Merchant.find(query)
       .sort({ createdAt: -1 })
