@@ -1,0 +1,82 @@
+export const ORDER_PATTERN = {
+  ORDER: {
+    CREATE_ORDER: "order.createOrder",
+    VERIFY_PAYMENT: "order.verifyPayment", // ✅ Added for payment completion
+    GET_ORDER_BY_ID: "order.getOrderById",
+    GET_ALL_ORDERS: "order.getAllOrders",
+    UPDATE_ORDER_STATUS: "order.updateOrderStatus",
+    GET_ORDERS_BY_CUSTOMER: "order.getOrdersByCustomer",
+    GET_ORDERS_BY_MERCHANT: "order.getOrdersByMerchant",
+  },
+  PRODUCT: {
+    CREATE_PRODUCT: "product.create",
+    GET_PRODUCTS_BY_CATEGORY: "product.getByCategory",
+    GET_PRODUCT_BY_ID: "product.getById",
+    UPDATE_PRODUCT: "product.update",
+    DELETE_PRODUCT: "product.delete",
+    REORDER_PRODUCTS: "product.reorder",
+    UPDATE_STOCK_STATUS: "product.updateStockStatus",
+  },
+  MERCHANT: {
+    ADD_MERCHANT_DETAILS: "merchant.addMerchantDetails",
+    APPROVE_MERCHANT: "merchant.approveMerchant",
+    BLOCK_MERCHANT: "merchant.blockMerchant",
+    UPDATE_MERCHANT: "merchant.updateMerchant",
+    DELETE_MERCHANT: "merchant.deleteMerchant",
+    GET_MERCHANT_BY_SHOPOWNER: "merchant.getMerchantByShopOwner",
+    GET_MERCHANT_BY_ID: "merchant.getMerchantById",
+    UPDATE_SHOP_STATUS: "merchant.updateShopStatus", // Open/Close status
+    GET_ALL_MERCHANTS: "merchant.getAllMerchants",
+    GET_MERCHANTS_BY_BUSINESS_CATEGORY:
+      "merchant.getMerchantsByBusinessCategory",
+  },
+  SHOP_OWNER: {
+    REGISTER: "shopOwner.register",
+    LOGIN: "shopOwner.login",
+    LOGOUT: "shopOwner.logout",
+    REFRESH_TOKEN: "shopOwner.refreshToken",
+    GET_PROFILE: "shopOwner.getProfile",
+    UPDATE_PROFILE: "shopOwner.updateProfile",
+    FORGOT_PASSWORD: "shopOwner.forgotPassword",
+    RESET_PASSWORD: "shopOwner.resetPassword",
+  },
+  BUSINESS_CATEGORY: {
+    CREATE_BUSINESS_CATEGORY: "businessCategory.create",
+    GET_ALL_BUSINESS_CATEGORIES: "businessCategory.getAll",
+    GET_BUSINESS_CATEGORY_BY_ID: "businessCategory.getById",
+    UPDATE_BUSINESS_CATEGORY: "businessCategory.update",
+    DELETE_BUSINESS_CATEGORY: "businessCategory.delete",
+    UPDATE_STATUS: "businessCategory.updateStatus",
+  },
+  MERCHANT_DISCOUNT: {
+    CREATE_DISCOUNT: "merchantDiscount.create",
+    GET_ALL_DISCOUNTS: "merchantDiscount.getAll",
+    GET_DISCOUNT_BY_ID: "merchantDiscount.getById",
+    UPDATE_DISCOUNT: "merchantDiscount.update",
+    DELETE_DISCOUNT: "merchantDiscount.delete",
+    UPDATE_STATUS: "merchantDiscount.updateStatus",
+  },
+  PRODUCT_DISCOUNT: {
+    CREATE_DISCOUNT: "productDiscount.create",
+    GET_ALL_DISCOUNTS: "productDiscount.getAll",
+    GET_DISCOUNT_BY_ID: "productDiscount.getById",
+    UPDATE_DISCOUNT: "productDiscount.update",
+    DELETE_DISCOUNT: "productDiscount.delete",
+    UPDATE_STATUS: "productDiscount.updateStatus",
+  },
+  PRODUCT_CATEGORY: {
+    CREATE_CATEGORY: "productCategory.create",
+    GET_ALL_CATEGORIES: "productCategory.getAll",
+    GET_CATEGORY_BY_ID: "productCategory.getById",
+    UPDATE_CATEGORY: "productCategory.update",
+    DELETE_CATEGORY: "productCategory.delete",
+    UPDATE_STATUS: "productCategory.updateStatus",
+    REORDER_CATEGORIES: "productCategory.reorder", // ✅ New pattern for rearranging
+  },
+  DELIVERY_CHARGE: {
+    CREATE_DELIVERY_CHARGE: "deliveryCharge.create",
+    GET_DELIVERY_CHARGE_BY_MERCHANT: "deliveryCharge.getByMerchant",
+    UPDATE_DELIVERY_CHARGE: "deliveryCharge.update",
+    DELETE_DELIVERY_CHARGE: "deliveryCharge.delete",
+  },
+};
