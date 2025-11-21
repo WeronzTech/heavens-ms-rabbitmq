@@ -38,6 +38,13 @@ const startServer = async () => {
 
     // ✅ STEP 2: Dynamically import controllers AFTER the connection is ready.
     console.log("[ORDER] Setting up RabbitMQ responders...");
+    // ... inside startServer function ...
+    await import("./controllers/merchant.controller.js");
+    await import("./controllers/shopOwner.controller.js");
+    await import("./controllers/businessCategory.controller.js");
+    await import("./controllers/merchantDiscount.controller.js");
+    await import("./controllers/productDiscount.controller.js");
+    await import("./controllers/productCategory.controller.js");
     console.log("[ORDER] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

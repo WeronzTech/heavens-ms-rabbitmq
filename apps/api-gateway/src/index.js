@@ -52,6 +52,15 @@ import accountingRoutes from "./routes/accounts/accounting.routes.js";
 import reportRoutes from "./routes/accounts/reports.routes.js";
 import coaRoutes from "./routes/accounts/chartOfAccounts.routes.js";
 import accountSettingRoutes from "./routes/accounts/accountSetting.routes.js";
+import shopOwnerRoutes from "./routes/order/shopOwner.routes.js";
+import businessCategoryRoutes from "./routes/order/businessCategory.routes.js";
+import merchantRoutes from "./routes/order/merchant.routes.js";
+import productCategoryRoutes from "./routes/order/productCategory.routes.js";
+import productRoutes from "./routes/order/product.routes.js";
+import merchantDiscountRoutes from "./routes/order/merchantDiscount.routes.js";
+import productDiscountRoutes from "./routes/order/productDiscount.routes.js";
+import deliveryChargeRoutes from "./routes/order/deliveryCharge.routes.js";
+import orderRoutes from "./routes/order/order.routes.js";
 
 dotenv.config();
 const app = express();
@@ -137,7 +146,15 @@ app.use("/api/v2/accounting", accountingRoutes);
 app.use("/api/v2/reports", reportRoutes);
 app.use("/api/v2/chart-of-accounts", coaRoutes);
 app.use("/api/v2/account-settings", accountSettingRoutes);
-
+app.use("/api/v2/order/shop-owner", shopOwnerRoutes);
+app.use("/api/v2/order/business-category", businessCategoryRoutes);
+app.use("/api/v2/order/merchant", merchantRoutes);
+app.use("/api/v2/order/product-category", productCategoryRoutes);
+app.use("/api/v2/order/product", productRoutes);
+app.use("/api/v2/order/discount/merchant", merchantDiscountRoutes);
+app.use("/api/v2/order/discount/product", productDiscountRoutes);
+app.use("/api/v2/order/delivery-charge", deliveryChargeRoutes);
+app.use("/api/v2/order", orderRoutes);
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK CI/CD is working fine and running." });
