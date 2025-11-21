@@ -108,6 +108,7 @@ export const getAllFeePaymentsController = async (req, res) => {
       paymentMonth,
       paymentYear,
       search,
+      paymentDate,
     } = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
@@ -121,6 +122,7 @@ export const getAllFeePaymentsController = async (req, res) => {
         paymentMonth,
         paymentYear,
         search,
+        paymentDate,
       }
     );
 

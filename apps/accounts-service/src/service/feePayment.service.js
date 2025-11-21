@@ -849,9 +849,9 @@ export const getAllFeePayments = async (data) => {
       paymentMethod,
       paymentMonth,
       paymentYear,
+      paymentDate,
       search,
     } = data;
-
     const filter = {};
 
     // Filter by property
@@ -878,6 +878,17 @@ export const getAllFeePayments = async (data) => {
       const startDate = new Date(paymentYear, paymentMonth - 1, 1); // first day of month
       const endDate = new Date(paymentYear, paymentMonth, 0, 23, 59, 59, 999); // last day of month
       filter.paymentDate = { $gte: startDate, $lte: endDate };
+    }
+
+    if (paymentDate) {
+      const date = new Date(data.paymentDate);
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+
+      filter.paymentDate = {
+        $gte: date,
+        $lt: nextDate,
+      };
     }
 
     // 🔹 Search by name or transactionId (case-insensitive)
