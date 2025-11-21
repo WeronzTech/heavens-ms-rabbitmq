@@ -15,7 +15,8 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 
 export const createOrder = (req, res) => {
   // Attach user ID from auth middleware if needed for customer
-  const payload = { ...req.body, customer: req.userAuth };
+  // customer: req.userAuth
+  const payload = { ...req.body,  };
   return handleRPCAndRespond(res, ORDER_PATTERN.ORDER.CREATE_ORDER, payload);
 };
 

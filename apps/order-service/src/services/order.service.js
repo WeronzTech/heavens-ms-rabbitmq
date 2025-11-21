@@ -5,7 +5,7 @@ import {
   razorpayRefund,
 } from "../utils/razorpay.js"; // Assuming this path based on structure
 
-export const createOrder = async ({ data }) => {
+export const createOrder = async ( data ) => {
   try {
     const {
       customer,
@@ -16,8 +16,7 @@ export const createOrder = async ({ data }) => {
       deliveryAddress,
       instructions,
     } = data;
-
-    // 1. Basic Validation
+    console.log(data)
     if (!customer || !items || items.length === 0 || !bill) {
       return { status: 400, message: "Missing required order details." };
     }

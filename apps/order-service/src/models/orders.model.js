@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"
 
 // 1. Simplified Item Schema
 // Keeps essential details to lock in the price/name at the time of purchase.
@@ -108,4 +108,5 @@ const orderSchema = new mongoose.Schema(
 );
 
 const Order = mongoose.model("Order", orderSchema);
-module.exports = Order;
+
+export default Order;

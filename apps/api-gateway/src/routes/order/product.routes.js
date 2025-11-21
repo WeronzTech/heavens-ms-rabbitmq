@@ -14,14 +14,15 @@ const productRoutes = Router();
 
 productRoutes.get("/category", getProductsByCategory);
 productRoutes.get("/:id", getProductById);
-
-productRoutes.use(isAuthenticated);
-
 productRoutes.post(
   "/",
   upload.fields([{ name: "productImage", maxCount: 1 }]),
   createProduct
 );
+
+productRoutes.use(isAuthenticated);
+
+
 productRoutes.put(
   "/:id",
   upload.fields([{ name: "productImage", maxCount: 1 }]),

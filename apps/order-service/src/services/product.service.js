@@ -1,6 +1,6 @@
-import Product from "../models/products.js";
-import MerchantDiscount from "../models/merchantDiscount.js";
-import ProductDiscount from "../models/productDiscount.js";
+import Product from "../models/products.model.js";
+import MerchantDiscount from "../models/merchantDiscount.model.js";
+import ProductDiscount from "../models/productDiscount.model.js";
 import {
   uploadToFirebase,
   deleteFromFirebase,
@@ -74,7 +74,8 @@ const calculateFinalPrice = (product, merchantDiscount) => {
 
 // --- CRUD Operations ---
 
-export const createProduct = async ({ data }) => {
+export const createProduct = async ( data ) => {
+  console.log(data)
   try {
     const {
       productName,
@@ -137,7 +138,7 @@ export const createProduct = async ({ data }) => {
   }
 };
 
-export const getProductsByCategory = async ({ data }) => {
+export const getProductsByCategory = async (data) => {
   try {
     const { categoryId, merchantId } = data;
 

@@ -261,9 +261,9 @@ export const updateShopStatus = async ({ data }) => {
   }
 };
 
-export const getAllMerchants = async ({ data }) => {
+export const getAllMerchants = async ( data) => {
   try {
-    const { status, isApproved, page = 1, limit = 10, propertyId } = data;
+    const { status,isApproved, page = 1, limit = 10, propertyId } = data;
     const query = {};
 
     if (status !== undefined) query.status = status;

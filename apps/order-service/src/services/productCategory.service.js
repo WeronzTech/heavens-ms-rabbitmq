@@ -62,7 +62,7 @@ export const createProductCategory = async ( data ) => {
   }
 };
 
-export const getAllProductCategories = async ({ data }) => {
+export const getAllProductCategories = async ( data ) => {
   try {
     const { merchantId, page = 1, limit = 10, status } = data;
     const query = {};
