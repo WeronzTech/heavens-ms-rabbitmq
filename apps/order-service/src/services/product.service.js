@@ -5,8 +5,6 @@ import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import Product from "../models/products.model.js";
-import MerchantDiscount from "../models/merchantDiscount.model.js";
 
 // --- Helper: Calculate Discounted Price ---
 const calculateFinalPrice = (product, merchantDiscount) => {
