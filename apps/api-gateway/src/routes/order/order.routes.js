@@ -1,0 +1,23 @@
+import { Router } from "express";
+import {
+  createOrder,
+  getOrderById,
+  getOrdersByCustomer,
+  getOrdersByMerchant,
+  updateOrderStatus,
+  verifyPayment,
+} from "../../controllers/order/order.controller.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+
+const orderRoutes = Router();
+
+orderRoutes.use(isAuthenticated);
+
+orderRoutes.post("/", createOrder);
+orderRoutes.post("/verify-payment", verifyPayment);
+orderRoutes.get("/my-orders", getOrdersByCustomer);
+orderRoutes.get("/merchant/:merchantId", getOrdersByMerchant);
+orderRoutes.get("/:id", getOrderById);
+orderRoutes.put("/:id/status", updateOrderStatus);
+
+export default orderRoutes;
