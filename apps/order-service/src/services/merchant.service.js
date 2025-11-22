@@ -203,13 +203,14 @@ export const deleteMerchant = async ({ data }) => {
 export const getMerchantByShopOwnerId = async (data) => {
   try {
     const { shopOwnerId } = data;
-    const merchant = await Merchant.findOne({ shopOwnerId });
 
-    if (!merchant) {
-      return { status: 404, message: "Merchant not found for this owner" };
+    const merchants = await Merchant.find({ shopOwnerId });
+
+    if (!merchants || merchants.length === 0) {
+      return { status: 404, message: "No merchants found for this owner" };
     }
 
-    return { status: 200, data: { merchant } };
+    return { status: 200, data: { merchants } };
   } catch (error) {
     return { status: 500, message: error.message };
   }

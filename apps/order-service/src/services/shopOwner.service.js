@@ -4,8 +4,6 @@ import crypto from "crypto";
 
 // --- Register Shop Owner ---
 export const registerShopOwner = async (data) => {
-  console.log(data);
-
   try {
     const { fullName, email, phoneNumber, password } = data;
     console.log(data);
@@ -64,11 +62,11 @@ export const loginShopOwner = async (data) => {
       return { status: 404, message: "User does not exist" };
     }
 
-    // const isPasswordValid = await shopOwner.isPasswordCorrect(password);
+    const isPasswordValid = await shopOwner.isPasswordCorrect(password);
 
-    // if (!isPasswordValid) {
-    //   return { status: 401, message: "Invalid user credentials" };
-    // }
+    if (!isPasswordValid) {
+      return { status: 401, message: "Invalid user credentials" };
+    }
 
     // Generate Tokens
     const accessToken = shopOwner.generateAccessToken();
@@ -88,6 +86,8 @@ export const loginShopOwner = async (data) => {
       data: {
         message: "Login successful",
         user: loggedInUser,
+        accessToken,
+        refreshToken,
       },
     };
   } catch (error) {
@@ -97,29 +97,34 @@ export const loginShopOwner = async (data) => {
 };
 
 // --- Refresh Access Token ---
-export const refreshAccessToken = async ({ data }) => {
+export const refreshAccessToken = async (data) => {
   try {
-    const { refreshToken: incomingRefreshToken } = data;
+    const incomingRefreshToken =
+      data.refreshToken || (data.data && data.data.refreshToken);
+
+    console.log("Incoming token:", incomingRefreshToken);
 
     if (!incomingRefreshToken) {
       return { status: 401, message: "Unauthorized request" };
     }
 
-    const decodedToken = jwt.verify(
+    // Verify token
+    const decoded = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
 
-    const shopOwner = await ShopOwner.findById(decodedToken?._id);
-
+    const shopOwner = await ShopOwner.findById(decoded._id);
     if (!shopOwner) {
       return { status: 401, message: "Invalid refresh token" };
     }
 
+    // Check rotation
     if (incomingRefreshToken !== shopOwner.refreshToken) {
-      return { status: 401, message: "Refresh token is expired or used" };
+      return { status: 401, message: "Refresh token expired or reused" };
     }
 
+    // Generate new tokens
     const accessToken = shopOwner.generateAccessToken();
     const newRefreshToken = shopOwner.generateRefreshToken();
 
@@ -135,7 +140,11 @@ export const refreshAccessToken = async ({ data }) => {
       },
     };
   } catch (error) {
-    return { status: 401, message: error?.message || "Invalid refresh token" };
+    if (error.name === "TokenExpiredError") {
+      return { status: 403, message: "Refresh token expired" };
+    }
+
+    return { status: 401, message: error.message || "Invalid refresh token" };
   }
 };
 
