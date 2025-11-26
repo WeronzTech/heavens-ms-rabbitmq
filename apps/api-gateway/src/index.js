@@ -61,6 +61,7 @@ import merchantDiscountRoutes from "./routes/order/merchantDiscount.routes.js";
 import productDiscountRoutes from "./routes/order/productDiscount.routes.js";
 import deliveryChargeRoutes from "./routes/order/deliveryCharge.routes.js";
 import orderRoutes from "./routes/order/order.routes.js";
+import dailyInventoryRoutes from "./routes/inventory/dailyInventoryRequirement.routes.js";
 
 dotenv.config();
 const app = express();
@@ -78,7 +79,7 @@ app.use(
       "http://192.168.1.75:8082",
       "http://192.168.1.80:5173",
       "http://localhost:8082",
-      "http://192.168.1.73:5173/"
+      "http://192.168.1.73:5173/",
     ],
     credentials: true,
   })
@@ -113,6 +114,7 @@ app.use("/api/v2/inventory/mess-booking", messBookingRoutes);
 app.use("/api/v2/inventory/kitchen", kitchenRoutes);
 app.use("/api/v2/inventory/inventorylogs", inventoryLogRoutes);
 app.use("/api/v2/inventory", inventoryRoutes);
+app.use("/api/v2/inventory/daily-requirement", dailyInventoryRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);

@@ -4,13 +4,21 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const getRazorpayInstance = (keyId, keySecret) => {
+  return new Razorpay({
+    key_id: keyId || process.env.RAZORPAY_KEY_ID,
+    key_secret: keySecret || process.env.RAZORPAY_KEY_SECRET,
+  });
+};
 
-const createRazorpayOrderId = async (amount) => {
+const createRazorpayOrderId = async (
+  amount,
+  keyId = null,
+  keySecret = null
+) => {
   try {
+    const razorpay = getRazorpayInstance(keyId, keySecret);
+
     const options = {
       amount: amount * 100,
       currency: "INR",
@@ -27,21 +35,29 @@ const createRazorpayOrderId = async (amount) => {
   }
 };
 
-const verifyPayment = async (paymentDetails) => {
+const verifyPayment = async (paymentDetails, keySecret = null) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
     paymentDetails;
 
+  const secret = keySecret || process.env.RAZORPAY_KEY_SECRET;
+
   const body = razorpay_order_id + "|" + razorpay_payment_id;
   const expectedSignature = crypto
-    .createHmac("sha256", razorpay.key_secret)
+    .createHmac("sha256", secret)
     .update(body.toString())
     .digest("hex");
 
   return expectedSignature === razorpay_signature;
 };
 
-const razorpayRefund = async (paymentId, amount) => {
+const razorpayRefund = async (
+  paymentId,
+  amount,
+  keyId = null,
+  keySecret = null
+) => {
   try {
+    const razorpay = getRazorpayInstance(keyId, keySecret);
     const refund = await razorpay.payments.refund(paymentId, {
       amount: amount * 100,
       speed: "normal",
@@ -54,8 +70,9 @@ const razorpayRefund = async (paymentId, amount) => {
   }
 };
 
-const createRazorpayQrCode = async (amount) => {
+const createRazorpayQrCode = async (amount, keyId = null, keySecret = null) => {
   try {
+    const razorpay = getRazorpayInstance(keyId, keySecret);
     const twoMinutesLater = Math.floor(Date.now() / 1000) + 120;
 
     const qrCode = await razorpay.qrCode.create({
@@ -79,8 +96,9 @@ const createRazorpayQrCode = async (amount) => {
   }
 };
 
-const createSettlement = async () => {
+const createSettlement = async (keyId = null, keySecret = null) => {
   try {
+    const razorpay = getRazorpayInstance(keyId, keySecret);
     const settlement = await razorpay.settlements.createOndemandSettlement({
       settle_full_balance: true,
       description: "Settling full payments",

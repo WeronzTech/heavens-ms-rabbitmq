@@ -72,6 +72,7 @@ export const createProperty = async (data) => {
       adminName,
       totalFloors,
       clientId,
+      razorpayCredentials,
       ...rest
     } = data;
     // console.log(data);
@@ -99,6 +100,7 @@ export const createProperty = async (data) => {
       deposit,
       kitchenId,
       clientId,
+      razorpayCredentials,
       images,
     };
 
@@ -150,6 +152,7 @@ export const updateProperty = async (data) => {
       kitchenId,
       images,
       adminName,
+      razorpayCredentials,
       ...rest
     } = data;
     console.log(data);
@@ -176,6 +179,7 @@ export const updateProperty = async (data) => {
       totalFloors,
       deposit,
       kitchenId,
+      razorpayCredentials,
       images,
     };
 
