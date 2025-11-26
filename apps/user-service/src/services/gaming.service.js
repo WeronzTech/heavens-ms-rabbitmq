@@ -6,9 +6,49 @@ import {
   createRazorpayOrderId,
   verifyPayment,
 } from "../../../../libs/common/razorpay.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import GamingItem from "../models/gamingItem.model.js";
 import GamingOrder from "../models/gamingOrder.model.js";
 import User from "../models/user.model.js";
+
+const getRazorpayCredentialsForUser = async (userId) => {
+  try {
+    if (!userId) return { keyId: null, keySecret: null };
+
+    // 1. Get User to find Property ID
+    // Since we are inside user-service, we can directly query the User model
+    // instead of making an RPC call to itself.
+    const user = await User.findById(userId).select("stayDetails");
+
+    if (user && user.stayDetails?.propertyId) {
+      const propertyId = user.stayDetails.propertyId;
+
+      // 2. Get Property via RPC to find Credentials
+      const propertyResponse = await sendRPCRequest(
+        PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+        { id: propertyId }
+      );
+
+      if (
+        propertyResponse.success &&
+        propertyResponse.data?.razorpayCredentials?.keyId &&
+        propertyResponse.data?.razorpayCredentials?.keySecret
+      ) {
+        return {
+          keyId: propertyResponse.data.razorpayCredentials.keyId,
+          keySecret: propertyResponse.data.razorpayCredentials.keySecret,
+        };
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Error fetching Razorpay credentials for gaming order:",
+      error
+    );
+  }
+  // Return nulls to fallback to env vars in razorpay utils
+  return { keyId: null, keySecret: null };
+};
 
 export const createGamingItem = async (data) => {
   try {
@@ -66,7 +106,7 @@ export const getGamingItemById = async ({ itemId }) => {
 export const updateGamingItem = async (data) => {
   try {
     const { itemId, itemImage, ...updateData } = data;
-     const oldGamingItem = await GamingItem.findById(itemId);
+    const oldGamingItem = await GamingItem.findById(itemId);
 
     // ✅ FIX: Only process image if it exists and has buffer data
     if (itemImage && itemImage.buffer) {
@@ -78,7 +118,7 @@ export const updateGamingItem = async (data) => {
 
       const itemImageURL = await uploadToFirebase(file, "gaming-images");
       updateData.itemImage = itemImageURL;
-       await deleteFromFirebase(oldGamingItem.itemImage);
+      await deleteFromFirebase(oldGamingItem.itemImage);
     }
     // ✅ If no new image is provided, the existing image remains unchanged
 
@@ -161,8 +201,14 @@ export const initiateGamingOrder = async ({
       };
     }
 
+    const { keyId, keySecret } = await getRazorpayCredentialsForUser(userId);
+
     // Create the payment order with Razorpay/mock service
-    const paymentResponse = await createRazorpayOrderId(finalPrice);
+    const paymentResponse = await createRazorpayOrderId(
+      finalPrice,
+      keyId,
+      keySecret
+    );
     if (!paymentResponse.success) {
       return {
         success: false,
@@ -190,7 +236,12 @@ export const initiateGamingOrder = async ({
       success: true,
       status: 201,
       message: "Gaming order initiated successfully.",
-      data: newOrder,
+      data: {
+        ...newOrder.toObject(),
+        // --- UPDATE START: Return correct Key ID for frontend ---
+        keyId: keyId || process.env.RAZORPAY_KEY_ID,
+        // --- UPDATE END ---
+      },
     };
   } catch (error) {
     console.error("Initiate Gaming Order Service Error:", error);
@@ -225,12 +276,16 @@ export const verifyPaymentAndConfirmOrder = async (data) => {
       };
     }
 
+    const { keySecret } = await getRazorpayCredentialsForUser(order.userId);
     // Verify the payment signature
-    const isPaymentValid = await verifyPayment({
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-    });
+    const isPaymentValid = await verifyPayment(
+      {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+      },
+      keySecret
+    );
 
     if (!isPaymentValid) {
       // If payment fails, delete the preliminary order to prevent clutter

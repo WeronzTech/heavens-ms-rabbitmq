@@ -50,6 +50,10 @@ const propertySchema = new mongoose.Schema({
     required: false,
   },
   kitchenId: { type: mongoose.Schema.Types.ObjectId, required: false },
+  razorpayCredentials: {
+    keyId: { type: String, required: false },
+    keySecret: { type: String, required: false },
+  },
 });
 
 propertySchema.pre("save", async function (next) {

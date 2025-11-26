@@ -10,6 +10,7 @@ import { createAccountLog } from "./accountsLog.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
 import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -340,6 +341,24 @@ export const initiateOnlineDepositPayment = async (data) => {
     }
     const user = userResponse.body.data;
 
+    const propertyId = user.stayDetails?.propertyId;
+    let keyId = null;
+    let keySecret = null;
+
+    if (propertyId) {
+      const propertyResponse = await sendRPCRequest(
+        PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+        { id: propertyId }
+      );
+      if (
+        propertyResponse.success &&
+        propertyResponse.data?.razorpayCredentials
+      ) {
+        keyId = propertyResponse.data.razorpayCredentials.keyId;
+        keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+      }
+    }
+
     // ✅ NEW: Validate payment amount before creating Razorpay order
     const { stayDetails } = user;
     const { depositAmountPaid, nonRefundableDeposit, refundableDeposit } =
@@ -357,7 +376,11 @@ export const initiateOnlineDepositPayment = async (data) => {
       };
     }
 
-    const razorpayResponse = await createRazorpayOrderId(paymentAmount);
+    const razorpayResponse = await createRazorpayOrderId(
+      paymentAmount,
+      keyId,
+      keySecret
+    );
     if (!razorpayResponse.success) {
       return {
         success: false,
@@ -374,6 +397,7 @@ export const initiateOnlineDepositPayment = async (data) => {
         orderId: razorpayResponse.orderId,
         amount: paymentAmount,
         name: "Heavens Living",
+        keyId: keyId || process.env.RAZORPAY_KEY_ID,
         prefill: { name: user.name, email: user.email, contact: user.contact },
       },
     };
@@ -392,11 +416,40 @@ export const verifyAndRecordOnlineDepositPayment = async (data) => {
     amount,
   } = data;
 
-  const isVerified = await verifyRazorpaySignature({
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-  });
+  let keySecret = null;
+  try {
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      { userId }
+    );
+    if (userResponse.body.success) {
+      const user = userResponse.body.data;
+      const propertyId = user.stayDetails?.propertyId;
+      if (propertyId) {
+        const propertyResponse = await sendRPCRequest(
+          PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+          { id: propertyId }
+        );
+        if (
+          propertyResponse.success &&
+          propertyResponse.data?.razorpayCredentials
+        ) {
+          keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching property credentials:", error);
+  }
+
+  const isVerified = await verifyRazorpaySignature(
+    {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    },
+    keySecret
+  );
   if (!isVerified) {
     return {
       success: false,
