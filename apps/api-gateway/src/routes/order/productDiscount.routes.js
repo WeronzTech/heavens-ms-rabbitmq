@@ -14,8 +14,8 @@ const productDiscountRoutes = Router();
 productDiscountRoutes.get("/", getAllProductDiscounts);
 productDiscountRoutes.get("/:id", getProductDiscountById);
 
-productDiscountRoutes.use(isAuthenticated);
 productDiscountRoutes.post("/", createProductDiscount);
+productDiscountRoutes.use(isAuthenticated);
 productDiscountRoutes.put("/:id", updateProductDiscount);
 productDiscountRoutes.patch("/:id/status", updateProductDiscountStatus);
 productDiscountRoutes.delete("/:id", deleteProductDiscount);

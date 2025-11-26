@@ -35,8 +35,6 @@ merchantRoutes.get("/shop-owner/:shopOwnerId", getMerchantByShopOwner);
 
 merchantRoutes.use(isAuthenticated);
 
-merchantRoutes.use(isAuthenticated);
-
 merchantRoutes.put(
   "/:id",
   upload.fields([

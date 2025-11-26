@@ -8,7 +8,7 @@ const productCategorySchema = mongoose.Schema(
       required: true,
     },
     merchantId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Merchant",
       required: true,
     },
@@ -20,12 +20,12 @@ const productCategorySchema = mongoose.Schema(
       type: String,
       default: null,
     },
-    type: {
-      type: String,
-      enum: ["Veg", "Non-veg", "Both"],
-      default: "veg",
-      required: true,
-    },
+    // type: {
+    //   type: String,
+    //   enum: ["Veg", "Non-veg"],
+    //   default: "veg",
+    //   required: true,
+    // },
     categoryImageURL: {
       type: String,
       default: null,

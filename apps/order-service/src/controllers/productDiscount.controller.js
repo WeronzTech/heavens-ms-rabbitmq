@@ -12,6 +12,7 @@ import {
 createResponder(
   ORDER_PATTERN.PRODUCT_DISCOUNT.CREATE_DISCOUNT,
   async (data) => {
+    console.log(data);
     return await createProductDiscount(data);
   }
 );
