@@ -477,16 +477,15 @@ export const getCategoryByMainCategory = async (data) => {
   try {
     const { mainCategory } = data;
 
-    if (!mainCategory) {
-      return {
-        success: false,
-        status: 400,
-        message: "Main category is required",
-      };
+    let query = {};
+
+    // If mainCategory is provided, filter by it
+    if (mainCategory) {
+      query.mainCategory = mainCategory;
     }
 
-    // ✅ Query DB instead of recursive call
-    const categories = await ExpenseCategory.find({ mainCategory });
+    // If mainCategory is NOT provided → query = {} → returns all
+    const categories = await ExpenseCategory.find(query);
 
     return {
       success: true,
@@ -498,8 +497,7 @@ export const getCategoryByMainCategory = async (data) => {
     return {
       success: false,
       status: 500,
-      message:
-        "An internal server error occurred while fetching categories by main category.",
+      message: "An internal server error occurred while fetching categories.",
     };
   }
 };
