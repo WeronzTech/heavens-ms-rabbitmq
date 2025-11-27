@@ -7,6 +7,7 @@ import {
   updateProduct,
   deleteProduct,
   reorderProducts,
+  getMerchantProducts,
 } from "../services/product.service.js";
 
 createResponder(ORDER_PATTERN.PRODUCT.CREATE_PRODUCT, async (data) => {
@@ -19,6 +20,10 @@ createResponder(
     return await getProductsByCategory(data);
   }
 );
+
+createResponder(ORDER_PATTERN.PRODUCT.GET_MERCHANT_PRODUCTS, async (data) => {
+  return await getMerchantProducts(data);
+});
 
 createResponder(ORDER_PATTERN.PRODUCT.GET_PRODUCT_BY_ID, async (data) => {
   return await getProductById(data);

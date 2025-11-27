@@ -71,6 +71,13 @@ export const INVENTORY_PATTERN = {
     DOWNLOAD_DEAD_STOCK_REPORT: "inventory_download_dead_stock_report",
     DOWNLOAD_WEEKLY_USAGE_REPORT: "inventory_download_weekly_usage_report",
   },
+  DAILY_REQUIREMENT: {
+    GET: "inventory_get_daily_requirements",
+    ADD: "inventory_add_daily_requirement",
+    UPDATE: "inventory_update_daily_requirement",
+    APPROVE: "inventory_approve_daily_requirement",
+    REJECT: "inventory_reject_daily_requirement",
+  },
   INTERNAL: {
     GET_ACCESSIBLE_KITCHENS: "inventory_internal_get_accessible_kitchens",
   },

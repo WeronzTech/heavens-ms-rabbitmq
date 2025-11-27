@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createProduct,
   deleteProduct,
+  getMerchantProducts,
   getProductById,
   getProductsByCategory,
   reorderProducts,
@@ -12,7 +13,9 @@ import { upload } from "../../../../../libs/common/imageOperation.js";
 
 const productRoutes = Router();
 
+productRoutes.get("/", getMerchantProducts);
 productRoutes.get("/category", getProductsByCategory);
+
 productRoutes.get("/:id", getProductById);
 productRoutes.post(
   "/",
@@ -21,7 +24,6 @@ productRoutes.post(
 );
 
 productRoutes.use(isAuthenticated);
-
 
 productRoutes.put(
   "/:id",

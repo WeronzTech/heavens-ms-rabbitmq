@@ -11,6 +11,7 @@ export const ORDER_PATTERN = {
   PRODUCT: {
     CREATE_PRODUCT: "product.create",
     GET_PRODUCTS_BY_CATEGORY: "product.getByCategory",
+    GET_MERCHANT_PRODUCTS: "product.getMerchantProducts",
     GET_PRODUCT_BY_ID: "product.getById",
     UPDATE_PRODUCT: "product.update",
     DELETE_PRODUCT: "product.delete",

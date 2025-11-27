@@ -5,6 +5,7 @@ import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
+import ProductCategory from "../models/productCategory.model.js";
 
 // --- Helper: Calculate Discounted Price ---
 const calculateFinalPrice = (product, merchantDiscount) => {
@@ -138,14 +139,58 @@ export const createProduct = async (data) => {
   }
 };
 
+// export const getProductsByCategory = async (data) => {
+//   try {
+//     const { categoryId, merchantId, search } = data;
+//     console.log(data);
+
+//     // 1. Fetch active Merchant Discount
+//     const now = new Date();
+//     const merchantDiscount = await MerchantDiscount.findOne({
+//       merchantId,
+//       status: true,
+//       validFrom: { $lte: now },
+//       validTo: { $gte: now },
+//     }).sort({ createdAt: -1 }); // Get latest if multiple
+
+//     const productFilter = { categoryId };
+
+//     if (search && search.trim() !== "") {
+//       productFilter.productName = { $regex: search, $options: "i" };
+//     }
+
+//     // 2. Fetch Products sorted by Order
+//     // Populate discountId to check for product-specific discounts
+//     const products = await Product.find(productFilter)
+//       .sort({ order: 1 })
+//       .populate("discountId");
+
+//     // 3. Process each product to calculate price
+//     const processedProducts = products.map((product) =>
+//       calculateFinalPrice(product, merchantDiscount)
+//     );
+
+//     return {
+//       status: 200,
+//       data: {
+//         products: processedProducts,
+//       },
+//     };
+//   } catch (error) {
+//     console.error("RPC Get Products By Category Error:", error);
+//     return { status: 500, message: error.message };
+//   }
+// };
+
 export const getProductsByCategory = async (data) => {
   try {
-    const { categoryId, merchantId } = data;
+    const { categoryId, merchantId, search } = data;
+    console.log(data);
 
-    if (!categoryId || !merchantId) {
+    if (!merchantId) {
       return {
         status: 400,
-        message: "Category ID and Merchant ID are required",
+        message: "Merchant ID is required",
       };
     }
 
@@ -156,15 +201,31 @@ export const getProductsByCategory = async (data) => {
       status: true,
       validFrom: { $lte: now },
       validTo: { $gte: now },
-    }).sort({ createdAt: -1 }); // Get latest if multiple
+    }).sort({ createdAt: -1 });
 
-    // 2. Fetch Products sorted by Order
-    // Populate discountId to check for product-specific discounts
-    const products = await Product.find({ categoryId })
+    // Build filter
+    const productFilter = { merchantId }; // Always filter by merchant
+
+    // Optional category filter
+    if (categoryId) {
+      productFilter.categoryId = categoryId;
+    }
+
+    // Optional search filter
+    if (search && search.trim() !== "") {
+      productFilter.productName = { $regex: search, $options: "i" };
+    }
+
+    // 2. Fetch Products
+    const products = await Product.find(productFilter)
       .sort({ order: 1 })
-      .populate("discountId");
+      .populate("discountId")
+      .populate({
+        path: "categoryId",
+        select: "categoryName",
+      });
 
-    // 3. Process each product to calculate price
+    // 3. Apply discount calculation
     const processedProducts = products.map((product) =>
       calculateFinalPrice(product, merchantDiscount)
     );
@@ -178,6 +239,56 @@ export const getProductsByCategory = async (data) => {
   } catch (error) {
     console.error("RPC Get Products By Category Error:", error);
     return { status: 500, message: error.message };
+  }
+};
+
+export const getMerchantProducts = async (data) => {
+  try {
+    const { merchantId, categoryId, search } = data;
+
+    if (!merchantId) {
+      return {
+        status: 400,
+        message: "merchantId is required",
+      };
+    }
+
+    // Build query
+    const query = { merchantId };
+
+    if (categoryId) {
+      query.categoryId = categoryId;
+    }
+
+    if (search) {
+      query.productName = { $regex: search, $options: "i" };
+    }
+
+    // Fetch products
+    const products = await Product.find(query).lean();
+
+    // Extract categories used in these products
+    const categoryIds = [
+      ...new Set(products.map((p) => p.categoryId?.toString())),
+    ];
+
+    const categories = await ProductCategory.find({
+      _id: { $in: categoryIds },
+    }).lean();
+
+    return {
+      status: 200,
+      data: {
+        categories,
+        products,
+      },
+    };
+  } catch (error) {
+    console.error("Get Merchant Products Error:", error);
+    return {
+      status: 500,
+      message: error.message,
+    };
   }
 };
 

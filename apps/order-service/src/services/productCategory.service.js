@@ -3,20 +3,84 @@ import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
+import Merchant from "../models/merchant.model.js";
 
-export const createProductCategory = async ( data ) => {
+// export const createProductCategory = async (data) => {
+//   try {
+//     const { merchantId, categoryName, description, type, order, file } = data;
+
+//     // Check if category name already exists for this merchant
+//     const existingCategory = await ProductCategory.findOne({
+//       merchantId,
+//       categoryName,
+//     });
+
+//     if (existingCategory) {
+//       return {
+//         status: 409,
+//         message: "Category with this name already exists for this merchant",
+//       };
+//     }
+
+//     let categoryImageURL = "";
+//     if (file?.categoryImage && file?.categoryImage[0]?.buffer) {
+//       const imageFile = {
+//         buffer: Buffer.from(file.categoryImage[0].buffer, "base64"),
+//         mimetype: file.categoryImage[0].mimetype,
+//         originalname: file.categoryImage[0].originalname,
+//       };
+//       categoryImageURL = await uploadToFirebase(imageFile, "productCategory");
+//     }
+
+//     const newCategory = await ProductCategory.create({
+//       businessCategoryId,
+//       merchantId,
+//       categoryName,
+//       description,
+//       type,
+//       categoryImageURL,
+//       order: parseInt(order), // Ensure order is a number
+//     });
+
+//     return {
+//       status: 201,
+//       data: {
+//         message: "Product category created successfully",
+//         category: newCategory,
+//       },
+//     };
+//   } catch (error) {
+//     console.error("RPC Create Product Category Error:", error);
+//     return { status: 500, message: error.message };
+//   }
+// };
+
+export const createProductCategory = async (data) => {
   try {
-    const {
-      businessCategoryId,
-      merchantId,
-      categoryName,
-      description,
-      type,
-      order,
-      file,
-    } = data;
+    const { merchantId, categoryName, description, type, order, file } = data;
+    console.log(data);
+    // 1️⃣ Validate merchant exists
+    const merchant = await Merchant.findById(merchantId);
+    console.log(merchant);
 
-    // Check if category name already exists for this merchant
+    if (!merchant) {
+      return {
+        status: 404,
+        message: "Merchant not found",
+      };
+    }
+
+    // 2️⃣ Extract businessCategoryId from merchant document
+    const businessCategoryId = merchant?.merchantDetail?.businessCategoryId;
+
+    if (!businessCategoryId) {
+      return {
+        status: 400,
+        message: "Merchant does not have a businessCategoryId configured",
+      };
+    }
+
+    // 3️⃣ Check category uniqueness for THIS merchant
     const existingCategory = await ProductCategory.findOne({
       merchantId,
       categoryName,
@@ -29,6 +93,7 @@ export const createProductCategory = async ( data ) => {
       };
     }
 
+    // 4️⃣ Handle image upload if provided
     let categoryImageURL = "";
     if (file?.categoryImage && file?.categoryImage[0]?.buffer) {
       const imageFile = {
@@ -39,6 +104,7 @@ export const createProductCategory = async ( data ) => {
       categoryImageURL = await uploadToFirebase(imageFile, "productCategory");
     }
 
+    // 5️⃣ Create Product Category (businessCategoryId auto injected)
     const newCategory = await ProductCategory.create({
       businessCategoryId,
       merchantId,
@@ -46,7 +112,7 @@ export const createProductCategory = async ( data ) => {
       description,
       type,
       categoryImageURL,
-      order: parseInt(order), // Ensure order is a number
+      order: parseInt(order) || 0,
     });
 
     return {
@@ -62,7 +128,7 @@ export const createProductCategory = async ( data ) => {
   }
 };
 
-export const getAllProductCategories = async ( data ) => {
+export const getAllProductCategories = async (data) => {
   try {
     const { merchantId, page = 1, limit = 10, status } = data;
     const query = {};

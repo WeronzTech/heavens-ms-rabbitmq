@@ -14,7 +14,7 @@ const handleRPCAndRespond = async (res, pattern, data) => {
 };
 
 export const createProduct = (req, res) => {
-  console.log("data:",req.body);
+  console.log("data:", req.body);
   const payload = { ...req.body };
   // Handle File Upload
   if (req.files?.productImage?.[0]) {
@@ -59,6 +59,14 @@ export const getProductsByCategory = (req, res) => {
   return handleRPCAndRespond(
     res,
     ORDER_PATTERN.PRODUCT.GET_PRODUCTS_BY_CATEGORY,
+    req.query
+  );
+};
+
+export const getMerchantProducts = (req, res) => {
+  return handleRPCAndRespond(
+    res,
+    ORDER_PATTERN.PRODUCT.GET_MERCHANT_PRODUCTS,
     req.query
   );
 };

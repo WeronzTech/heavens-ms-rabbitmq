@@ -1,7 +1,8 @@
 import ProductDiscount from "../models/productDiscount.model.js";
 
-export const createProductDiscount = async ({ data }) => {
+export const createProductDiscount = async (data) => {
   try {
+    console.log(data);
     const {
       discountName,
       maxAmount,
@@ -50,7 +51,7 @@ export const createProductDiscount = async ({ data }) => {
   }
 };
 
-export const getAllProductDiscounts = async ({ data }) => {
+export const getAllProductDiscounts = async (data) => {
   try {
     const { merchantId, page = 1, limit = 10, status } = data;
     const query = {};

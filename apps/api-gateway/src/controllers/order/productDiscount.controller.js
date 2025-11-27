@@ -10,12 +10,15 @@ const handleRPCAndRespond = async (res, pattern, data) => {
   }
 };
 
-export const createProductDiscount = (req, res) =>
-  handleRPCAndRespond(
+export const createProductDiscount = (req, res) => {
+  console.log("📥 Incoming Request Body:", req.body);
+
+  return handleRPCAndRespond(
     res,
     ORDER_PATTERN.PRODUCT_DISCOUNT.CREATE_DISCOUNT,
     req.body
   );
+};
 
 export const getAllProductDiscounts = (req, res) =>
   handleRPCAndRespond(

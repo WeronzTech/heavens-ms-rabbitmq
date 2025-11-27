@@ -96,12 +96,17 @@ const productSchema = mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["Veg", "Non-veg", "Other"],
+      enum: ["Veg", "Non-veg"],
       required: true,
     },
     productImageURL: {
       type: String,
       default: null,
+    },
+    merchantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Merchant",
+      required: true,
     },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -109,6 +114,10 @@ const productSchema = mongoose.Schema(
       required: true,
     },
     inventory: {
+      type: Boolean,
+      default: true,
+    },
+    isEnabled: {
       type: Boolean,
       default: true,
     },

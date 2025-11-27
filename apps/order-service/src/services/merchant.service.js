@@ -39,13 +39,13 @@ export const addMerchantDetails = async (data) => {
     const { shopOwnerId, merchantDetail, file } = data;
 
     // Check if merchant already exists for this shop owner
-    const existingMerchant = await Merchant.findOne({ shopOwnerId });
-    if (existingMerchant) {
-      return {
-        status: 400,
-        message: "Merchant already exists for this Shop Owner",
-      };
-    }
+    // const existingMerchant = await Merchant.findOne({ shopOwnerId });
+    // if (existingMerchant) {
+    //   return {
+    //     status: 400,
+    //     message: "Merchant already exists for this Shop Owner",
+    //   };
+    // }
 
     // Handle Image Uploads
     const imageUrls = await handleMerchantImages(file);
@@ -204,7 +204,10 @@ export const getMerchantByShopOwnerId = async (data) => {
   try {
     const { shopOwnerId } = data;
 
-    const merchants = await Merchant.find({ shopOwnerId });
+    const merchants = await Merchant.find({ shopOwnerId }).populate({
+      path: "merchantDetail.businessCategoryId",
+      select: "title",
+    });
 
     if (!merchants || merchants.length === 0) {
       return { status: 404, message: "No merchants found for this owner" };
@@ -216,10 +219,13 @@ export const getMerchantByShopOwnerId = async (data) => {
   }
 };
 
-export const getMerchantById = async ({ data }) => {
+export const getMerchantById = async (data) => {
   try {
     const { merchantId } = data;
-    const merchant = await Merchant.findById(merchantId);
+    const merchant = await Merchant.findById(merchantId).populate({
+      path: "merchantDetail.businessCategoryId",
+      select: "title",
+    });
 
     if (!merchant) {
       return { status: 404, message: "Merchant not found" };

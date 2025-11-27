@@ -72,6 +72,17 @@ export const createAddonBooking = async (data) => {
 
     const kitchenId = property?.data.kitchenId;
 
+    let keyId = null;
+    let keySecret = null;
+    if (
+      property.success &&
+      property.data?.razorpayCredentials?.keyId &&
+      property.data?.razorpayCredentials?.keySecret
+    ) {
+      keyId = property.data.razorpayCredentials.keyId;
+      keySecret = property.data.razorpayCredentials.keySecret;
+    }
+
     if (!propertyId) {
       return {
         success: false,
@@ -96,7 +107,11 @@ export const createAddonBooking = async (data) => {
       processedAddons.push({ ...item, totalPrice });
     }
 
-    const paymentResponse = await createRazorpayOrderId(grandTotalPrice);
+    const paymentResponse = await createRazorpayOrderId(
+      grandTotalPrice,
+      keyId,
+      keySecret
+    );
 
     if (!paymentResponse.success) {
       return {
@@ -124,7 +139,11 @@ export const createAddonBooking = async (data) => {
       success: true,
       status: 201,
       message: "Addon Booking created successfully",
-      data: newBooking,
+      data: {
+        ...newBooking.toObject(),
+        // Return keyId to frontend so checkout opens with correct merchant
+        keyId: keyId || process.env.RAZORPAY_KEY_ID,
+      },
     };
   } catch (error) {
     return { success: false, status: 500, message: error.message };
@@ -154,11 +173,35 @@ export const verifyAddonBookingPayment = async (data) => {
       };
     }
 
-    const isPaymentValid = await verifyPayment({
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-    });
+    let keySecret = null;
+    if (booking.propertyId) {
+      try {
+        const propertyResponse = await sendRPCRequest(
+          PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+          { id: booking.propertyId }
+        );
+        if (
+          propertyResponse.success &&
+          propertyResponse.data?.razorpayCredentials?.keySecret
+        ) {
+          keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+        }
+      } catch (err) {
+        console.error(
+          "Failed to fetch property credentials for verification",
+          err
+        );
+      }
+    }
+
+    const isPaymentValid = await verifyPayment(
+      {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+      },
+      keySecret
+    );
 
     if (!isPaymentValid) {
       await AddonBooking.findByIdAndDelete(booking._id);

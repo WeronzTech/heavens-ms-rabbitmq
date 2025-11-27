@@ -193,6 +193,21 @@ services:
     environment: { NODE_ENV: production }
     depends_on: { rabbitmq: { condition: service_healthy } }
 
+  order-service:
+    image: akhilbeliever001222/heavens-ms:latest
+    <<: *deploy-config
+    command: pm2-runtime ecosystem.config.cjs --only order-service
+    expose: ["8080"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: ["heavens-ms-js-net"]
+    env_file: ./.env
+    environment: { NODE_ENV: production }
+    depends_on: { rabbitmq: { condition: service_healthy } }
   # ===================================================================
   #  3. Infrastructure (No Changes)
   # ===================================================================

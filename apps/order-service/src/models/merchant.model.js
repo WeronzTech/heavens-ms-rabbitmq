@@ -111,6 +111,14 @@ const merchantDetailSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    contactNumber: {
+      type: String,
+      default: null,
+    },
+    email: {
+      type: String,
+      default: null,
+    },
     merchantImageURL: {
       type: String,
       default: null,
@@ -165,12 +173,10 @@ const merchantDetailSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    businessCategoryId: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "BusinessCategory",
-      },
-    ],
+    businessCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BusinessCategory",
+    },
     merchantFoodType: {
       type: String,
       enum: ["Veg", "Non-veg", "Both", " "],
