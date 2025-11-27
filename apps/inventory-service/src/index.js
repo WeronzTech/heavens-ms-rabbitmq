@@ -81,6 +81,7 @@ const startServer = async () => {
     await import("./controllers/category.controller.js");
     await import("./controllers/addonBooking.controller.js");
     await import("./controllers/addon.controller.js");
+    await import("./controllers/dailyInventoryRequirement.controller.js");
     console.log("[INVENTORY] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

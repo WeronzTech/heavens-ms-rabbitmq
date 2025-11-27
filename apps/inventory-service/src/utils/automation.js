@@ -11,6 +11,7 @@ import { UsageForPreparation } from "../models/usageForPreparation.model.js";
 import Kitchen from "../models/kitchen.model.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import mongoose from "mongoose";
+import DailyInventoryRequirement from "../models/dailyInventoryRequirement.model.js";
 
 export const updateInventoryFromBookings = async () => {
   console.log("Cron job started: Updating inventory for tomorrow's bookings.");
@@ -108,10 +109,10 @@ export const updateInventoryFromBookings = async () => {
       const { kitchenId, addons } = booking;
       for (const addonItem of addons) {
         const addonInfo = await Addon.findById(addonItem.addonId).lean();
-        if (!addonInfo || !addonInfo.recipeId) continue;
+        if (!addonInfo || !addonInfo.itemId) continue;
 
-        // Populate the ingredient names when fetching the recipe.
-        const recipe = await Recipe.findById(addonInfo.recipeId)
+        // Was: const recipe = await Recipe.findById(addonInfo.recipeId)
+        const recipe = await Recipe.findById(addonInfo.itemId)
           .populate({
             path: "ingredients.name",
             model: "Inventory",
@@ -120,7 +121,7 @@ export const updateInventoryFromBookings = async () => {
 
         if (!recipe) {
           console.warn(
-            `Recipe with ID ${addonInfo.recipeId} for an addon not found. Skipping.`
+            `Recipe with ID ${addonInfo.itemId} for an addon not found. Skipping.`
           );
           continue;
         }
@@ -137,75 +138,46 @@ export const updateInventoryFromBookings = async () => {
 
     // 3. Log usage and update inventory for each kitchen
     for (const [kitchenId, ingredientMap] of kitchenIngredientMap.entries()) {
-      console.log(`Updating inventory for Kitchen ID: ${kitchenId}`);
-      // FIX: The key is now the inventoryId, which is much more reliable.
-      for (const [
-        inventoryId,
-        totalQuantityToDeductInBaseUnit,
-      ] of ingredientMap.entries()) {
-        // FIX: Find the inventory item by its unique ID.
-        const inventoryItem = await Inventory.findById(inventoryId);
+      console.log(
+        `Staging inventory requirements for Kitchen ID: ${kitchenId}`
+      );
 
-        if (inventoryItem) {
-          // As a sanity check, ensure the inventory item belongs to the kitchen.
-          const isItemInKitchen = inventoryItem.kitchenId.some(
-            (id) => id.toString() === kitchenId
-          );
+      const itemsArray = [];
 
-          if (!isItemInKitchen) {
-            console.error(
-              `Data mismatch: Inventory item ${inventoryItem.productName} (${inventoryId}) does not belong to kitchen ${kitchenId}.`
-            );
-            continue; // Skip to the next ingredient
-          }
+      for (const [inventoryId, data] of ingredientMap.entries()) {
+        itemsArray.push({
+          inventoryId: new mongoose.Types.ObjectId(inventoryId),
+          productName: data.name,
+          quantityRequired: data.quantity, // Normalized quantity
+          unit: data.baseUnit,
+        });
+      }
 
-          // Step 3a: Log the usage for preparation
-          const normalizedCurrentStock = normalizeQuantity(
-            inventoryItem.stockQuantity,
-            inventoryItem.quantityType
-          );
+      if (itemsArray.length > 0) {
+        // Upsert logic: If a pending requirement exists for this date, update it.
+        // If not, create a new one.
+        const query = {
+          kitchenId: new mongoose.Types.ObjectId(kitchenId),
+          date: tomorrow,
+          status: "Pending", // Only update if it hasn't been approved yet
+        };
 
-          // 3b. Perform subtraction in the common base unit
-          const newStockInBaseUnit =
-            normalizedCurrentStock.value - totalQuantityToDeductInBaseUnit;
+        const update = {
+          $set: {
+            items: itemsArray,
+            generatedBy: "System Cron",
+          },
+        };
 
-          // 3c. Convert the result back to the inventory's original unit
-          const newStockInOriginalUnit = denormalizeQuantity(
-            newStockInBaseUnit,
-            inventoryItem.quantityType
-          );
+        const result = await DailyInventoryRequirement.findOneAndUpdate(
+          query,
+          update,
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
-          // Log the usage with the correct base unit
-          const usageUnit = normalizedCurrentStock.baseUnit;
-          await UsageForPreparation.create({
-            kitchenId: new mongoose.Types.ObjectId(kitchenId),
-            inventoryId: inventoryItem._id,
-            productName: inventoryItem.productName,
-            quantityUsed: totalQuantityToDeductInBaseUnit,
-            unit: usageUnit, // Log with the base unit (g or ml)
-            preparationDate: tomorrow,
-          });
-          console.log(
-            `+ Logged usage of ${totalQuantityToDeductInBaseUnit}${usageUnit} of ${inventoryItem.productName}.`
-          );
-
-          // 3d. Update inventory with the correctly converted stock quantity
-          inventoryItem.stockQuantity = newStockInOriginalUnit;
-          if (inventoryItem.stockQuantity < 0) {
-            console.warn(
-              `Stock for ${inventoryItem.productName} in kitchen ${kitchenId} is now negative. Setting to 0.`
-            );
-            inventoryItem.stockQuantity = 0;
-          }
-          await inventoryItem.save();
-          console.log(
-            `- Deducted from ${inventoryItem.productName}. New stock: ${inventoryItem.stockQuantity}${inventoryItem.quantityType}`
-          );
-        } else {
-          console.error(
-            `Inventory item with ID '${inventoryId}' not found for kitchen ${kitchenId}.`
-          );
-        }
+        console.log(
+          `Requirements staged for Kitchen ${kitchenId}: ${itemsArray.length} items.`
+        );
       }
     }
 
@@ -296,9 +268,10 @@ export const checkInventoryForTomorrow = async () => {
       const { kitchenId, addons } = booking;
       for (const addonItem of addons) {
         const addonInfo = await Addon.findById(addonItem.addonId).lean();
-        if (!addonInfo || !addonInfo.recipeId) continue;
+        if (!addonInfo || !addonInfo.itemId) continue;
 
-        const recipe = await Recipe.findById(addonInfo.recipeId)
+        // Was: const recipe = await Recipe.findById(addonInfo.recipeId)
+        const recipe = await Recipe.findById(addonInfo.itemId)
           .populate({ path: "ingredients.name", model: "Inventory" })
           .lean();
         if (!recipe) continue;
