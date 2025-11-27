@@ -1,3 +1,5 @@
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import Order from "../models/orders.model.js";
 import {
   createRazorpayOrderId,
@@ -105,6 +107,13 @@ export const verifyOrderPayment = async (data) => {
       return { status: 404, message: "Order not found" };
     }
 
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02", order.merchant]; // Admin ID
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "new-order-booking",
+      data: updatedOrder,
+    });
+
     return {
       status: 200,
       data: {
@@ -170,6 +179,13 @@ export const updateOrderStatus = async (data) => {
 
     order.status = status;
     await order.save();
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02", order.customer]; // Admin ID
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "order-status",
+      data: order,
+    });
 
     return {
       status: 200,
