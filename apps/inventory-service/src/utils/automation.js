@@ -59,8 +59,14 @@ export const updateInventoryFromBookings = async () => {
 
       // FIX: Use the inventory ID as the key for aggregation. This is more reliable.
       const key = ingredient.name._id.toString();
-      const currentQuantity = ingredientMap.get(key) || 0;
-      ingredientMap.set(key, currentQuantity + normalized.value);
+      const currentEntry = ingredientMap.get(key) || {
+        quantity: 0,
+        name: ingredient.name.productName,
+        baseUnit: normalized.baseUnit,
+      };
+
+      currentEntry.quantity += normalized.value;
+      ingredientMap.set(key, currentEntry);
     };
 
     // Process Meal Bookings
@@ -97,6 +103,7 @@ export const updateInventoryFromBookings = async () => {
           console.warn(`Recipe with ID ${recipeId} not found. Skipping.`);
           continue;
         }
+        console.log("ingredients", recipe.ingredients);
 
         recipe.ingredients.forEach((ingredient) =>
           addIngredientToMap(kitchenId, ingredient)
@@ -143,8 +150,10 @@ export const updateInventoryFromBookings = async () => {
       );
 
       const itemsArray = [];
+      console.log("Ingredient", ingredientMap);
 
       for (const [inventoryId, data] of ingredientMap.entries()) {
+        console.log("Data---", data);
         itemsArray.push({
           inventoryId: new mongoose.Types.ObjectId(inventoryId),
           productName: data.name,
