@@ -507,10 +507,12 @@ export const rebuildNestedFields = async (flatObject) => {
 
   return result;
 };
+
+// Resolve the promise if updateData is async
 export const processAdminUpdates = async (user, updateData) => {
-  // Await the Promise to get the actual data
   const resolvedUpdateData = await updateData;
 
+  // Handle room reassignment for non-mess-only users
   if (user.userType !== "messOnly" && resolvedUpdateData.stayDetails?.roomId) {
     await handleRoomChange(
       user,
@@ -519,7 +521,7 @@ export const processAdminUpdates = async (user, updateData) => {
     );
   }
 
-  // Handle kitchen changes for MessOnly users
+  // Handle kitchen reassignment for mess-only users
   if (
     user.userType === "messOnly" &&
     resolvedUpdateData.messDetails?.kitchenId
@@ -527,7 +529,7 @@ export const processAdminUpdates = async (user, updateData) => {
     await handleKitchenChange(user, resolvedUpdateData.messDetails.kitchenId);
   }
 
-  // Update core fields
+  // CORE fields directly update
   const ADMIN_FIELDS = [
     "name",
     "email",
@@ -552,7 +554,7 @@ export const processAdminUpdates = async (user, updateData) => {
     }
   });
 
-  // Update type-specific details
+  // STAY / MESS DETAILS
   if (user.userType !== "messOnly") {
     if (resolvedUpdateData.stayDetails) {
       user.stayDetails = {
@@ -584,6 +586,7 @@ export const processAdminUpdates = async (user, updateData) => {
     }
   }
 
+  // FINANCIAL DETAILS
   if (resolvedUpdateData.financialDetails) {
     user.financialDetails = {
       ...user.financialDetails,
@@ -594,20 +597,21 @@ export const processAdminUpdates = async (user, updateData) => {
     };
   }
 
-  // Update nested sections
+  // NESTED SECTIONS INCLUDING PARTNER
   const NESTED_SECTIONS = [
     "personalDetails",
     "parentsDetails",
     "studyDetails",
     "workingDetails",
     "referralInfo",
+    "colivingPartner", // ✅ added partner section
   ];
 
   NESTED_SECTIONS.forEach((section) => {
     if (section in resolvedUpdateData) {
       user[section] = {
-        ...user[section],
-        ...resolvedUpdateData[section],
+        ...user[section], // keep existing
+        ...resolvedUpdateData[section], // overwrite with new
       };
     }
   });

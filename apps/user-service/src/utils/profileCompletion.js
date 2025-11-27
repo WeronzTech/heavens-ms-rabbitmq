@@ -131,21 +131,20 @@ export function calculateProfileCompletion(user) {
   // ✅ NEW: Coliving Partner Fields
   if (user.isColiving && user.colivingPartner) {
     const partner = user.colivingPartner;
-    const partnerFields = ["name", "email", "contact"];
-    const partnerPersonalFields = ["aadharFront", "aadharBack"];
+    const partnerFields = ["name", "email", "contact", "relation"];
+    const partnerImageFields = ["profileImg", "aadharFront", "aadharBack"];
 
-    total += partnerFields.length + partnerPersonalFields.length;
+    total += partnerFields.length + partnerImageFields.length;
 
     for (const field of partnerFields) {
       if (isFieldFilled(partner[field])) filled++;
     }
 
-    const ppd = partner.personalDetails || {};
-    for (const field of partnerPersonalFields) {
-      if (isFieldFilled(ppd[field])) filled++;
+    // ✅ Partner images are directly under colivingPartner, not in personalDetails
+    for (const field of partnerImageFields) {
+      if (isFieldFilled(partner[field])) filled++;
     }
   }
-
   if (total === 0) return 0;
 
   return Math.round((filled / total) * 100);

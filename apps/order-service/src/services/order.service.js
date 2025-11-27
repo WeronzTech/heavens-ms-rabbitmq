@@ -73,7 +73,7 @@ export const createOrder = async (data) => {
   }
 };
 
-export const verifyOrderPayment = async ({ data }) => {
+export const verifyOrderPayment = async (data) => {
   try {
     const { orderId, paymentDetails } = data;
     // paymentDetails should contain: razorpay_order_id, razorpay_payment_id, razorpay_signature
@@ -118,7 +118,7 @@ export const verifyOrderPayment = async ({ data }) => {
   }
 };
 
-export const updateOrderStatus = async ({ data }) => {
+export const updateOrderStatus = async (data) => {
   try {
     const { orderId, status, cancellationReason } = data;
 
@@ -181,7 +181,7 @@ export const updateOrderStatus = async ({ data }) => {
   }
 };
 
-export const getOrderById = async ({ data }) => {
+export const getOrderById = async (data) => {
   try {
     const { orderId } = data;
     const order = await Order.findById(orderId)
@@ -198,7 +198,7 @@ export const getOrderById = async ({ data }) => {
   }
 };
 
-export const getOrdersByCustomer = async ({ data }) => {
+export const getOrdersByCustomer = async (data) => {
   try {
     const { customerId, page = 1, limit = 10 } = data;
     const orders = await Order.find({ customer: customerId })
@@ -212,7 +212,7 @@ export const getOrdersByCustomer = async ({ data }) => {
   }
 };
 
-export const getOrdersByMerchant = async ({ data }) => {
+export const getOrdersByMerchant = async (data) => {
   try {
     const { merchantId, page = 1, limit = 10, status } = data;
     const query = { merchant: merchantId };

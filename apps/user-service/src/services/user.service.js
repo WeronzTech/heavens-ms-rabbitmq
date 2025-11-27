@@ -879,106 +879,6 @@ export const verifyEmail = async (data) => {
   }
 };
 
-// export const updateProfileCompletion = async (data) => {
-//   const { id, updateData, files } = data;
-
-//   let photoUrl = null;
-//   let aadharFrontUrl = null;
-//   let aadharBackUrl = null;
-
-//   if (files) {
-//     if (files.profileImg && files.profileImg[0]) {
-//       console.log("Uploading photo...");
-//       photoUrl = await uploadToFirebase(files.profileImg[0], "user-photos");
-//       console.log("Photo uploaded to:", photoUrl);
-//     }
-//     if (files.aadharFront && files.aadharFront[0]) {
-//       console.log("Uploading Aadhar front image...");
-//       aadharFrontUrl = await uploadToFirebase(
-//         files.aadharFront[0],
-//         "user-documents"
-//       );
-//       console.log("Aadhar front image uploaded to:", aadharFrontUrl);
-//     }
-//     if (files.aadharBack && files.aadharBack[0]) {
-//       console.log("Uploading Aadhar back image...");
-//       aadharBackUrl = await uploadToFirebase(
-//         files.aadharBack[0],
-//         "user-documents"
-//       );
-//       console.log("Aadhar back image uploaded to:", aadharBackUrl);
-//     }
-//   }
-
-//   if (!updateData.personalDetails) {
-//     updateData.personalDetails = {};
-//   }
-
-//   if (photoUrl) {
-//     updateData.personalDetails.profileImg = photoUrl;
-//   }
-//   if (aadharFrontUrl) {
-//     updateData.personalDetails.aadharFront = aadharFrontUrl;
-//   }
-//   if (aadharBackUrl) {
-//     updateData.personalDetails.aadharBack = aadharBackUrl;
-//   }
-
-//   try {
-//     const user = await User.findById(id);
-//     if (!user) {
-//       return {
-//         status: 404,
-//         body: { success: false, error: "User not found" },
-//       };
-//     }
-
-//     await validateUserUpdate(user, updateData);
-//     updateUserFields(user, updateData);
-//     await user.save();
-
-//     return {
-//       status: 200,
-//       body: {
-//         success: true,
-//         message:
-//           user.profileCompletion === 100
-//             ? "Profile fully completed. You are at 100%."
-//             : `Profile updated successfully. ${
-//                 100 - user.profileCompletion
-//               }% remaining.`,
-//         profileCompletion: user.profileCompletion,
-//         userType: user.userType,
-//         completedFields: getCompletedFields(user),
-//       },
-//     };
-//   } catch (error) {
-//     console.error("Profile update error:", error);
-
-//     const msg = error.message.toLowerCase();
-
-//     const isValidationError =
-//       msg.includes("invalid") ||
-//       msg.includes("missing") ||
-//       msg.includes("already") ||
-//       msg.includes("must") ||
-//       msg.includes("cannot") ||
-//       msg.includes("required");
-
-//     const status = isValidationError ? 400 : 500;
-
-//     return {
-//       status,
-//       body: {
-//         success: false,
-//         error: isValidationError
-//           ? error.message
-//           : "Server error during profile update",
-//       },
-//     };
-//   }
-// };
-
 export const updateProfileCompletion = async (data) => {
   const { id, updateData, files } = data;
 
@@ -1112,8 +1012,10 @@ export const updateProfileCompletion = async (data) => {
 
 export const adminUpdateUser = async (data) => {
   const { id, files, flat } = data;
-
+  console.log(data);
   const updateData = await rebuildNestedFields(flat);
+  console.log(updateData);
+
   try {
     const user = await User.findById(id);
     if (!user) {
@@ -1124,10 +1026,15 @@ export const adminUpdateUser = async (data) => {
     }
 
     const personal = updateData.personalDetails || {};
+    const coLiving = updateData.colivingPartner || {};
 
     const originalProfileImg = user.personalDetails?.profileImg;
     const originalAadharFront = user.personalDetails?.aadharFront;
     const originalAadharBack = user.personalDetails?.aadharBack;
+
+    const originalProfileImgPartner = user.colivingPartner?.profileImg;
+    const originalAadharFrontPartner = user.colivingPartner?.aadharFront;
+    const originalAadharBackPartner = user.colivingPartner?.aadharBack;
 
     // ===== PROFILE IMAGE =====
     const shouldDeleteProfile =
@@ -1189,8 +1096,69 @@ export const adminUpdateUser = async (data) => {
       personal.aadharBack = null;
     }
 
+    // ===== PARTNER PROFILE IMAGE =====
+    const shouldDeletePartnerProfile =
+      updateData.deletePartnerProfileImg === "true" ||
+      updateData.deletePartnerProfileImg === true;
+
+    if (shouldDeletePartnerProfile || files?.partnerProfileImg?.[0]) {
+      if (originalProfileImgPartner) {
+        await deleteFromFirebase(originalProfileImgPartner);
+      }
+    }
+
+    if (files?.partnerProfileImg?.[0]) {
+      coLiving.profileImg = await uploadToFirebase(
+        files.partnerProfileImg[0],
+        "user-photos"
+      );
+    } else if (shouldDeletePartnerProfile) {
+      coLiving.profileImg = null;
+    }
+
+    // ===== PARTNER AADHAR FRONT =====
+    const shouldDeletePartnerFront =
+      updateData.deletePartnerAadharFront === "true" ||
+      updateData.deletePartnerAadharFront === true;
+
+    if (shouldDeletePartnerFront || files?.partnerAadharFront?.[0]) {
+      if (originalAadharFrontPartner) {
+        await deleteFromFirebase(originalAadharFrontPartner);
+      }
+    }
+
+    if (files?.partnerAadharFront?.[0]) {
+      coLiving.aadharFront = await uploadToFirebase(
+        files.partnerAadharFront[0],
+        "user-documents"
+      );
+    } else if (shouldDeletePartnerFront) {
+      coLiving.aadharFront = null;
+    }
+
+    // ===== PARTNER AADHAR BACK =====
+    const shouldDeletePartnerBack =
+      updateData.deletePartnerAadharBack === "true" ||
+      updateData.deletePartnerAadharBack === true;
+
+    if (shouldDeletePartnerBack || files?.partnerAadharBack?.[0]) {
+      if (originalAadharBackPartner) {
+        await deleteFromFirebase(originalAadharBackPartner);
+      }
+    }
+
+    if (files?.partnerAadharBack?.[0]) {
+      coLiving.aadharBack = await uploadToFirebase(
+        files.partnerAadharBack[0],
+        "user-documents"
+      );
+    } else if (shouldDeletePartnerBack) {
+      coLiving.aadharBack = null;
+    }
+
     // ✅ Update the user object with new personal details
     updateData.personalDetails = personal;
+    updateData.colivingPartner = coLiving;
 
     // ✨ Clean and validate remaining non-file fields
     const cleanedData = cleanUpdateData(updateData);
