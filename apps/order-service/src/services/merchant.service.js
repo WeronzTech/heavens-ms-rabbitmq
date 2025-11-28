@@ -237,7 +237,7 @@ export const getMerchantById = async (data) => {
   }
 };
 
-export const updateShopStatus = async ({ data }) => {
+export const updateShopStatus = async ( data ) => {
   try {
     const { merchantId, isOpen } = data; // Boolean: true for Open, false for Closed
 

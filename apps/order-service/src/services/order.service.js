@@ -119,14 +119,14 @@ export const verifyOrderPayment = async ({ data }) => {
   }
 };
 
-export const updateOrderStatus = async ({ data }) => {
+export const updateOrderStatus = async ( data ) => {
   try {
     const { orderId, status, cancellationReason } = data;
 
     const validStatuses = [
       "Pending",
       "Confirmed",
-      "Preparing",
+      // "Preparing"
       "Out for Delivery",
       "Completed",
       "Cancelled",
@@ -199,7 +199,7 @@ export const getOrderById = async ({ data }) => {
   }
 };
 
-export const getOrdersByCustomer = async ({ data }) => {
+export const getOrdersByCustomer = async ( data ) => {
   try {
     const { customerId, page = 1, limit = 10 } = data;
     const orders = await Order.find({ customer: customerId })
@@ -213,9 +213,10 @@ export const getOrdersByCustomer = async ({ data }) => {
   }
 };
 
-export const getOrdersByMerchant = async ({ data }) => {
+export const getOrdersByMerchant = async ( data ) => {
   try {
     const { merchantId, page = 1, limit = 10, status } = data;
+    // console.log("Daataa:::",data)
     const query = { merchant: merchantId };
     if (status) query.status = status;
 

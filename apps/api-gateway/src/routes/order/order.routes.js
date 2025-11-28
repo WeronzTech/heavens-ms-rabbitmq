@@ -14,7 +14,7 @@ const orderRoutes = Router();
 orderRoutes.post("/", createOrder);
 orderRoutes.post("/verify-payment", verifyPayment);
 orderRoutes.get("/my-orders", getOrdersByCustomer);
-orderRoutes.get("/merchant/:merchantId", getOrdersByMerchant);
+orderRoutes.get("/merchant-order/:merchantId", getOrdersByMerchant);
 orderRoutes.get("/:id", getOrderById);
 orderRoutes.put("/:id/status", updateOrderStatus);
 
