@@ -33,28 +33,36 @@ const handleMerchantImages = async (file, existingDetails = {}) => {
   }
   return updates;
 };
-
 export const addMerchantDetails = async (data) => {
   try {
-    const { shopOwnerId, merchantDetail, file } = data;
+    const { shopOwnerId, ...merchantData } = data;
+    
+    console.log("Received data for merchant creation:", { shopOwnerId, merchantData });
 
-    // Check if merchant already exists for this shop owner
-    // const existingMerchant = await Merchant.findOne({ shopOwnerId });
-    // if (existingMerchant) {
-    //   return {
-    //     status: 400,
-    //     message: "Merchant already exists for this Shop Owner",
-    //   };
-    // }
+    // Check if shopOwnerId is provided
+    if (!shopOwnerId) {
+      return {
+        status: 400,
+        message: "shopOwnerId is required",
+      };
+    }
 
-    // Handle Image Uploads
-    const imageUrls = await handleMerchantImages(file);
+    // Handle Image Uploads if files are provided
+    let imageUrls = {};
+    if (data.file) {
+      imageUrls = await handleMerchantImages(data.file);
+    }
 
-    // Merge image URLs into merchantDetail
+    // Merge all data - ensure merchantDetail is properly structured
     const finalMerchantDetail = {
-      ...merchantDetail,
+      ...merchantData, // This should contain all the merchantDetail fields
       ...imageUrls,
     };
+
+    console.log("Creating merchant with data:", {
+      shopOwnerId,
+      merchantDetail: finalMerchantDetail
+    });
 
     const newMerchant = await Merchant.create({
       shopOwnerId,
@@ -135,28 +143,44 @@ export const blockMerchant = async ({ data }) => {
   }
 };
 
-export const updateMerchant = async ({ data }) => {
+export const updateMerchant = async (data) => {
   try {
     const { merchantId, merchantDetail, file } = data;
+
+    console.log("Update Merchant - Received data:", { merchantId, merchantDetail, file });
 
     const merchant = await Merchant.findById(merchantId);
     if (!merchant) {
       return { status: 404, message: "Merchant not found" };
     }
 
-    // Handle Image Uploads (Pass existing details to delete old images)
-    const imageUpdates = await handleMerchantImages(
-      file,
-      merchant.merchantDetail
-    );
+    // Handle Image Uploads
+    const imageUpdates = await handleMerchantImages(file, merchant.merchantDetail);
 
-    // Merge updates: Keep existing details, overwrite with new text data, then overwrite with new images
+    // CORRECTED: Properly merge the updates - ensure all fields are included
     const updatedDetail = {
-      ...merchant.merchantDetail.toObject(), // Convert Mongoose subdoc to object
-      ...merchantDetail,
-      ...imageUpdates,
+      ...merchant.merchantDetail.toObject(), // Keep existing data
     };
 
+    // Update only the fields that are provided in merchantDetail
+    if (merchantDetail) {
+      Object.keys(merchantDetail).forEach(key => {
+        if (merchantDetail[key] !== null && merchantDetail[key] !== undefined && merchantDetail[key] !== "") {
+          updatedDetail[key] = merchantDetail[key];
+        }
+      });
+    }
+
+    // Add image updates
+    Object.keys(imageUpdates).forEach(key => {
+      if (imageUpdates[key]) {
+        updatedDetail[key] = imageUpdates[key];
+      }
+    });
+
+    console.log("Update Merchant - Final updated detail:", updatedDetail);
+
+    // Update the merchant
     merchant.merchantDetail = updatedDetail;
     await merchant.save();
 
