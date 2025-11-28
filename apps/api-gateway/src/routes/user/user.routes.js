@@ -155,6 +155,9 @@ userRoutes
       { name: "profileImg", maxCount: 1 },
       { name: "aadharFront", maxCount: 1 },
       { name: "aadharBack", maxCount: 1 },
+      { name: "partnerProfileImg", maxCount: 1 },
+      { name: "partnerAadharFront", maxCount: 1 },
+      { name: "partnerAadharBack", maxCount: 1 },
     ]),
     adminUpdateUser
   );

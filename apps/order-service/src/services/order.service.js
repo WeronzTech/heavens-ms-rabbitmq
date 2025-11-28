@@ -1,3 +1,5 @@
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import Order from "../models/orders.model.js";
 import {
   createRazorpayOrderId,
@@ -5,7 +7,7 @@ import {
   razorpayRefund,
 } from "../utils/razorpay.js"; // Assuming this path based on structure
 
-export const createOrder = async ( data ) => {
+export const createOrder = async (data) => {
   try {
     const {
       customer,
@@ -16,7 +18,6 @@ export const createOrder = async ( data ) => {
       deliveryAddress,
       instructions,
     } = data;
-    console.log(data)
     if (!customer || !items || items.length === 0 || !bill) {
       return { status: 400, message: "Missing required order details." };
     }
@@ -74,7 +75,7 @@ export const createOrder = async ( data ) => {
   }
 };
 
-export const verifyOrderPayment = async ({ data }) => {
+export const verifyOrderPayment = async (data) => {
   try {
     const { orderId, paymentDetails } = data;
     // paymentDetails should contain: razorpay_order_id, razorpay_payment_id, razorpay_signature
@@ -106,6 +107,13 @@ export const verifyOrderPayment = async ({ data }) => {
       return { status: 404, message: "Order not found" };
     }
 
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02", order.merchant]; // Admin ID
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "new-order-booking",
+      data: updatedOrder,
+    });
+
     return {
       status: 200,
       data: {
@@ -119,7 +127,7 @@ export const verifyOrderPayment = async ({ data }) => {
   }
 };
 
-export const updateOrderStatus = async ( data ) => {
+export const updateOrderStatus = async (data) => {
   try {
     const { orderId, status, cancellationReason } = data;
 
@@ -172,6 +180,13 @@ export const updateOrderStatus = async ( data ) => {
     order.status = status;
     await order.save();
 
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02", order.customer]; // Admin ID
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "order-status",
+      data: order,
+    });
+
     return {
       status: 200,
       data: { message: `Order status updated to ${status}`, order },
@@ -182,7 +197,7 @@ export const updateOrderStatus = async ( data ) => {
   }
 };
 
-export const getOrderById = async ({ data }) => {
+export const getOrderById = async (data) => {
   try {
     const { orderId } = data;
     const order = await Order.findById(orderId)
@@ -199,7 +214,7 @@ export const getOrderById = async ({ data }) => {
   }
 };
 
-export const getOrdersByCustomer = async ( data ) => {
+export const getOrdersByCustomer = async (data) => {
   try {
     const { customerId, page = 1, limit = 10 } = data;
     const orders = await Order.find({ customer: customerId })
@@ -213,7 +228,7 @@ export const getOrdersByCustomer = async ( data ) => {
   }
 };
 
-export const getOrdersByMerchant = async ( data ) => {
+export const getOrdersByMerchant = async (data) => {
   try {
     const { merchantId, page = 1, limit = 10, status } = data;
     // console.log("Daataa:::",data)

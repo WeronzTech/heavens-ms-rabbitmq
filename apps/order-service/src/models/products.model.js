@@ -96,7 +96,7 @@ const productSchema = mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["Veg", "Non-veg"],
+      enum: ["Veg", "Non-veg", "Stationery"],
       required: true,
     },
     productImageURL: {
