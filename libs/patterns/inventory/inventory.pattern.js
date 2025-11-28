@@ -73,8 +73,10 @@ export const INVENTORY_PATTERN = {
   },
   DAILY_REQUIREMENT: {
     GET: "inventory_get_daily_requirements",
+    GET_INVENTORY_ITEMS: "inventory_get_items_requirements",
     ADD: "inventory_add_daily_requirement",
     UPDATE: "inventory_update_daily_requirement",
+    REMOVE: "inventory_remove_daily_requirement",
     APPROVE: "inventory_approve_daily_requirement",
     REJECT: "inventory_reject_daily_requirement",
   },

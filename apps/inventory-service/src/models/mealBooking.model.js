@@ -8,6 +8,9 @@ const mealBookingSchema = new Schema(
       unique: true,
     },
     userId: { type: Schema.Types.ObjectId, required: true },
+    partnerName: {
+      type: String,
+    },
     propertyId: {
       type: Schema.Types.ObjectId,
       required: true,
