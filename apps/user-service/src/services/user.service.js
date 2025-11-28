@@ -194,13 +194,11 @@ export const registerUser = async (data) => {
       stayDetails,
       messDetails,
       isHeavens,
-      isColiving,
       isApproved,
       personalDetails,
       referredByCode,
       agent,
     } = data;
-    console.log(data);
     let rentType;
     if (userType === "student" || userType === "worker") {
       rentType = "monthly";
@@ -247,6 +245,8 @@ export const registerUser = async (data) => {
       getNextResidentId(),
       password ? bcrypt.hash(password, 10) : Promise.resolve(null),
     ]);
+
+    const isColiving = stayDetails?.sharingType === "Coliving";
 
     // 5. Build base user
     const userData = {

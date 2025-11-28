@@ -13,7 +13,7 @@ import { UsageForPreparation } from "../models/usageForPreparation.model.js";
 
 export const createMealBooking = async (data) => {
   try {
-    const { userId, mealType, menuId } = data;
+    const { userId, mealType, menuId, partnerName } = data;
 
     validateRequired(userId, "User ID");
     validateRequired(mealType, "Meal Type");
@@ -52,24 +52,29 @@ export const createMealBooking = async (data) => {
       };
     }
 
-    const existingBooking = await MealBooking.findOne({
-      userId,
-      propertyId,
-      kitchenId,
-      bookingDate: normalizedDate,
-      mealType,
-    });
+    let existingBooking;
 
-    if (existingBooking) {
-      return {
-        success: false,
-        status: 409,
-        message: `A booking for ${mealType} on this date already exists.`,
-      };
+    if (!partnerName) {
+      existingBooking = await MealBooking.findOne({
+        userId,
+        propertyId,
+        kitchenId,
+        bookingDate: normalizedDate,
+        mealType,
+      });
+
+      if (existingBooking) {
+        return {
+          success: false,
+          status: 409,
+          message: `A booking for ${mealType} on this date already exists.`,
+        };
+      }
     }
 
     const booking = await MealBooking.create({
       userId,
+      partnerName,
       propertyId,
       kitchenId,
       bookingDate: normalizedDate,
@@ -494,8 +499,10 @@ export const checkNextDayBooking = async (data) => {
 
 export const createManualMealBookings = async (data) => {
   try {
-    const { count, propertyId, kitchenId, mealType, bookingDate, menuId } =
-      data;
+    const { count, propertyId, kitchenId, mealType, menuId } = data;
+
+    const bookingDate = getTomorrowDate();
+    const normalizedDate = normalizeDate(bookingDate);
 
     if (
       !count ||
@@ -503,20 +510,18 @@ export const createManualMealBookings = async (data) => {
       !propertyId ||
       !kitchenId ||
       !mealType ||
-      !bookingDate ||
       !menuId
     ) {
       return {
         success: false,
         status: 400,
-        message:
-          "Count, propertyId, kitchenId, mealType, menuId, and bookingDate are required.",
+        message: "Count, propertyId, kitchenId, mealType, menuId are required.",
       };
     }
 
     // 2. Create booking documents in a loop
     const bookingPromises = [];
-    const normalizedDate = normalizeDate(bookingDate);
+    // const normalizedDate = normalizeDate(bookingDate);
 
     for (let i = 0; i < count; i++) {
       const newBookingData = {
