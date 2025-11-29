@@ -457,6 +457,23 @@ export const updateAddonBookingStatus = async ({ bookingId, status }) => {
     }
     await booking.save();
 
+    const kitchen = await Kitchen.findById(booking?.kitchenId).lean();
+    const propertyResponse = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      { id: booking?.propertyId }
+    );
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
+    if (kitchen?.incharge) userIdsToNotify.push(kitchen.incharge.toString());
+    if (propertyResponse.success && propertyResponse.data?.clientId) {
+      userIdsToNotify.push(propertyResponse.data.clientId);
+    }
+    const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: userIdsToNotify,
+      event: "addon-booking-status",
+      data: booking,
+    });
+
     return {
       success: true,
       status: 200,
