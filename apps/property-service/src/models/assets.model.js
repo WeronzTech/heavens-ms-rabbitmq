@@ -35,7 +35,7 @@ const AssetSchema = new Schema(
     roomId: {
       type: Schema.Types.ObjectId,
       ref: "Room", // Assumes you have a 'Room' model
-      required: true,
+      // required: true,
     },
     // PurchaseDetails are defined directly in the schema
     purchaseDetails: {
