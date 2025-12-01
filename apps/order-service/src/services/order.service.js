@@ -1,6 +1,8 @@
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import Merchant from "../models/merchant.model.js";
 import Order from "../models/orders.model.js";
+import ShopOwner from "../models/shopOwner.model.js";
 import {
   createRazorpayOrderId,
   verifyPayment,
@@ -107,7 +109,9 @@ export const verifyOrderPayment = async (data) => {
       return { status: 404, message: "Order not found" };
     }
 
-    const userIdsToNotify = ["688722e075ee06d71c8fdb02", order.merchant]; // Admin ID
+    const merchant = await Merchant.findById(order.merchant);
+
+    const userIdsToNotify = ["688722e075ee06d71c8fdb02", merchant.shopOwnerId]; // Admin ID
     const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
       userIds: userIdsToNotify,
       event: "new-order-booking",

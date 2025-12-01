@@ -1,6 +1,10 @@
 import amqp from "amqplib";
 import { v4 as uuidv4 } from "uuid";
-const RABBITMQ_URL = "amqp://admin:admin123@rabbitmq:5672";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const RABBITMQ_URL = process.env.RABBITMQ_URL;
 
 // ✅ CHANGED: Only the connection and a dedicated listener channel are global.
 let connection;
