@@ -187,6 +187,21 @@ export const updateOrderStatus = async (data) => {
       data: order,
     });
 
+    if (status === "Out for Delivery") {
+      const userId = order.customer; // The user ID of the person in charge
+
+      const notificationPayload = {
+        title: "Order Out for Delivery",
+        description: "Your order is on the way!",
+        userId,
+      };
+
+      await sendRPCRequest(
+        NOTIFICATION_PATTERN.NOTIFICATION.SEND_NOTIFICATION,
+        notificationPayload // ✅ wrapped in data
+      );
+    }
+
     return {
       status: 200,
       data: { message: `Order status updated to ${status}`, order },
