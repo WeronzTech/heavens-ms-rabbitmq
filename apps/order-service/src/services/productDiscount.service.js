@@ -1,4 +1,5 @@
 import ProductDiscount from "../models/productDiscount.model.js";
+import Product from "../models/products.model.js";
 
 export const createProductDiscount = async (data) => {
   try {
@@ -37,6 +38,13 @@ export const createProductDiscount = async (data) => {
       productId,
       status: status !== undefined ? status : true,
     });
+
+    if (productId && productId.length > 0) {
+      await Product.updateMany(
+        { _id: { $in: productId } },
+        { $set: { discountId: newDiscount._id } }
+      );
+    }
 
     return {
       status: 201,
