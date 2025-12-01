@@ -20,13 +20,13 @@ export const addFloor = async (data) => {
     roomIds,
   } = data; // Validation
 
-  if (!floorName || !floorNo || !roomCapacity || !propertyId) {
-    return {
-      success: false,
-      status: 400,
-      message: "floorName, floorNo, roomCapacity, and propertyId are required",
-    };
-  }
+  // if (!floorName || !roomCapacity || !propertyId) {
+  //   return {
+  //     success: false,
+  //     status: 400,
+  //     message: "floorName, floorNo, roomCapacity, and propertyId are required",
+  //   };
+  // }
 
   try {
     // Find property

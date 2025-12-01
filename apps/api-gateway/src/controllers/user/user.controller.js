@@ -287,15 +287,19 @@ export const rejoinUser = async (req, res) => {
 
       // Financial fields
       rent,
+      monthlyRent,
       nonRefundableDeposit,
       refundableDeposit,
 
       // Type-specific dates
       joinDate,
+      stayDetails,
+      financialDetails,
       messDetails,
       noOfDays,
       updatedBy,
     } = req.body;
+    console.log(req.body);
     const response = await sendRPCRequest(USER_PATTERN.USER.REJOIN_USER, {
       id,
       userType,
@@ -306,9 +310,12 @@ export const rejoinUser = async (req, res) => {
       kitchenName,
       roomId,
       rent,
+      monthlyRent,
       nonRefundableDeposit,
       refundableDeposit,
       joinDate,
+      financialDetails,
+      stayDetails,
       messDetails,
       noOfDays,
       updatedBy,

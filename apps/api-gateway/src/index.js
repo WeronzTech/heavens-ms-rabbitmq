@@ -74,11 +74,13 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://hpanel.heavensliving.in",
+      "https://partner.heavensliving.in",
       "http://192.168.1.73:8082",
       "http://192.168.1.80:8082",
       "http://192.168.1.75:8082",
       "http://192.168.1.80:5173",
       "http://localhost:8082",
+      "http://localhost:8083",
       "http://192.168.1.73:5173",
     ],
     credentials: true,

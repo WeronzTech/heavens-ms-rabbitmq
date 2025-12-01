@@ -140,7 +140,9 @@ export const addRoom = async (data) => {
 
 export const confirmRoomAssignment = async (data) => {
   const { userId, roomId, userType } = data;
-  // console.log(data);
+  console.log("rooooooooooooooooooomm");
+  console.log(data);
+
   // Validation
   if (!userId || !roomId || !userType) {
     return {
@@ -254,6 +256,7 @@ export const confirmRoomAssignment = async (data) => {
 
 export const handleRemoveAssignment = async (data) => {
   const { userId, roomId } = data;
+  console.log(data);
   let session; // Declare session here
   try {
     session = await mongoose.startSession(); // Assign it here
@@ -382,6 +385,25 @@ export const updateRoom = async (data) => {
 
     // ✅ Save changes
     const updatedRoom = await room.save();
+
+    if (floorId) {
+      // Find the previous floor (if room was already on a floor)
+      const oldFloorId = room.floorId?.toString();
+      const newFloorId = floorId.toString();
+
+      // If room moved to another floor → remove from old floor
+      if (oldFloorId && oldFloorId !== newFloorId) {
+        await Floor.findByIdAndUpdate(oldFloorId, {
+          $pull: { roomIds: room._id },
+        });
+      }
+
+      // Add to new floor (avoid duplicates)
+      await Floor.findByIdAndUpdate(
+        newFloorId,
+        { $addToSet: { roomIds: room._id } } // prevents duplicates
+      );
+    }
 
     // ✅ Log update action
     try {

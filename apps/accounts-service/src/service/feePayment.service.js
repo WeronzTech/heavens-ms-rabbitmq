@@ -384,14 +384,14 @@ const processAndRecordPayment = async ({
     let advanceForMonths = [];
 
     if (user.rentType === "daily" || user.rentType === "mess") {
-      const pending = user.financialDetails.pendingAmount || 0;
+      // const pending = user.financialDetails.pendingAmount || 0;
       const totalCredit = amount + waveOffAmount + referralAmountUsed;
 
-      if (totalCredit < pending) {
-        throw new Error(
-          `Payment plus wave-off must be at least the pending amount of ₹${pending}.`
-        );
-      }
+      // if (totalCredit < pending) {
+      //   throw new Error(
+      //     `Payment plus wave-off must be at least the pending amount of ₹${pending}.`
+      //   );
+      // }
       user.financialDetails.pendingAmount -= totalCredit;
       if (user.financialDetails.pendingAmount <= 0) {
         user.paymentStatus = "paid";
@@ -420,11 +420,11 @@ const processAndRecordPayment = async ({
       const totalAvailableAmount =
         amount + currentBalance + waveOffAmount + referralAmountUsed;
 
-      if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
-        throw new Error(
-          `To clear your due, payment of ₹${amount} plus wave-off of ₹${waveOffAmount} and advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
-        );
-      }
+      // if (currentPendingRent > 0 && totalAvailableAmount < monthlyRent) {
+      //   throw new Error(
+      //     `To clear your due, payment of ₹${amount} plus wave-off of ₹${waveOffAmount} and advance of ₹${currentBalance} must be at least the monthly rent of ₹${monthlyRent}.`
+      //   );
+      // }
 
       let monthsCleared = Math.floor(totalAvailableAmount / monthlyRent);
       let newAccountBalance = totalAvailableAmount % monthlyRent;
@@ -873,6 +873,19 @@ export const recordManualPayment = async (data) => {
       message: "Transaction ID is required for UPI/Bank Transfer.",
     };
   }
+
+  if (transactionId) {
+    const existingTxn = await Payments.findOne({ transactionId });
+
+    if (existingTxn) {
+      return {
+        success: false,
+        status: 400,
+        message: "This transaction ID already exists.",
+      };
+    }
+  }
+
   // New validation for wave-off
   if (waveOffAmount && !waveOffReason) {
     return {

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const propertyLogSchema = new mongoose.Schema(
   {
-    propertyId: {type: mongoose.Schema.Types.ObjectId},
+    propertyId: { type: mongoose.Schema.Types.ObjectId },
     action: {
       type: String,
       required: true,
@@ -11,13 +11,13 @@ const propertyLogSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ["property", "staff"],
+      enum: ["property", "staff", "room"],
     },
     changedByName: {
       type: String,
       required: true,
     },
-    message: {type: String, required: true},
+    message: { type: String, required: true },
   },
   {
     timestamps: true,

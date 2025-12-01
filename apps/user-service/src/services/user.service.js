@@ -147,7 +147,7 @@ export const vacateUserById = async (userId) => {
     const currentPropertyId = user.propertyId;
 
     if (currentRoomId) {
-      await removeFromRoom({ userId: user._id, currentRoomId });
+      await removeFromRoom({ userId: user._id, roomId: currentRoomId });
     }
 
     user.isVacated = true;
@@ -608,14 +608,25 @@ export const approveUser = async (data) => {
           user.rentType === "monthly" ? "longTermResident" : "dailyRenter",
       });
 
+      const refundable = Number(
+        refundableDeposit ?? user.stayDetails?.refundableDeposit ?? 0
+      );
+      const nonRefundable = Number(
+        nonRefundableDeposit ?? user.stayDetails?.nonRefundableDeposit ?? 0
+      );
+
+      const depositStatus =
+        refundable === 0 && nonRefundable === 0
+          ? null
+          : user.stayDetails?.depositStatus ?? "pending";
+
       if (user.rentType === "monthly") {
         updates.stayDetails = {
           ...user.stayDetails,
           monthlyRent: monthlyRent || user.stayDetails?.monthlyRent,
-          refundableDeposit:
-            refundableDeposit || user.stayDetails.refundableDeposit,
-          nonRefundableDeposit:
-            nonRefundableDeposit || user.stayDetails.nonRefundableDeposit,
+          refundableDeposit: refundable,
+          nonRefundableDeposit: nonRefundable,
+          depositStatus,
           roomId,
           propertyId: propertyId || user.stayDetails?.propertyId,
           propertyName: propertyName || user.stayDetails?.propertyName,
@@ -1445,6 +1456,7 @@ export const getUsersByRentType = async (data) => {
       "stayDetails.joinDate": 1,
       "stayDetails.checkInDate": 1,
       "stayDetails.checkOutDate": 1,
+      "stayDetails.extendDate": 1,
       "stayDetails.noOfDays": 1,
       "stayDetails.sharingType": 1,
       "stayDetails.dailyRent": 1,
@@ -1512,6 +1524,7 @@ export const getUsersByRentType = async (data) => {
         joinedDate: user.stayDetails?.joinDate,
         checkInDate: user.stayDetails?.checkInDate,
         checkOutDate: user.stayDetails?.checkOutDate,
+        extendDate: user.stayDetails?.extendDate,
         noOfDays: user.stayDetails?.noOfDays,
         messStartDate: user.messDetails?.messStartDate,
         messEndDate: user.messDetails?.messEndDate,
@@ -2099,15 +2112,20 @@ export const rejoinUser = async (data) => {
 
       // Financial fields
       rent,
+      monthlyRent,
       nonRefundableDeposit,
       refundableDeposit,
 
       // Type-specific dates
       joinDate,
       messDetails,
+      stayDetails,
+      financialDetails,
       noOfDays,
       updatedBy,
     } = data;
+    console.log("hererereer");
+    console.log(data);
 
     const user = await User.findById(id);
 
@@ -2143,9 +2161,9 @@ export const rejoinUser = async (data) => {
         roomId,
         userType: rentType === "monthly" ? "longTermResident" : "dailyRenter",
       });
-      // console.log("roommmmmmm");
-      // console.log(roomAssignment);
-      // console.log("roommmmmmm");
+      console.log("roommmmmmm");
+      console.log(roomAssignment);
+      console.log("roommmmmmm");
     }
 
     // Update type-specific details
@@ -2179,44 +2197,49 @@ export const rejoinUser = async (data) => {
         sharingType: roomAssignment.body?.room?.sharingType,
         roomNumber: roomAssignment.body?.room?.roomNo,
         roomId,
-        rent,
+        monthlyRent,
         nonRefundableDeposit,
         refundableDeposit,
         ...(rentType === "monthly" && {
-          monthlyRent: rent,
+          monthlyRent: Number(monthlyRent),
           joinDate: joinDate ? new Date(joinDate) : new Date(),
         }),
         ...(rentType === "daily" && {
-          dailyRent: rent,
-          checkInDate: serviceStartDate
-            ? new Date(serviceStartDate)
+          dailyRent: stayDetails?.dailyRent,
+          extendDate: null,
+          extendedDays: null,
+          checkInDate: stayDetails.checkInDate
+            ? new Date(stayDetails?.checkInDate)
             : new Date(),
-          checkOutDate: serviceEndDate
-            ? new Date(serviceEndDate)
+          checkOutDate: stayDetails?.checkOutDate
+            ? new Date(stayDetails?.checkOutDate)
             : calculateEndDate(serviceStartDate, noOfDays),
-          noOfDays: noOfDays || 1,
+          noOfDays: stayDetails?.noOfDays || 1,
         }),
       };
 
       if (rentType === "monthly") {
         user.financialDetails = {
-          monthlyRent: rent,
-          pendingRent: rent,
+          ...user.financialDetails,
+          monthlyRent: Number(monthlyRent),
+          pendingRent: Number(monthlyRent),
           accountBalance: 0,
+          clearedTillMonth: "",
           nextDueDate: joinDate ? new Date(joinDate) : new Date(),
           paymentDueSince: joinDate ? new Date(joinDate) : new Date(),
-          // ...(user.financialDetails || {}),
         };
       } else if (rentType === "daily") {
         user.financialDetails = {
-          totalAmount: rent * (noOfDays || 1),
-          pendingAmount: rent * (noOfDays || 1),
+          // totalAmount: rent * (noOfDays || 1),
+          // pendingAmount: rent * (noOfDays || 1),
+          totalAmount: financialDetails?.totalAmount,
+          pendingAmount: financialDetails?.totalAmount,
           accountBalance: 0,
           // ...(user.financialDetails || {}),
         };
       }
     }
-
+    console.log(user);
     await user.save();
 
     try {
@@ -2567,6 +2590,7 @@ export const getTodayCheckouts = async (data) => {
 export const extendUserDays = async (data) => {
   try {
     const { id, extendDate, additionalDays, newRentAmount, adminName } = data;
+    console.log(data);
 
     // Validate input
     if (!additionalDays || additionalDays < 1) {
@@ -2926,7 +2950,7 @@ export const getPendingStatusRequests = async (data) => {
 export const respondToStatusRequest = async (data) => {
   try {
     const { id, requestId, status, comment, adminName } = data;
-
+    console.log(data);
     if (!["approved", "rejected"].includes(status)) {
       return {
         status: 400,
@@ -2983,7 +3007,7 @@ export const respondToStatusRequest = async (data) => {
     const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
 
     userIdsToNotify.push(user._id);
-
+    console.log(userIdsToNotify);
     const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
       userIds: userIdsToNotify,
       event: "current-status",

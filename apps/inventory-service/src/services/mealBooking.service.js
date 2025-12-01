@@ -14,7 +14,7 @@ import { UsageForPreparation } from "../models/usageForPreparation.model.js";
 export const createMealBooking = async (data) => {
   try {
     const { userId, mealType, menuId, partnerName } = data;
-
+    console.log(data);
     validateRequired(userId, "User ID");
     validateRequired(mealType, "Meal Type");
 
@@ -61,13 +61,20 @@ export const createMealBooking = async (data) => {
         kitchenId,
         bookingDate: normalizedDate,
         mealType,
+        $or: [
+          { partnerName: null },
+          { partnerName: "" },
+          { partnerName: { $exists: false } },
+        ],
       });
+      console.log("herererererer");
 
+      console.log(existingBooking);
       if (existingBooking) {
         return {
           success: false,
           status: 409,
-          message: `A booking for ${mealType} on this date already exists.`,
+          message: `A booking for ${mealType} already exists for the user.`,
         };
       }
     }
@@ -89,7 +96,7 @@ export const createMealBooking = async (data) => {
       data: booking,
     };
   } catch (error) {
-    console.error("Error creating meal booking:", error);
+    console.log("Error creating meal booking:", error);
     return {
       success: false,
       status: 500,
@@ -127,117 +134,148 @@ export const getBookingById = async (data) => {
 export const getBookingByProperty = async (data) => {
   try {
     const {
-      date,
       status,
       mealType,
       mealCategory,
       propertyId,
-      page = 1,
-      limit = 10,
+      bookingDate,
+      search,
+      todayOnly,
+      // page = 1,
+      // limit = 10,
     } = data;
 
     const query = {};
 
-    // ---- Time zone handling (IST) ----
-    const nowUTC = new Date();
-    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000); // convert UTC → IST
+    // Convert string boolean → real boolean
+    const isTodayOnly = todayOnly === true || todayOnly === "true";
 
-    // If current IST time is after 11:00 PM, shift by one more day
-    const hoursIST = nowIST.getHours();
-    const targetIST = new Date(nowIST);
+    // --------------------------------------------------
+    // DATE FILTER LOGIC
+    // --------------------------------------------------
+    if (isTodayOnly) {
+      const nowUTC = new Date();
+      const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+      const hoursIST = nowIST.getHours();
+      const targetIST = new Date(nowIST);
 
-    if (hoursIST >= 23) {
-      targetIST.setDate(targetIST.getDate() + 2); // after 11pm → day after tomorrow
-    } else {
-      targetIST.setDate(targetIST.getDate() + 1); // before 11pm → tomorrow
+      if (hoursIST >= 23) targetIST.setDate(targetIST.getDate() + 2);
+      else targetIST.setDate(targetIST.getDate() + 1);
+
+      targetIST.setHours(0, 0, 0, 0);
+
+      const targetUTC = new Date(targetIST.getTime() - 5.5 * 60 * 60 * 1000);
+
+      query.bookingDate = {
+        $gte: new Date(targetUTC.setUTCHours(0, 0, 0, 0)),
+        $lte: new Date(targetUTC.setUTCHours(23, 59, 59, 999)),
+      };
+    } else if (bookingDate) {
+      const dateObj = new Date(bookingDate + "T00:00:00.000Z");
+      query.bookingDate = {
+        $gte: new Date(dateObj.setUTCHours(0, 0, 0, 0)),
+        $lte: new Date(dateObj.setUTCHours(23, 59, 59, 999)),
+      };
     }
 
-    // Normalize target to midnight IST
-    targetIST.setHours(0, 0, 0, 0);
-
-    // Convert back to UTC for Mongo
-    const targetUTC = new Date(targetIST.getTime() - 5.5 * 60 * 60 * 1000);
-
-    // Build start/end range (UTC)
-    const startOfDayUTC = new Date(targetUTC);
-    startOfDayUTC.setUTCHours(0, 0, 0, 0);
-
-    const endOfDayUTC = new Date(targetUTC);
-    endOfDayUTC.setUTCHours(23, 59, 59, 999);
-
-    // ---- Query conditions ----
+    // --------------------------------------------------
+    // COMMON FILTERS
+    // --------------------------------------------------
     if (propertyId) query.propertyId = propertyId;
     if (mealType) query.mealType = mealType;
     if (mealCategory) query.mealCategory = mealCategory;
     if (status) query.status = status;
 
-    query.bookingDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
+    // --------------------------------------------------
+    // FETCH BOOKINGS
+    // --------------------------------------------------
+    // const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // ---- Pagination ----
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const bookingsData = await MealBooking.find(query)
+      .sort({ bookingDate: 1, mealType: 1 })
+      // .skip(skip)
+      // .limit(parseInt(limit))
+      .lean();
 
-    const [bookingsData, total] = await Promise.all([
-      MealBooking.find(query)
-        .sort({ bookingDate: 1, mealType: 1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      MealBooking.countDocuments(query),
-    ]);
+    const total = await MealBooking.countDocuments(query);
 
-    // ---- Enrich with user info ----
-    const enrichedData = await Promise.all(
-      bookingsData.map(async (booking) => {
-        try {
-          const userServiceResponse = await sendRPCRequest(
-            USER_PATTERN.USER.GET_USER_BY_ID,
-            { userId: booking.userId }
-          );
+    // --------------------------------------------------
+    // 🔥 BULK USER FETCH (SUPER FAST)
+    // --------------------------------------------------
+    const allUserIds = [...new Set(bookingsData.map((b) => b.userId))];
 
-          const userDetails = userServiceResponse?.body?.data;
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      { userIds: allUserIds }
+    );
 
-          return {
-            ...booking,
-            userName: userDetails?.name || "N/A",
-            contact: userDetails?.contact || "N/A",
-            roomNumber: userDetails?.stayDetails?.roomNumber || "N/A",
-          };
-        } catch {
-          return {
-            ...booking,
-            userName: "User not found",
-            roomNumber: "N/A",
-            contact: "N/A",
-          };
-        }
+    const usersMap = {};
+    for (const u of userResponse?.body?.data || []) {
+      usersMap[u.id] = u;
+    }
+
+    // --------------------------------------------------
+    // ENRICH BOOKINGS (NO async, SUPER FAST)
+    // --------------------------------------------------
+
+    const userMap = {};
+
+    await Promise.all(
+      allUserIds.map(async (id) => {
+        const response = await sendRPCRequest(
+          USER_PATTERN.USER.GET_USER_BY_ID,
+          { userId: id }
+        );
+        userMap[id] = response?.body?.data || {};
       })
     );
 
-    // ---- Response ----
-    const responsePayload = {
-      data: enrichedData,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
-      targetDate: targetUTC,
-    };
+    const enrichedData = bookingsData.map((b) => {
+      const user = userMap[b.userId] || {};
+      return {
+        ...b,
+        userName: user.name || "N/A",
+        contact: user.contact || "N/A",
+        roomNumber: user.stayDetails?.roomNumber || "N/A",
+      };
+    });
 
+    // --------------------------------------------------
+    // SEARCH FILTER
+    // --------------------------------------------------
+    let filteredData = enrichedData;
+    if (search) {
+      const s = search.toLowerCase();
+      filteredData = enrichedData.filter((item) => {
+        return (
+          item.orderId?.toLowerCase().includes(s) ||
+          item.partnerName?.toLowerCase().includes(s) ||
+          item.userName?.toLowerCase().includes(s)
+        );
+      });
+    }
+
+    // --------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------
     return {
       success: true,
       status: 200,
       message: "Bookings retrieved successfully",
-      data: responsePayload,
+      data: {
+        data: filteredData,
+        // pagination: {
+        //   total: filteredData.length,
+        //   page: parseInt(page),
+        //   limit: parseInt(limit),
+        //   totalPages: Math.ceil(filteredData.length / parseInt(limit)),
+        // },
+        todayOnlyApplied: isTodayOnly,
+      },
     };
   } catch (error) {
     console.error("Error getting bookings by property:", error);
-    return {
-      success: false,
-      status: 500,
-      message: "Internal Server Error",
-    };
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
@@ -422,6 +460,7 @@ export const deleteBooking = async (data) => {
 export const checkNextDayBooking = async (data) => {
   try {
     const { userId, today } = data;
+    console.log(data);
     if (!userId) {
       return {
         success: false,
@@ -455,7 +494,7 @@ export const checkNextDayBooking = async (data) => {
         select: "bookingStartTime bookingEndTime mealTimes menu",
         populate: { path: "menu.meals.itemIds", select: "name" },
       })
-      .select("orderId mealType menuId status bookingDate");
+      .select("orderId mealType menuId status bookingDate partnerName");
 
     const hasBooking = bookings && bookings.length > 0;
     let message = hasBooking
@@ -482,6 +521,7 @@ export const checkNextDayBooking = async (data) => {
         bookingStartTime: booking.menuId?.bookingStartTime,
         bookingEndTime: booking.menuId?.bookingEndTime,
         mealTimes: mealTimeInfo,
+        partnerName: booking.partnerName,
       };
     });
 

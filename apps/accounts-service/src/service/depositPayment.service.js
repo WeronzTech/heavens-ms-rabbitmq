@@ -11,6 +11,7 @@ import ReceiptCounter from "../models/receiptCounter.model.js";
 import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import moment from "moment";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -75,15 +76,15 @@ const processAndRecordDepositPayment = async ({
       );
     }
 
-    if (
-      paymentMethod === "Razorpay" &&
-      pendingDeposit > 0 &&
-      amount < pendingDeposit
-    ) {
-      throw new Error(
-        `Your payment of ₹${amount} is less than the pending deposit of ₹${pendingDeposit}. Please pay the full pending deposit of ₹${pendingDeposit} when using Razorpay.`
-      );
-    }
+    // if (
+    //   paymentMethod === "Razorpay" &&
+    //   pendingDeposit > 0 &&
+    //   amount < pendingDeposit
+    // ) {
+    //   throw new Error(
+    //     `Your payment of ₹${amount} is less than the pending deposit of ₹${pendingDeposit}. Please pay the full pending deposit of ₹${pendingDeposit} when using Razorpay.`
+    //   );
+    // }
 
     user.stayDetails.depositAmountPaid =
       (user.stayDetails.depositAmountPaid || 0) + amount;
@@ -142,9 +143,9 @@ const processAndRecordDepositPayment = async ({
         description: `Deposit received from ${user.name}`,
         propertyId: newDeposit.property,
         transactions: [
-          { accountName: paymentAccount, debit: amount },
+          { systemName: paymentAccount, debit: amount },
           {
-            accountName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
+            systemName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
             credit: amount,
           },
         ],
@@ -495,6 +496,18 @@ export const recordManualDepositPayment = async (data) => {
       status: 400,
       message: "Transaction ID is required for UPI/Bank Transfer.",
     };
+  }
+
+  if (transactionId) {
+    const existingTxn = await Deposits.findOne({ transactionId });
+
+    if (existingTxn) {
+      return {
+        success: false,
+        status: 400,
+        message: "This transaction ID already exists.",
+      };
+    }
   }
 
   return await processAndRecordDepositPayment({
