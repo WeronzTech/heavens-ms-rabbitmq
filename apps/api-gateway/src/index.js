@@ -62,6 +62,7 @@ import productDiscountRoutes from "./routes/order/productDiscount.routes.js";
 import deliveryChargeRoutes from "./routes/order/deliveryCharge.routes.js";
 import orderRoutes from "./routes/order/order.routes.js";
 import dailyInventoryRoutes from "./routes/inventory/dailyInventoryRequirement.routes.js";
+import salesReportRoutes from "./routes/order/dailySalesReport.routes.js";
 
 dotenv.config();
 const app = express();
@@ -161,6 +162,7 @@ app.use("/api/v2/order/discount/merchant", merchantDiscountRoutes);
 app.use("/api/v2/order/discount/product", productDiscountRoutes);
 app.use("/api/v2/order/delivery-charge", deliveryChargeRoutes);
 app.use("/api/v2/order", orderRoutes);
+app.use("/api/v2/order/sales", salesReportRoutes);
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK CI/CD is working fine and running." });

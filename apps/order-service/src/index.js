@@ -2,9 +2,11 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
+import cron from "node-cron";
 import helmet from "helmet";
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
+import { generateDailyReport } from "./utils/cronAutomation.js";
 dotenv.config();
 
 const app = express();
@@ -22,6 +24,18 @@ app.use(parseForwardedAuth);
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
+
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    console.log("🕛 Running Midnight Cron: Generating Daily Sales Report...");
+    generateDailyReport();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata", // CHANGE THIS to your server's timezone
+  }
+);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -47,6 +61,7 @@ const startServer = async () => {
     await import("./controllers/productCategory.controller.js");
     await import("./controllers/product.controller.js");
     await import("./controllers/order.controller.js");
+    await import("./controllers/dailySalesReport.controller.js");
     console.log("[ORDER] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.
