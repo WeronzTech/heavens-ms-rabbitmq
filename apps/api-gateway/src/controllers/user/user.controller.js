@@ -217,7 +217,7 @@ export const getUsersByRentType = async (req, res) => {
 
 export const getCheckOutedUsersByRentType = async (req, res) => {
   try {
-    const { rentType, propertyId, page = 1, limit = 10 } = req.query;
+    const { rentType, propertyId, page = 1, limit = 10, search } = req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_CHECKOUTED_USERS_BY_RENT_TYPE,
@@ -226,6 +226,7 @@ export const getCheckOutedUsersByRentType = async (req, res) => {
         propertyId,
         page,
         limit,
+        search,
       }
     );
 

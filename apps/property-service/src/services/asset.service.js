@@ -211,11 +211,11 @@ export const createAsset = async (data) => {
           propertyId: newAsset.propertyId,
           transactions: [
             {
-              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_FURNITURE_FIXTURES,
+              systemName: ACCOUNT_SYSTEM_NAMES.ASSET_FURNITURE_FIXTURES,
               debit: newAsset.purchaseDetails.price,
             },
             {
-              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
+              systemName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
               credit: newAsset.purchaseDetails.price,
             },
           ],

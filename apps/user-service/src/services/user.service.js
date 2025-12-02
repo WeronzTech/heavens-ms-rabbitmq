@@ -1869,7 +1869,8 @@ export const getUsersByRentType = async (data) => {
 
 export const getCheckOutedUsersByRentType = async (data) => {
   try {
-    const { rentType, propertyId, page, limit } = data;
+    const { rentType, propertyId, page, limit, search } = data;
+
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
 
@@ -1911,6 +1912,17 @@ export const getCheckOutedUsersByRentType = async (data) => {
       isApproved: true,
       isVacated: true,
     };
+
+    if (search && search.trim() !== "") {
+      const regex = new RegExp(search.trim(), "i");
+
+      queryConditions.$or = [
+        { name: regex },
+        { contact: regex },
+        { "stayDetails.roomNumber": regex },
+        { "stayDetails.sharingType": regex },
+      ];
+    }
 
     // Add rentType-specific filters
     if (rentType === "mess") {
