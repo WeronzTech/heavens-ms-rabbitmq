@@ -98,7 +98,7 @@ export const verifyOrderPayment = async (data) => {
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       {
-        status: "Confirmed",
+        // status: "Confirmed",
         paymentStatus: "Completed",
         paymentId: paymentDetails.razorpay_payment_id, // Save the actual Payment ID
       },
