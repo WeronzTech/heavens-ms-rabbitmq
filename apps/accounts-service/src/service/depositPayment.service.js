@@ -12,6 +12,7 @@ import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import moment from "moment";
+import emailService from "../../../../libs/email/email.service.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -34,6 +35,184 @@ const generateReceiptNumber = async (property, session) => {
   return receiptNumber;
 };
 
+// const processAndRecordDepositPayment = async ({
+//   userId,
+//   amount,
+//   paymentMethod,
+//   paymentDate,
+//   transactionId = null,
+//   collectedBy = "",
+//   razorpayDetails = {},
+//   remarks = "",
+// }) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const userResponse = await sendRPCRequest(
+//       USER_PATTERN.USER.GET_USER_BY_ID,
+//       { userId }
+//     );
+//     if (!userResponse.body.success) {
+//       throw new Error(userResponse.message || "User not found.");
+//     }
+//     const user = userResponse.body.data;
+
+//     const { stayDetails } = user;
+//     const { depositAmountPaid, nonRefundableDeposit, refundableDeposit } =
+//       stayDetails;
+
+//     const totalDepositAmount =
+//       (nonRefundableDeposit || 0) + (refundableDeposit || 0);
+//     const depositAmount = totalDepositAmount;
+
+//     if (depositAmount <= 0) throw new Error("Deposit amount is not set.");
+
+//     const pendingDeposit = totalDepositAmount - depositAmountPaid ?? 0;
+//     const dueAmount = pendingDeposit - amount ?? 0;
+
+//     if (pendingDeposit > 0 && amount > pendingDeposit) {
+//       throw new Error(
+//         `Please check the amount entered. It cannot be more than the pending deposit amount of ₹${pendingDeposit}.`
+//       );
+//     }
+
+//     // if (
+//     //   paymentMethod === "Razorpay" &&
+//     //   pendingDeposit > 0 &&
+//     //   amount < pendingDeposit
+//     // ) {
+//     //   throw new Error(
+//     //     `Your payment of ₹${amount} is less than the pending deposit of ₹${pendingDeposit}. Please pay the full pending deposit of ₹${pendingDeposit} when using Razorpay.`
+//     //   );
+//     // }
+
+//     user.stayDetails.depositAmountPaid =
+//       (user.stayDetails.depositAmountPaid || 0) + amount;
+
+//     let status;
+//     if (totalDepositAmount === user.stayDetails.depositAmountPaid) {
+//       user.stayDetails.depositStatus = "paid";
+//       status = "Paid";
+//     }
+
+//     const receiptNumber = await generateReceiptNumber(
+//       user.stayDetails,
+//       session
+//     );
+
+//     // Create the Payment Record
+//     const newDeposit = new Deposits({
+//       name: user.name,
+//       userType: user.userType,
+//       nonRefundableDeposit: user.stayDetails?.nonRefundableDeposit || 0,
+//       refundableDeposit: user.stayDetails?.refundableDeposit || 0,
+//       amountPaid: amount,
+//       dueAmount,
+//       paymentMethod,
+//       paymentDate,
+//       collectedBy,
+//       transactionId,
+//       status,
+//       property: user.stayDetails?.propertyId,
+//       receiptNumber,
+//       userId: user._id,
+//       remarks,
+//       ...razorpayDetails,
+//     });
+
+//     await newDeposit.save({ session });
+
+//     await createAccountLog({
+//       logType: "Deposit",
+//       action: "Payment",
+//       description: `Deposit of ₹${amount} received from ${user.name}.`,
+//       amount: amount,
+//       propertyId: user.stayDetails?.propertyId,
+//       performedBy: collectedBy || "System",
+//       referenceId: newDeposit._id,
+//     });
+
+//     const paymentAccount =
+//       paymentMethod === "Cash"
+//         ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+//         : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+//     await createJournalEntry(
+//       {
+//         date: newDeposit.paymentDate,
+//         description: `Deposit received from ${user.name}`,
+//         propertyId: newDeposit.property,
+//         transactions: [
+//           { systemName: paymentAccount, debit: amount },
+//           {
+//             systemName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
+//             credit: amount,
+//           },
+//         ],
+//         referenceId: newDeposit._id,
+//         referenceType: "Deposit",
+//       },
+//       { session }
+//     );
+
+//     // Update user via RPC
+//     const updateUserResponse = await sendRPCRequest(
+//       USER_PATTERN.USER.UPDATE_USER,
+//       {
+//         userId,
+//         userData: {
+//           stayDetails: user.stayDetails,
+//         },
+//       }
+//     );
+
+//     if (!updateUserResponse.body.success) {
+//       throw new Error("Failed to update user financial details.");
+//     }
+
+//     const updateUserReferral = await sendRPCRequest(
+//       USER_PATTERN.REFERRAL.COMPLETE_REFERRAL,
+//       {
+//         newUserId: userId,
+//       }
+//     );
+
+//     if (!updateUserReferral?.success) {
+//       throw new Error("Failed to update user referral.");
+//     }
+
+//     const userEmail = updateUserResponse?.body?.data?.email;
+//     if (!updateUserResponse.body.success) {
+//       throw new Error("Failed to update user financial details.");
+//     }
+
+//     setImmediate(async () => {
+//       try {
+//         await Promise.all([
+//           emailService.sendDepositFeeReceiptEmail(userEmail, newPayment),
+//         ]);
+//       } catch (err) {
+//         console.error("Post-approval async error:", err);
+//       }
+//     });
+
+//     await session.commitTransaction();
+//     return {
+//       success: true,
+//       status: 201,
+//       message: "Deposit recorded successfully.",
+//       data: newDeposit,
+//     };
+//   } catch (error) {
+//     await session.abortTransaction();
+//     console.error("Error during deposit processing:", error);
+//     return { success: false, status: 400, message: error.message };
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
 const processAndRecordDepositPayment = async ({
   userId,
   amount,
@@ -48,72 +227,106 @@ const processAndRecordDepositPayment = async ({
   session.startTransaction();
 
   try {
+    // Fetch user
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
       { userId }
     );
+
     if (!userResponse.body.success) {
       throw new Error(userResponse.message || "User not found.");
     }
+
     const user = userResponse.body.data;
+    const stay = user.stayDetails;
 
-    const { stayDetails } = user;
-    const { depositAmountPaid, nonRefundableDeposit, refundableDeposit } =
-      stayDetails;
+    const refundableDeposit = stay.refundableDeposit || 0;
+    const nonRefundableDeposit = stay.nonRefundableDeposit || 0;
 
-    const totalDepositAmount =
-      (nonRefundableDeposit || 0) + (refundableDeposit || 0);
-    const depositAmount = totalDepositAmount;
+    const totalDepositRequired = refundableDeposit + nonRefundableDeposit;
 
-    if (depositAmount <= 0) throw new Error("Deposit amount is not set.");
+    const depositAmountPaid = stay.depositAmountPaid || 0;
+    const pendingTotal = totalDepositRequired - depositAmountPaid;
 
-    const pendingDeposit = totalDepositAmount - depositAmountPaid ?? 0;
-    const dueAmount = pendingDeposit - amount ?? 0;
+    if (pendingTotal <= 0) {
+      throw new Error("All deposit amounts are already paid.");
+    }
 
-    if (pendingDeposit > 0 && amount > pendingDeposit) {
+    if (amount > pendingTotal) {
       throw new Error(
-        `Please check the amount entered. It cannot be more than the pending deposit amount of ₹${pendingDeposit}.`
+        `Entered amount ₹${amount} exceeds pending deposit ₹${pendingTotal}.`
       );
     }
 
-    // if (
-    //   paymentMethod === "Razorpay" &&
-    //   pendingDeposit > 0 &&
-    //   amount < pendingDeposit
-    // ) {
-    //   throw new Error(
-    //     `Your payment of ₹${amount} is less than the pending deposit of ₹${pendingDeposit}. Please pay the full pending deposit of ₹${pendingDeposit} when using Razorpay.`
-    //   );
-    // }
-
-    user.stayDetails.depositAmountPaid =
-      (user.stayDetails.depositAmountPaid || 0) + amount;
-
-    let status;
-    if (totalDepositAmount === user.stayDetails.depositAmountPaid) {
-      user.stayDetails.depositStatus = "paid";
-      status = "Paid";
-    }
-
-    const receiptNumber = await generateReceiptNumber(
-      user.stayDetails,
-      session
+    // -------------------------------------------------------------------
+    // 🔥 1. DETERMINE HOW MUCH WAS ALREADY PAID TOWARD REFUNDABLE
+    // -------------------------------------------------------------------
+    const refundablePaidAlready = Math.min(
+      depositAmountPaid,
+      refundableDeposit
     );
 
-    // Create the Payment Record
+    const nonRefundablePaidAlready = depositAmountPaid - refundablePaidAlready;
+
+    const refundablePending = refundableDeposit - refundablePaidAlready;
+    const nonRefundablePending =
+      nonRefundableDeposit - nonRefundablePaidAlready;
+
+    // -------------------------------------------------------------------
+    // 🔥 2. SPLIT CURRENT PAYMENT INTO REFUNDABLE + NON-REFUNDABLE PARTS
+    // -------------------------------------------------------------------
+    let remaining = amount;
+
+    let refundablePart = 0;
+    let nonRefundablePart = 0;
+
+    if (refundablePending > 0) {
+      refundablePart = Math.min(remaining, refundablePending);
+      remaining -= refundablePart;
+    }
+
+    if (remaining > 0 && nonRefundablePending > 0) {
+      nonRefundablePart = Math.min(remaining, nonRefundablePending);
+      remaining -= nonRefundablePart;
+    }
+
+    // -------------------------------------------------------------------
+    // 🔥 3. UPDATE stayDetails.totalDepositPaid ONLY
+    // -------------------------------------------------------------------
+    stay.depositAmountPaid = depositAmountPaid + amount;
+
+    if (stay.depositAmountPaid === totalDepositRequired) {
+      stay.depositStatus = "paid";
+    }
+
+    // -------------------------------------------------------------------
+    // 🔥 4. CREATE RECEIPT NUMBER
+    // -------------------------------------------------------------------
+    const receiptNumber = await generateReceiptNumber(stay, session);
+
+    // -------------------------------------------------------------------
+    // 🔥 5. SAVE DEPOSIT RECORD
+    // -------------------------------------------------------------------
     const newDeposit = new Deposits({
       name: user.name,
       userType: user.userType,
-      nonRefundableDeposit: user.stayDetails?.nonRefundableDeposit || 0,
-      refundableDeposit: user.stayDetails?.refundableDeposit || 0,
+      contact: user.contact,
+      refundableDeposit,
+      nonRefundableDeposit,
+
+      // store split
+      refundablePaidNow: refundablePart,
+      nonRefundablePaidNow: nonRefundablePart,
+
       amountPaid: amount,
-      dueAmount,
+      dueAmount: pendingTotal - amount,
       paymentMethod,
       paymentDate,
       collectedBy,
       transactionId,
-      status,
-      property: user.stayDetails?.propertyId,
+      status: stay.depositStatus === "paid" ? "Paid" : "Pending",
+      property: stay.propertyId,
+      propertyName: stay.propertyName,
       receiptNumber,
       userId: user._id,
       remarks,
@@ -127,42 +340,55 @@ const processAndRecordDepositPayment = async ({
       action: "Payment",
       description: `Deposit of ₹${amount} received from ${user.name}.`,
       amount: amount,
-      propertyId: user.stayDetails?.propertyId,
+      propertyId: stay.propertyId,
       performedBy: collectedBy || "System",
       referenceId: newDeposit._id,
     });
 
+    // -------------------------------------------------------------------
+    // 🔥 6. JOURNAL ENTRY (CORRECT ACCOUNT SPLITTING)
+    // -------------------------------------------------------------------
     const paymentAccount =
       paymentMethod === "Cash"
         ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
         : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+    const journalTransactions = [{ systemName: paymentAccount, debit: amount }];
+
+    if (refundablePart > 0) {
+      journalTransactions.push({
+        systemName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
+        credit: refundablePart,
+      });
+    }
+
+    if (nonRefundablePart > 0) {
+      journalTransactions.push({
+        systemName: ACCOUNT_SYSTEM_NAMES.INCOME_DEPOSIT_NON_REFUNDABLE,
+        credit: nonRefundablePart,
+      });
+    }
 
     await createJournalEntry(
       {
         date: newDeposit.paymentDate,
         description: `Deposit received from ${user.name}`,
         propertyId: newDeposit.property,
-        transactions: [
-          { systemName: paymentAccount, debit: amount },
-          {
-            systemName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
-            credit: amount,
-          },
-        ],
+        transactions: journalTransactions,
         referenceId: newDeposit._id,
-        referenceType: "Deposit",
+        referenceType: "Deposits",
       },
       { session }
     );
 
-    // Update user via RPC
+    // -------------------------------------------------------------------
+    // 🔥 7. UPDATE USER IN USER SERVICE
+    // -------------------------------------------------------------------
     const updateUserResponse = await sendRPCRequest(
       USER_PATTERN.USER.UPDATE_USER,
       {
         userId,
-        userData: {
-          stayDetails: user.stayDetails,
-        },
+        userData: { stayDetails: stay },
       }
     );
 
@@ -170,18 +396,28 @@ const processAndRecordDepositPayment = async ({
       throw new Error("Failed to update user financial details.");
     }
 
-    const updateUserReferral = await sendRPCRequest(
-      USER_PATTERN.REFERRAL.COMPLETE_REFERRAL,
-      {
-        newUserId: userId,
-      }
-    );
+    // -------------------------------------------------------------------
+    // 🔥 8. COMPLETE REFERRAL
+    // -------------------------------------------------------------------
+    await sendRPCRequest(USER_PATTERN.REFERRAL.COMPLETE_REFERRAL, {
+      newUserId: userId,
+    });
 
-    if (!updateUserReferral?.success) {
-      throw new Error("Failed to update user referral.");
-    }
+    // -------------------------------------------------------------------
+    // 🔥 9. SEND EMAIL ASYNC
+    // -------------------------------------------------------------------
+    setImmediate(async () => {
+      try {
+        const userEmail = updateUserResponse?.body?.data?.email;
+        const cleanDeposit = JSON.parse(JSON.stringify(newDeposit));
+        await emailService.sendDepositFeeReceiptEmail(userEmail, cleanDeposit);
+      } catch (err) {
+        console.error("Post-approval async error:", err);
+      }
+    });
 
     await session.commitTransaction();
+
     return {
       success: true,
       status: 201,
@@ -724,5 +960,48 @@ export const getLatestDepositPaymentsByUsers = async ({ userIds }) => {
     return { success: true, status: 200, data: deposits };
   } catch (err) {
     return { success: false, status: 500, message: err.message };
+  }
+};
+
+export const getTransactionHistoryByUserId = async (data) => {
+  try {
+    const { userId } = data;
+
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: [],
+      };
+    }
+
+    const payments = await Deposits.find({ userId })
+      .sort({ createdAt: -1 }) // latest first
+      .lean();
+
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Payments fetched successfully",
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Error in transactions:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching transactions",
+      error: error.message,
+    };
   }
 };

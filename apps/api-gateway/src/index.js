@@ -63,6 +63,7 @@ import deliveryChargeRoutes from "./routes/order/deliveryCharge.routes.js";
 import orderRoutes from "./routes/order/order.routes.js";
 import dailyInventoryRoutes from "./routes/inventory/dailyInventoryRequirement.routes.js";
 import salesReportRoutes from "./routes/order/dailySalesReport.routes.js";
+import busPaymentRoutes from "./routes/accounts/busPayment.routes.js";
 
 dotenv.config();
 const app = express();
@@ -76,8 +77,8 @@ app.use(
       "http://localhost:5173",
       "https://hpanel.heavensliving.in",
       "https://partner.heavensliving.in",
-      "http://192.168.1.73:8082",
       "http://192.168.1.80:8082",
+      "http://192.168.1.102:8082",
       "http://192.168.1.75:8082",
       "http://192.168.1.80:5173",
       "http://localhost:8082",
@@ -134,6 +135,7 @@ app.use("/api/v2/notification", notificationRoutes);
 app.use("/api/v2/notification/alert-Notification", alertNotificationRoutes);
 app.use("/api/v2/feePayments", feePaymentRoutes);
 app.use("/api/v2/depositPayments", depositPaymentRoutes);
+app.use("/api/v2/busPayments", busPaymentRoutes);
 app.use("/api/v2/feePayments/dashboard", accountDashboardRoutes);
 app.use("/api/v2/commission", commissionRoutes);
 app.use("/api/v2/property/maintenance", maintenanceRoutes);

@@ -82,7 +82,7 @@ class PDFService {
     doc
       .text("Receipt No:", leftCol, yPos)
       .text(
-        `HL-${paymentData.transactionId || new Date().getTime()}`,
+        `${paymentData.receiptNumber || new Date().getTime()}`,
         leftCol + 70,
         yPos
       );
@@ -144,7 +144,9 @@ class PDFService {
     if (paymentData.property) {
       details.push({
         label: "Property:",
-        value: `Heavens Living - ${paymentData?.property?.name}`,
+        value: `Heavens Living - ${
+          paymentData?.property?.name || paymentData?.propertyName
+        }`,
       });
     }
 
@@ -205,9 +207,14 @@ class PDFService {
       .font("Helvetica")
       .text("Payment Received", itemLeft, tableTop + 25)
       .font("Helvetica-Bold")
-      .text(`${paymentData.amount}`, amountRight - 100, tableTop + 25, {
-        align: "right",
-      });
+      .text(
+        `${paymentData.amount || paymentData.amountPaid}`,
+        amountRight - 100,
+        tableTop + 25,
+        {
+          align: "right",
+        }
+      );
 
     let currentY = tableTop + 45;
 
@@ -262,9 +269,14 @@ class PDFService {
       .fontSize(12)
       .font("Helvetica-Bold")
       .text("TOTAL AMOUNT PAID", 350, currentY)
-      .text(`${paymentData.amount}`, amountRight - 100, currentY, {
-        align: "right",
-      });
+      .text(
+        `${paymentData.amount || paymentData.amountPaid}`,
+        amountRight - 100,
+        currentY,
+        {
+          align: "right",
+        }
+      );
 
     // Amount in words
     currentY += 25;
@@ -274,7 +286,7 @@ class PDFService {
       .font("Helvetica")
       .text(
         `Amount in Words: Rupees ${this.numberToWords(
-          paymentData.amount
+          paymentData.amount || paymentData.amountPaid
         )} only`,
         50,
         currentY
@@ -338,7 +350,90 @@ class PDFService {
   }
 
   // Helper function to convert numbers to words (basic implementation)
+  // numberToWords(amount) {
+  //   const single = [
+  //     "",
+  //     "One",
+  //     "Two",
+  //     "Three",
+  //     "Four",
+  //     "Five",
+  //     "Six",
+  //     "Seven",
+  //     "Eight",
+  //     "Nine",
+  //   ];
+  //   const twoDigits = [
+  //     "Ten",
+  //     "Eleven",
+  //     "Twelve",
+  //     "Thirteen",
+  //     "Fourteen",
+  //     "Fifteen",
+  //     "Sixteen",
+  //     "Seventeen",
+  //     "Eighteen",
+  //     "Nineteen",
+  //   ];
+  //   const tens = [
+  //     "",
+  //     "",
+  //     "Twenty",
+  //     "Thirty",
+  //     "Forty",
+  //     "Fifty",
+  //     "Sixty",
+  //     "Seventy",
+  //     "Eighty",
+  //     "Ninety",
+  //   ];
+
+  //   if (amount === 0) return "Zero";
+
+  //   const convert = (num) => {
+  //     if (num < 10) return single[num];
+  //     if (num < 20) return twoDigits[num - 10];
+  //     if (num < 100)
+  //       return (
+  //         tens[Math.floor(num / 10)] + (num % 10 ? " " + single[num % 10] : "")
+  //       );
+  //     if (num < 1000)
+  //       return (
+  //         single[Math.floor(num / 100)] +
+  //         " Hundred" +
+  //         (num % 100 ? " " + convert(num % 100) : "")
+  //       );
+  //     if (num < 100000)
+  //       return (
+  //         convert(Math.floor(num / 1000)) +
+  //         " Thousand" +
+  //         (num % 1000 ? " " + convert(num % 1000) : "")
+  //       );
+  //     if (num < 10000000)
+  //       return (
+  //         convert(Math.floor(num / 100000)) +
+  //         " Lakh" +
+  //         (num % 100000 ? " " + convert(num % 100000) : "")
+  //       );
+  //     return (
+  //       convert(Math.floor(num / 10000000)) +
+  //       " Crore" +
+  //       (num % 10000000 ? " " + convert(num % 10000000) : "")
+  //     );
+  //   };
+
+  //   return convert(amount);
+  // }
+
   numberToWords(amount) {
+    // Coerce to number and sanitize
+    let num = Number(amount);
+    if (!isFinite(num) || isNaN(num)) return "Zero";
+    // Work only with integers (ignore paise)
+    num = Math.floor(Math.abs(num));
+
+    if (num === 0) return "Zero";
+
     const single = [
       "",
       "One",
@@ -376,41 +471,53 @@ class PDFService {
       "Ninety",
     ];
 
-    if (amount === 0) return "Zero";
-
-    const convert = (num) => {
-      if (num < 10) return single[num];
-      if (num < 20) return twoDigits[num - 10];
-      if (num < 100)
-        return (
-          tens[Math.floor(num / 10)] + (num % 10 ? " " + single[num % 10] : "")
-        );
-      if (num < 1000)
-        return (
-          single[Math.floor(num / 100)] +
-          " Hundred" +
-          (num % 100 ? " " + convert(num % 100) : "")
-        );
-      if (num < 100000)
-        return (
-          convert(Math.floor(num / 1000)) +
-          " Thousand" +
-          (num % 1000 ? " " + convert(num % 1000) : "")
-        );
-      if (num < 10000000)
-        return (
-          convert(Math.floor(num / 100000)) +
-          " Lakh" +
-          (num % 100000 ? " " + convert(num % 100000) : "")
-        );
-      return (
-        convert(Math.floor(num / 10000000)) +
-        " Crore" +
-        (num % 10000000 ? " " + convert(num % 10000000) : "")
-      );
+    // Helper to convert numbers < 1000
+    const convertHundreds = (n) => {
+      let str = "";
+      if (n >= 100) {
+        const h = Math.floor(n / 100);
+        str += single[h] + " Hundred";
+        n = n % 100;
+        if (n) str += " ";
+      }
+      if (n >= 20) {
+        const t = Math.floor(n / 10);
+        str += tens[t];
+        if (n % 10) str += " " + single[n % 10];
+      } else if (n >= 10) {
+        str += twoDigits[n - 10];
+      } else if (n > 0) {
+        str += single[n];
+      }
+      return str;
     };
 
-    return convert(amount);
+    // Break number into Indian groups: crore, lakh, thousand, remainder
+    const parts = [];
+
+    const crore = Math.floor(num / 10000000);
+    if (crore > 0) {
+      parts.push(convertHundreds(crore) + " Crore");
+      num = num % 10000000;
+    }
+
+    const lakh = Math.floor(num / 100000);
+    if (lakh > 0) {
+      parts.push(convertHundreds(lakh) + " Lakh");
+      num = num % 100000;
+    }
+
+    const thousand = Math.floor(num / 1000);
+    if (thousand > 0) {
+      parts.push(convertHundreds(thousand) + " Thousand");
+      num = num % 1000;
+    }
+
+    if (num > 0) {
+      parts.push(convertHundreds(num));
+    }
+
+    return parts.join(" ").replace(/\s+/g, " ").trim();
   }
 }
 

@@ -523,6 +523,7 @@ export const approveUser = async (data) => {
     monthlyRent,
     kitchenId,
     kitchenName,
+    busFee,
     updatedBy,
   } = data;
   console.log(data);
@@ -556,6 +557,33 @@ export const approveUser = async (data) => {
       updatedAt: new Date(),
       profileCompletion: calculateProfileCompletion(user),
     };
+
+    // Handle bus fee according to your schema
+    if (busFee !== undefined) {
+      updates.busFee = {
+        ...user.busFee,
+        ...busFee,
+        // Ensure dates are properly formatted
+        ...(busFee.validityStartDate && {
+          validityStartDate: new Date(busFee.validityStartDate),
+        }),
+        ...(busFee.validityEndDate && {
+          validityEndDate: new Date(busFee.validityEndDate),
+        }),
+        updatedAt: new Date(),
+      };
+    } else if (busRequired !== undefined) {
+      // Backward compatibility with busRequired field
+      updates.busFee = {
+        ...user.busFee,
+        required: busRequired === "yes",
+        ...(busRequired === "yes" && {
+          status: "pending",
+          dueAmount: user.busFee?.yearlyAmount || 0,
+        }),
+        updatedAt: new Date(),
+      };
+    }
 
     // Type-specific updates
     if (user.userType === "messOnly") {
@@ -1463,6 +1491,11 @@ export const getUsersByRentType = async (data) => {
       "financialDetails.monthlyRent": 1,
       "financialDetails.pendingRent": 1,
       "financialDetails.nextDueDate": 1,
+      "busFee.yearlyAmount": 1,
+      "busFee.amountPaid": 1,
+      "busFee.dueAmount": 1,
+      "busFee.status": 1,
+      "busFee.required": 1,
       createdAt: 1,
     };
 
@@ -1529,6 +1562,9 @@ export const getUsersByRentType = async (data) => {
         messStartDate: user.messDetails?.messStartDate,
         messEndDate: user.messDetails?.messEndDate,
         noOfDaysForMessOnly: user.messDetails?.noOfDays,
+        busFeeAmount: user.busFee?.yearlyAmount,
+        busFeePaid: user.busFee?.busFeePaid,
+        busFeeStatus: user.busFee?.status,
       };
 
       if (rentType !== "daily" && rentType !== "mess") {
@@ -2159,6 +2195,7 @@ export const rejoinUser = async (data) => {
     user.isVacated = false;
     user.isLoginEnabled = true;
     user.vacatedAt = null;
+    user.paymentDueSince = joinDate ? new Date(joinDate) : new Date();
     user.currentStatus = "checked_in";
     user.paymentStatus = "pending";
     user.stayDetails.depositAmountPaid = 0;

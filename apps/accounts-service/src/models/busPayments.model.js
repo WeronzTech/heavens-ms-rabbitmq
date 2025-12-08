@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const depositSchema = new mongoose.Schema(
+const busPaymentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     userType: {
@@ -9,13 +9,9 @@ const depositSchema = new mongoose.Schema(
       required: true,
     },
     contact: { type: String, required: true },
-    isRefund: { type: Boolean, default: false, required: true },
 
     // Deposit Collection Fields // isRefund = false
-    nonRefundableDeposit: { type: Number, default: 0 },
-    refundableDeposit: { type: Number, default: 0 },
-    refundablePaidNow: { type: Number, default: 0 },
-    nonRefundablePaidNow: { type: Number, default: 0 },
+    busFee: { type: Number, default: 0 },
     amountPaid: { type: Number, default: 0 },
     dueAmount: { type: Number, default: 0 },
     paymentMethod: {
@@ -38,20 +34,27 @@ const depositSchema = new mongoose.Schema(
     razorpaySignature: { type: String },
     status: {
       type: String,
-      enum: ["Paid", "Pending", "Refunded"],
+      enum: ["Paid", "Pending"],
       default: "Pending",
     },
-
-    // Refund Fields // isRefund = true
-    handledBy: { type: String },
 
     remarks: { type: String },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
     },
-    property: { type: mongoose.Schema.Types.ObjectId, required: true },
-    propertyName: { type: String },
+    property: {
+      id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Property",
+        required: false,
+      },
+      name: {
+        type: String,
+        required: false,
+      },
+      _id: false,
+    },
     receiptNumber: {
       type: String,
       required: true,
@@ -61,5 +64,5 @@ const depositSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Deposits = mongoose.model("Deposits", depositSchema);
-export default Deposits;
+const BusPayments = mongoose.model("BusPayments", busPaymentSchema);
+export default BusPayments;

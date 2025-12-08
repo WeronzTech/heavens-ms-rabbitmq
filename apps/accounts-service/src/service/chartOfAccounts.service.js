@@ -177,7 +177,7 @@ export const deleteAccountCategory = async (categoryId) => {
  * @param {object} data { name, accountType, categoryId, balance (optional) }
  */
 export const createAccount = async (data) => {
-  const { name, accountType, categoryId, balance } = data;
+  const { name, accountType, categoryId, balance, description } = data;
   if (!name || !accountType || !categoryId) {
     return {
       success: false,
@@ -205,6 +205,7 @@ export const createAccount = async (data) => {
       name,
       accountType,
       categoryId,
+      description,
       balance: balance || 0,
     });
     return {

@@ -42,7 +42,7 @@ export function validateRequiredFields(
 
   // Type-specific validations
   if (userType === "messOnly") {
-    if (!messDetails || !messDetails.mealType) {
+    if (!messDetails) {
       return {
         status: "error",
         message: "For MessOnly users, monthlyRent and mealType are required",

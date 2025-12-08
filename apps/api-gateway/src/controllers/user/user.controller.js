@@ -61,6 +61,7 @@ export const approveUser = async (req, res) => {
     monthlyRent,
     kitchenId,
     kitchenName,
+    busFee,
     updatedBy,
   } = req.body;
   const response = await sendRPCRequest(USER_PATTERN.USER.APPROVE_USER, {
@@ -81,6 +82,7 @@ export const approveUser = async (req, res) => {
     monthlyRent,
     kitchenId,
     kitchenName,
+    busFee,
     updatedBy,
   });
 

@@ -12,6 +12,7 @@ const accountsLogSchema = new mongoose.Schema(
         "Fee Payment",
         "Salary",
         "Voucher",
+        "BusFee",
       ],
     },
     action: {

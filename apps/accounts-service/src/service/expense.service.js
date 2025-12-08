@@ -25,7 +25,6 @@ export const addExpense = async (data) => {
       voucherId,
       ...expenseData
     } = data;
-    console.log("data", data);
 
     property = JSON.parse(property);
 
@@ -138,7 +137,6 @@ export const addExpense = async (data) => {
     });
 
     await expense.save({ session });
-    console.log(expense);
     await createAccountLog({
       logType: "Expense",
       action: "Create",
@@ -152,17 +150,20 @@ export const addExpense = async (data) => {
     const creditAccount =
       paymentMethod === "Petty Cash"
         ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+        : paymentMethod === "Cash" || "cash"
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
         : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     // Map expense category to debit account (Example mapping)
     // You should fetch the account by name from ChartOfAccount for robustness
-    const debitAccount = expenseData.category.includes("Maintenance")
-      ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MAINTENANCE
-      : expenseData.category.includes("Mess")
-      ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
-      : expenseData.category.includes("Utility")
-      ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
-      : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL; // Fallback
+    const debitAccount =
+      expense.type === "PG"
+        ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+        : expense.type === "Mess"
+        ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+        : expense.type === "Others"
+        ? ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL
+        : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL; // Fallback
 
     await createJournalEntry(
       {
@@ -170,8 +171,8 @@ export const addExpense = async (data) => {
         description: `Expense: ${expense.title} - ${expense.category}`,
         propertyId: expense.property.id,
         transactions: [
-          { accountName: debitAccount, debit: amount },
-          { accountName: creditAccount, credit: amount },
+          { systemName: debitAccount, debit: amount },
+          { systemName: creditAccount, credit: amount },
         ],
         referenceId: expense._id,
         referenceType: "Expense",

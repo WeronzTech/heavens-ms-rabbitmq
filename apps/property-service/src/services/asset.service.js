@@ -211,7 +211,8 @@ export const createAsset = async (data) => {
           propertyId: newAsset.propertyId,
           transactions: [
             {
-              systemName: ACCOUNT_SYSTEM_NAMES.ASSET_FURNITURE_FIXTURES,
+              // systemName: ACCOUNT_SYSTEM_NAMES.ASSET_FURNITURE_FIXTURES,
+              systemName: ACCOUNT_SYSTEM_NAMES.ASSET_NON_CURRENT,
               debit: newAsset.purchaseDetails.price,
             },
             {

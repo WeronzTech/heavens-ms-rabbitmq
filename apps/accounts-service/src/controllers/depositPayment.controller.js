@@ -50,3 +50,10 @@ createResponder(
     return await processAndRecordRefundPayment(data);
   }
 );
+
+createResponder(
+  ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.GET_TRANSACTIONS_BY_USERID,
+  async (data) => {
+    return await getTransactionHistoryByUserId(data);
+  }
+);

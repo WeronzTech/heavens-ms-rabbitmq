@@ -62,6 +62,7 @@ const startServer = async () => {
     await import("./controllers/commission.controller.js");
     await import("./controllers/dashboard.controller.js");
     await import("./controllers/depositPayment.controller.js");
+    await import("./controllers/busPayment.controller.js");
     await import("./controllers/staffSalaryHistory.controller.js");
     await import("./controllers/voucher.controller.js");
     await import("./controllers/accountsLog.controller.js");

@@ -144,7 +144,19 @@ const userSchema = new mongoose.Schema(
         },
       ],
     },
-
+    busFee: {
+      required: { type: Boolean, default: false },
+      yearlyAmount: { type: Number, default: 0 },
+      amountPaid: { type: Number, default: 0 },
+      dueAmount: { type: Number, default: 0 },
+      status: {
+        type: String,
+        enum: ["pending", "paid"],
+        default: "pending",
+      },
+      validityStartDate: { type: Date },
+      validityEndDate: { type: Date },
+    },
     // Payment and status
     paymentStatus: {
       type: String,

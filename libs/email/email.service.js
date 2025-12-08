@@ -125,6 +125,134 @@ class EmailService {
     }
   }
 
+  async sendDepositFeeReceiptEmail(userEmail, newDeposit) {
+    try {
+      console.log("Generating PDF receipt for:", userEmail);
+
+      // Generate PDF receipt
+      const pdfBuffer = await pdfService.generateFeeReceipt(newDeposit);
+      console.log("PDF generated successfully");
+
+      // Prepare email context
+      const context = {
+        name: newDeposit.name,
+        contact: newDeposit.contact,
+        amount: newDeposit.amountPaid,
+        waveOffAmount: newDeposit.waveOffAmount,
+        transactionId: newDeposit.transactionId,
+        paymentDate: newDeposit.paymentDate,
+        paymentMethod: newDeposit.paymentMethod,
+        property: newDeposit.propertyName,
+        currentYear: new Date().getFullYear(),
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        isRefund: true,
+      };
+
+      // Create PDF attachment
+      const attachments = [
+        {
+          filename: `receipt-${
+            newDeposit.transactionId || new Date().getTime()
+          }.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ];
+
+      // Send email with PDF attachment
+      return await this.sendEmailWithAttachment(
+        userEmail,
+        "Deposit Payment Receipt - Thank You for Your Payment",
+        "feeReceipt",
+        context,
+        attachments
+      );
+    } catch (error) {
+      console.error("Error in sendFeeReceiptEmail:", error);
+      // Fallback: Send email without attachment if PDF generation fails
+      console.log("Falling back to email without attachment");
+      return await this.sendEmail(
+        userEmail,
+        "Deposit Payment Receipt - Thank You for Your Payment",
+        "feeReceipt",
+        {
+          name: newDeposit.name,
+          contact: newDeposit.contact,
+          amount: newDeposit.amountPaid,
+          waveOffAmount: newDeposit.waveOffAmount,
+          transactionId: newDeposit.transactionId,
+          paymentDate: newDeposit.paymentDate,
+          paymentMethod: newDeposit.paymentMethod,
+          property: newDeposit.propertyName,
+        }
+      );
+    }
+  }
+
+  async sendBusFeeReceiptEmail(userEmail, newBusFee) {
+    try {
+      console.log("Generating PDF receipt for:", userEmail);
+
+      // Generate PDF receipt
+      const pdfBuffer = await pdfService.generateFeeReceipt(newBusFee);
+      console.log("PDF generated successfully");
+
+      // Prepare email context
+      const context = {
+        name: newBusFee.name,
+        contact: newBusFee.contact,
+        amount: newBusFee.amountPaid,
+        waveOffAmount: newBusFee.waveOffAmount,
+        transactionId: newBusFee.transactionId,
+        paymentDate: newBusFee.paymentDate,
+        paymentMethod: newBusFee.paymentMethod,
+        property: newBusFee.propertyName,
+        currentYear: new Date().getFullYear(),
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        isRefund: true,
+      };
+
+      // Create PDF attachment
+      const attachments = [
+        {
+          filename: `receipt-${
+            newBusFee.transactionId || new Date().getTime()
+          }.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ];
+
+      // Send email with PDF attachment
+      return await this.sendEmailWithAttachment(
+        userEmail,
+        "Bus Fee Payment Receipt - Thank You for Your Payment",
+        "feeReceipt",
+        context,
+        attachments
+      );
+    } catch (error) {
+      console.error("Error in sendFeeReceiptEmail:", error);
+      // Fallback: Send email without attachment if PDF generation fails
+      console.log("Falling back to email without attachment");
+      return await this.sendEmail(
+        userEmail,
+        "Bus Fee Payment Receipt - Thank You for Your Payment",
+        "feeReceipt",
+        {
+          name: newBusFee.name,
+          contact: newBusFee.contact,
+          amount: newBusFee.amountPaid,
+          waveOffAmount: newBusFee.waveOffAmount,
+          transactionId: newBusFee.transactionId,
+          paymentDate: newBusFee.paymentDate,
+          paymentMethod: newBusFee.paymentMethod,
+          property: newBusFee.propertyName,
+        }
+      );
+    }
+  }
+
   // Specific email methods
   async sendApprovalEmail(student, verificationToken) {
     const verificationLink = `${

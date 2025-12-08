@@ -145,11 +145,11 @@ export const addInventory = async (data) => {
           // propertyId: ??? // Need to fetch propertyId from kitchen
           transactions: [
             {
-              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_INVENTORY,
+              systemName: ACCOUNT_SYSTEM_NAMES.ASSET_INVENTORY,
               debit: newItem.totalCost,
             },
             {
-              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
+              systemName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
               credit: newItem.totalCost,
             },
           ],
