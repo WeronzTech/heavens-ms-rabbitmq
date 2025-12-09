@@ -1429,6 +1429,8 @@ export const getUsersByRentType = async (data) => {
         "On Leave": "on_leave",
         "Checked Out": "checked_out",
         "Incomplete Profile": "incomplete",
+        Students: "student",
+        Workers: "worker",
       };
 
       if (status === "Paid" || status === "Pending") {
@@ -1437,6 +1439,8 @@ export const getUsersByRentType = async (data) => {
         queryConditions.currentStatus = statusMapping[status];
       } else if (status === "Incomplete Profile") {
         queryConditions.profileCompletion = { $ne: 100 };
+      } else if (status === "Students" || status === "Workers") {
+        queryConditions.userType = statusMapping[status];
       }
     }
 
