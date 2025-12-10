@@ -9,6 +9,7 @@ import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import { UsageForPreparation } from "../models/usageForPreparation.model.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
 
 export const createMealBooking = async (data) => {
@@ -39,9 +40,6 @@ export const createMealBooking = async (data) => {
     }
 
     const propertyId = userDetails?.stayDetails?.propertyId;
-    const kitchenId =
-      userDetails?.messDetails?.kitchenId ||
-      userDetails?.stayDetails?.kitchenId;
 
     if (!propertyId) {
       return {
@@ -51,6 +49,13 @@ export const createMealBooking = async (data) => {
           "User is not associated with a property. Cannot create booking.",
       };
     }
+    const propertyResponse = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      { id: propertyId }
+    );
+
+    const kitchenId =
+      userDetails?.messDetails?.kitchenId || propertyResponse?.data?.kitchenId;
 
     let existingBooking;
 
