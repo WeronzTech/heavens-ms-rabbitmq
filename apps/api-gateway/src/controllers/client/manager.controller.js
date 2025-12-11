@@ -15,8 +15,9 @@ export const registerManager = async (req, res) => {
       propertyId,
       gender,
       address,
+      panNumber,
     } = req.body;
-
+    console.log(req.body);
     const files = req.files;
     console.log("Files", files);
 
@@ -34,6 +35,7 @@ export const registerManager = async (req, res) => {
         gender,
         address,
         files,
+        panNumber,
       }
     );
 

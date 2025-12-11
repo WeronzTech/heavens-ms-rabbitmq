@@ -22,10 +22,10 @@ export const registerManager = async (data) => {
       propertyId,
       gender,
       address,
-      panCardNumber,
+      panNumber,
       files,
     } = data;
-
+    console.log(data);
     if (
       !name ||
       !email ||
@@ -44,7 +44,7 @@ export const registerManager = async (data) => {
       };
     }
 
-    if (!INDIVIDUAL_PAN_REGEX.test(panCardNumber.toUpperCase())) {
+    if (!INDIVIDUAL_PAN_REGEX.test(panNumber.toUpperCase())) {
       return {
         success: false,
         status: 400,
@@ -57,7 +57,7 @@ export const registerManager = async (data) => {
     const lastName =
       nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
     const firstLetterOfLastName = lastName.charAt(0).toUpperCase();
-    const fifthCharOfPan = panCardNumber.charAt(4).toUpperCase();
+    const fifthCharOfPan = panNumber.charAt(4).toUpperCase();
 
     if (fifthCharOfPan !== firstLetterOfLastName) {
       return {
@@ -124,7 +124,7 @@ export const registerManager = async (data) => {
       propertyId,
       gender,
       address,
-      panCardNumber,
+      panCardNumber: panNumber,
     });
 
     await newManager.save();

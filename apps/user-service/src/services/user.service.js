@@ -572,16 +572,11 @@ export const approveUser = async (data) => {
         }),
         updatedAt: new Date(),
       };
-    } else if (busRequired !== undefined) {
+    } else {
       // Backward compatibility with busRequired field
       updates.busFee = {
         ...user.busFee,
-        required: busRequired === "yes",
-        ...(busRequired === "yes" && {
-          status: "pending",
-          dueAmount: user.busFee?.yearlyAmount || 0,
-        }),
-        updatedAt: new Date(),
+        required: true,
       };
     }
 
@@ -4415,4 +4410,4 @@ export const registerUserFromPanel = async (data) => {
       },
     };
   }
-};
+}

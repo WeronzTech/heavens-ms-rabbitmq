@@ -221,7 +221,7 @@ export const userLogin = async (loginData) => {
 };
 
 const RESET_TOKEN_EXPIRY_HOURS = 1;
-const FRONTEND_URL = "http://192.168.1.80:8082";
+const FRONTEND_URL = "https://hpanel.heavensliving.in";
 
 export const forgotPasswordUser = async (data) => {
   const { email } = data;

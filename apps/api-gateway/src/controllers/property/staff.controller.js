@@ -159,6 +159,7 @@ export const addStaff = async (req, res) => {
       propertyId,
       createdBy,
       kitchenId,
+      panNumber,
     } = req.body;
 
     // ✅ Pass file buffers directly to RPC
@@ -166,6 +167,7 @@ export const addStaff = async (req, res) => {
       photo: req.files?.photo?.[0] || null,
       aadharFrontImage: req.files?.aadharFrontImage?.[0] || null,
       aadharBackImage: req.files?.aadharBackImage?.[0] || null,
+      panCardImage: req.files?.panCardImage?.[0] || null,
     };
 
     const adminName = req.headers["x-user-username"];
@@ -186,6 +188,7 @@ export const addStaff = async (req, res) => {
       createdBy,
       kitchenId,
       adminName,
+      panNumber,
       files, // send files as-is
     });
 

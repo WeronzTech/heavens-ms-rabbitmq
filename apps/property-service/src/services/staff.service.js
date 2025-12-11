@@ -301,7 +301,7 @@ export const addStaff = async (data) => {
       role,
       salary,
       joinDate,
-      panCardNumber,
+      panNumber,
       status,
       propertyId,
       createdBy,
@@ -309,7 +309,7 @@ export const addStaff = async (data) => {
       adminName, // pass from controller
       files, // files passed via RPC
     } = data;
-
+    console.log(data);
     if (
       !files ||
       !files.photo ||
@@ -380,7 +380,7 @@ export const addStaff = async (data) => {
       aadharFrontImage: aadharFrontUrl,
       aadharBackImage: aadharBackUrl,
       panCardImage: panCardUrl,
-      panCardNumber,
+      panCardNumber: panNumber,
     });
 
     const savedStaff = await newStaff.save();
