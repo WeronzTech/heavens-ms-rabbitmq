@@ -146,13 +146,11 @@ export const getBookingByProperty = async (data) => {
       bookingDate,
       search,
       todayOnly,
-      // page = 1,
-      // limit = 10,
     } = data;
 
     const query = {};
 
-    // Convert string boolean → real boolean
+    // Convert string → boolean
     const isTodayOnly = todayOnly === true || todayOnly === "true";
 
     // --------------------------------------------------
@@ -194,49 +192,32 @@ export const getBookingByProperty = async (data) => {
     // --------------------------------------------------
     // FETCH BOOKINGS
     // --------------------------------------------------
-    // const skip = (parseInt(page) - 1) * parseInt(limit);
-
     const bookingsData = await MealBooking.find(query)
       .sort({ bookingDate: 1, mealType: 1 })
-      // .skip(skip)
-      // .limit(parseInt(limit))
       .lean();
 
     const total = await MealBooking.countDocuments(query);
 
     // --------------------------------------------------
-    // 🔥 BULK USER FETCH (SUPER FAST)
+    // BULK USER FETCH
     // --------------------------------------------------
     const allUserIds = [...new Set(bookingsData.map((b) => b.userId))];
 
     const userResponse = await sendRPCRequest(
-      USER_PATTERN.USER.GET_USER_BY_ID,
+      USER_PATTERN.USER.GET_BULK_USER_BY_ID,
       { userIds: allUserIds }
     );
 
     const usersMap = {};
     for (const u of userResponse?.body?.data || []) {
-      usersMap[u.id] = u;
+      usersMap[u._id?.toString()] = u; // make sure key matches string id
     }
 
     // --------------------------------------------------
-    // ENRICH BOOKINGS (NO async, SUPER FAST)
+    // ENRICH BOOKINGS
     // --------------------------------------------------
-
-    const userMap = {};
-
-    await Promise.all(
-      allUserIds.map(async (id) => {
-        const response = await sendRPCRequest(
-          USER_PATTERN.USER.GET_USER_BY_ID,
-          { userId: id }
-        );
-        userMap[id] = response?.body?.data || {};
-      })
-    );
-
     const enrichedData = bookingsData.map((b) => {
-      const user = userMap[b.userId] || {};
+      const user = usersMap[b.userId] || {};
       return {
         ...b,
         userName: user.name || "N/A",
@@ -269,12 +250,7 @@ export const getBookingByProperty = async (data) => {
       message: "Bookings retrieved successfully",
       data: {
         data: filteredData,
-        // pagination: {
-        //   total: filteredData.length,
-        //   page: parseInt(page),
-        //   limit: parseInt(limit),
-        //   totalPages: Math.ceil(filteredData.length / parseInt(limit)),
-        // },
+        total,
         todayOnlyApplied: isTodayOnly,
       },
     };

@@ -36,6 +36,7 @@ import {
   allocateCommissionToUsers,
   registerUserFromPanel,
   updatePassword,
+  getBulkHeavensUserById,
 } from "../services/user.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
@@ -207,4 +208,8 @@ createResponder(
 
 createResponder(USER_PATTERN.USER.REGISTER_USER_FROM_PANEL, async (data) => {
   return await registerUserFromPanel(data);
+});
+
+createResponder(USER_PATTERN.USER.GET_BULK_USER_BY_ID, async (data) => {
+  return await getBulkHeavensUserById(data);
 });
