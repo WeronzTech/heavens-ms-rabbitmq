@@ -223,10 +223,14 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - heavens-ms-js-net
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 20s
+      timeout: 10s
       retries: 5
     restart: unless-stopped
 
