@@ -295,6 +295,31 @@ class EmailService {
       currentYear: new Date().getFullYear(),
     });
   }
+
+  async sendServerDownEmail(serviceName, error) {
+    const adminEmail = process.env.EMAIL_FROM; // Need this env var
+    const subject = `🚨 ALERT: ${serviceName} is DOWN`;
+    const html = `
+      <h1>Service Alert</h1>
+      <p>The service <strong>${serviceName}</strong> is currently down.</p>
+      <p>Error details: ${error}</p>
+      <p>Time: ${new Date().toLocaleString()}</p>
+    `;
+
+    try {
+      const mailOptions = {
+        from: emailConfig.from,
+        to: adminEmail,
+        subject,
+        html,
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`Alert email sent for ${serviceName}`);
+    } catch (err) {
+      console.error(`Failed to send alert email for ${serviceName}:`, err);
+    }
+  }
 }
 
 export default new EmailService();

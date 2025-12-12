@@ -22,6 +22,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK" });
+});
+
 // This export needs to be available, but io will be initialized inside startServer
 export let io;
 
