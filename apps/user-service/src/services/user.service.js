@@ -4410,4 +4410,4 @@ export const registerUserFromPanel = async (data) => {
       },
     };
   }
-}
+};
