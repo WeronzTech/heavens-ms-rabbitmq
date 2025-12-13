@@ -27,22 +27,46 @@ export const sendRentReminders = async () => {
 
       if (!monthlyRent || monthlyRent <= 0) continue;
 
-      const nextDueMonth = moment(clearedTillMonth, "YYYY-MM").add(1, "months");
+      const joinDateMoment = user.stayDetails?.joinDate
+        ? moment(user.stayDetails.joinDate)
+        : moment(user.createdAt);
 
+      const billingDay = joinDateMoment.date(); // e.g., 15
+
+      // 2. Start checking from the month AFTER the last cleared month
+      let iterationMonth = moment(clearedTillMonth, "YYYY-MM").add(1, "months");
       let correctlyCalculatedPendingRent = 0;
 
-      // Check if the current date is in or after the month rent is due
-      if (today.isSameOrAfter(nextDueMonth, "month")) {
-        const monthsOverdue = today.diff(nextDueMonth, "months") + 1;
-        correctlyCalculatedPendingRent = monthsOverdue * monthlyRent;
+      // 3. Loop while the iteration month is in the past or is the current month
+      while (iterationMonth.isSameOrBefore(today, "month")) {
+        // Construct the specific due date for this month
+        // moment().date(X) handles edge cases (e.g., setting 31st on Feb becomes Feb 28/29)
+        const specificDueDate = iterationMonth.clone().date(billingDay);
+
+        // 4. CHECK: Has today passed (or is it) this specific due date?
+        if (today.isSameOrAfter(specificDueDate, "day")) {
+          correctlyCalculatedPendingRent += monthlyRent;
+        }
+
+        // Move to check the next month
+        iterationMonth.add(1, "months");
       }
 
-      // ✅ Only write to the database if the calculated amount is different
-      if (correctlyCalculatedPendingRent !== (currentPendingRentInDB || 0)) {
+      const rentAmountChanged =
+        correctlyCalculatedPendingRent !== (currentPendingRentInDB || 0);
+      const statusShouldBePaid =
+        correctlyCalculatedPendingRent === 0 && user.paymentStatus !== "paid";
+      const statusShouldBePending =
+        correctlyCalculatedPendingRent > 0 && user.paymentStatus !== "pending";
+
+      // If amount changed OR status is inconsistent, update DB
+      if (rentAmountChanged || statusShouldBePaid || statusShouldBePending) {
         user.financialDetails.pendingRent = correctlyCalculatedPendingRent;
         // Also update payment status if they are now pending
         if (correctlyCalculatedPendingRent > 0) {
           user.paymentStatus = "pending";
+        } else {
+          user.paymentStatus = "paid";
         }
         await user.save();
         console.log(
