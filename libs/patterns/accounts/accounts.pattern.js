@@ -28,7 +28,7 @@ export const ACCOUNTS_PATTERN = {
     GET_LATEST_DEPOSIT_PAYMENT_BY_USERID:
       "get_latest_deposit_payment_by_userId",
     RECORD_REFUND_PAYMENT: "record_refund_payment",
-    GET_TRANSACTIONS_BY_USERID: "get_transactions_by_userid",
+    GET_TRANSACTIONS_BY_USERID: "get_dep_transactions_by_userid",
   },
   BUS_PAYMENTS: {
     INITIATE_ONLINE_BUS_PAYMENT: "bus_payment_initiate_online",
@@ -37,7 +37,7 @@ export const ACCOUNTS_PATTERN = {
     GET_ALL_BUS_PAYMENTS: "get_all_bus_payments",
     GET_LATEST_BUS_PAYMENT_BY_USERID: "get_latest_bus_payment_by_userId",
     RECORD_REFUND_PAYMENT: "record_refund_payment",
-    GET_TRANSACTIONS_BY_USERID: "get_transactions_by_userid",
+    GET_TRANSACTIONS_BY_USERID: "get_bus_transactions_by_userid",
   },
   COMMISSION: {
     ADD_COMMISSION: "add_commission",

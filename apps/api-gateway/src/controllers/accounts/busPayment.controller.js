@@ -74,3 +74,32 @@ export const getAllBusPayments = async (req, res) => {
     });
   }
 };
+
+export const getTransactionHistoryByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "Unauthorized: User ID not found",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.BUS_PAYMENTS.GET_TRANSACTIONS_BY_USERID,
+      { userId }
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in get transactions:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching user transactions.",
+      error: error.message,
+    });
+  }
+};

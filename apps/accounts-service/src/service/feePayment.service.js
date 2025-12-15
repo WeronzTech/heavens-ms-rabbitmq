@@ -1714,7 +1714,7 @@ export const getTransactionHistoryByUserId = async (data) => {
     }
 
     const payments = await Payments.find({ userId })
-      .sort({ createdAt: -1 }) // latest first
+      .sort({ paymentDate: -1 }) // latest first
       .lean();
 
     if (!payments || payments.length === 0) {

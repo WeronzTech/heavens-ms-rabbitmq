@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getAllDepositPayments,
+  getTransactionHistoryByUserId,
   initiateOnlineDepositPayment,
   processAndRecordRefundPayment,
   recordManualDepositPayment,
@@ -40,6 +41,12 @@ depositPaymentRoutes.get(
   "/",
   hasPermission(PERMISSIONS.DEPOSIT_VIEW),
   getAllDepositPayments
+);
+
+depositPaymentRoutes.get(
+  "/transactionHistory/:userId",
+  hasPermission(PERMISSIONS.DEPOSIT_VIEW),
+  getTransactionHistoryByUserId
 );
 
 export default depositPaymentRoutes;

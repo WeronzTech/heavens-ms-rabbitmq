@@ -532,7 +532,7 @@ export const getLatestBusPaymentsByUsers = async ({ userIds }) => {
 export const getTransactionHistoryByUserId = async (data) => {
   try {
     const { userId } = data;
-
+    console.log("hererere");
     if (!userId) {
       return {
         success: false,
@@ -543,7 +543,7 @@ export const getTransactionHistoryByUserId = async (data) => {
     }
 
     const payments = await BusPayments.find({ userId })
-      .sort({ createdAt: -1 }) // latest first
+      .sort({ paymentDate: -1 }) // latest first
       .lean();
 
     if (!payments || payments.length === 0) {

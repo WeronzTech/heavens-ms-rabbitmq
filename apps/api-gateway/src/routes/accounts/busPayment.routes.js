@@ -5,6 +5,7 @@ import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
 import {
   getAllBusPayments,
+  getTransactionHistoryByUserId,
   initiateOnlineBusPayment,
   recordManualBusPayment,
   verifyAndRecordOnlineBusPayment,
@@ -34,6 +35,12 @@ busPaymentRoutes.get(
   "/",
   hasPermission(PERMISSIONS.BUS_FEE_VIEW),
   getAllBusPayments
+);
+
+busPaymentRoutes.get(
+  "/transactionHistory/:userId",
+  hasPermission(PERMISSIONS.BUS_FEE_VIEW),
+  getTransactionHistoryByUserId
 );
 
 export default busPaymentRoutes;

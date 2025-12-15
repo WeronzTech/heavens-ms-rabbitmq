@@ -3,6 +3,7 @@ import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pa
 import {
   getAllDepositPayments,
   getLatestDepositPaymentsByUsers,
+  getTransactionHistoryByUserId,
   initiateOnlineDepositPayment,
   processAndRecordRefundPayment,
   recordManualDepositPayment,
