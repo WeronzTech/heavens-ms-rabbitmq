@@ -331,6 +331,8 @@ export const resetPassword = async (data) => {
 
 export const refreshAccessToken = async (data) => {
   const { refreshToken, deviceId } = data;
+  console.log("herere the refreshhhxxx");
+  console.log(refreshToken, deviceId);
 
   if (!refreshToken || !deviceId) {
     return {

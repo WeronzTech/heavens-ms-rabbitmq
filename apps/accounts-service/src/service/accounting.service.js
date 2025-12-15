@@ -6,6 +6,7 @@ import { getAccountId } from "./accountSetting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
 
 // Helper to find GST accounts based on rate and type
 const getGstAccountIds = async (rate, isIntraState, isPurchase) => {
@@ -789,10 +790,26 @@ export const getJournalEntryById = async (data) => {
       }
     }
 
+    if (referenceId && referenceType === "Inventory") {
+      try {
+        referenceData = await sendRPCRequest(
+          INVENTORY_PATTERN.INTERNAL.GET_INVENTORY_DATA_BY_ID,
+          { inventoryId: referenceId.toString() }
+        );
+      } catch (err) {
+        console.error("❌ RPC fetch inventory failed:", err);
+        referenceData = null; // do not break entire response
+      }
+    }
+
     // ---------------------------
-    // ✅ Populate referenceId only if NOT asset
+    // ✅ Populate referenceId only if NOT asset and inventory
     // ---------------------------
-    if (referenceId && referenceType !== "Asset") {
+    if (
+      referenceId &&
+      referenceType !== "Asset" &&
+      referenceType !== "Inventory"
+    ) {
       const populated = await JournalEntry.populate(journalEntry, {
         path: "referenceId",
         select:

@@ -82,6 +82,7 @@ export const INVENTORY_PATTERN = {
   },
   INTERNAL: {
     GET_ACCESSIBLE_KITCHENS: "inventory_internal_get_accessible_kitchens",
+    GET_INVENTORY_DATA_BY_ID: "get_inventory_data_by_id",
   },
   CATEGORY: {
     ADD_CATEGORY: "inventory_add_category",

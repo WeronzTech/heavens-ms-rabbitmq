@@ -28,7 +28,8 @@ const generateTokens = async (user, deviceId) => {
       deviceId,
     },
     process.env.JWT_SECRET_KEY,
-    { expiresIn: "30m" }
+    // { expiresIn: "30m" }
+    { expiresIn: "7d" }
   );
 
   const refreshToken = jwt.sign(

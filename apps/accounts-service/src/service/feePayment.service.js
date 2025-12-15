@@ -395,6 +395,7 @@ const processAndRecordPayment = async ({
       user.financialDetails.pendingAmount -= totalCredit;
       if (user.financialDetails.pendingAmount <= 0) {
         user.paymentStatus = "paid";
+        user.isBlocked = false;
       }
     } else if (user.rentType === "monthly") {
       const monthlyRent = user.financialDetails.monthlyRent || 0;
