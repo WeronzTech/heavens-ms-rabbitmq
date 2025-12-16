@@ -42,6 +42,7 @@ export const sendRentReminders = async () => {
         // Construct the specific due date for this month
         // moment().date(X) handles edge cases (e.g., setting 31st on Feb becomes Feb 28/29)
         const specificDueDate = iterationMonth.clone().date(billingDay);
+        console.log("specificDueDate", specificDueDate, user.name);
 
         // 4. CHECK: Has today passed (or is it) this specific due date?
         if (today.isSameOrAfter(specificDueDate, "day")) {
@@ -59,8 +60,28 @@ export const sendRentReminders = async () => {
       const statusShouldBePending =
         correctlyCalculatedPendingRent > 0 && user.paymentStatus !== "pending";
 
+      let shouldBlockUser = false;
+      if (
+        correctlyCalculatedPendingRent > 0 &&
+        user.financialDetails.nextDueDate
+      ) {
+        const dueDate = moment(user.financialDetails.nextDueDate);
+        // Calculate the cut-off date (Due Date + 5 Days)
+        const blockThresholdDate = dueDate.clone().add(5, "days");
+
+        // If today is strictly after the 5-day grace period
+        if (today.isAfter(blockThresholdDate, "day")) {
+          shouldBlockUser = true;
+        }
+      }
+
       // If amount changed OR status is inconsistent, update DB
-      if (rentAmountChanged || statusShouldBePaid || statusShouldBePending) {
+      if (
+        rentAmountChanged ||
+        statusShouldBePaid ||
+        statusShouldBePending ||
+        shouldBlockUser
+      ) {
         user.financialDetails.pendingRent = correctlyCalculatedPendingRent;
         // Also update payment status if they are now pending
         if (correctlyCalculatedPendingRent > 0) {
@@ -68,6 +89,14 @@ export const sendRentReminders = async () => {
         } else {
           user.paymentStatus = "paid";
         }
+
+        if (shouldBlockUser) {
+          user.isBlocked = true;
+          console.log(
+            `Blocking user ${user.name} (ID: ${user._id}) due to overdue rent > 5 days.`
+          );
+        }
+
         await user.save();
         console.log(
           `Corrected overdue rent for ${user.name} to ₹${correctlyCalculatedPendingRent}.`
