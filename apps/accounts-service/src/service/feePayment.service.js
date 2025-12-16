@@ -465,10 +465,13 @@ const processAndRecordPayment = async ({
         user.financialDetails.clearedTillMonth = `${finalClearedDate.getFullYear()}-${String(
           finalClearedDate.getMonth() + 1
         ).padStart(2, "0")}`;
+
+        const joinDay = new Date(user.stayDetails.joinDate).getDate();
+
         user.financialDetails.nextDueDate = new Date(
           finalClearedDate.getFullYear(),
           finalClearedDate.getMonth() + 1,
-          5
+          joinDay
         );
         if (newAccountBalance > 0) {
           const lastPaidMonth = user.financialDetails.clearedTillMonth
