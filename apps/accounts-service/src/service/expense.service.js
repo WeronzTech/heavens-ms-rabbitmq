@@ -403,6 +403,38 @@ export const deleteExpense = async (data) => {
       return { success: false, status: 400, message: "Expense ID is required" };
     }
 
+    // 1️⃣ Fetch existing expense FIRST
+    const existingExpense = await Expense.findById(expenseId);
+
+    if (!existingExpense) {
+      return { success: false, status: 404, message: "Expense not found" };
+    }
+
+    // ✅ Petty cash adjustment logic
+    if (existingExpense.paymentMethod === "Petty Cash") {
+      const oldAmount = Number(existingExpense.amount);
+      const newAmount = Number(amount);
+      const difference = oldAmount - newAmount; // +ve = refund, -ve = deduct more
+
+      if (difference !== 0) {
+        if (existingExpense.pettyCashType === "inHand") {
+          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+            manager: handledBy,
+            pettyCashType: "inHand",
+            inHandAmount: difference, // refund or deduct
+          });
+        }
+
+        if (existingExpense.pettyCashType === "inAccount") {
+          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+            manager: handledBy,
+            pettyCashType: "inAccount",
+            inAccountAmount: difference, // refund or deduct
+          });
+        }
+      }
+    }
+
     const expense = await Expense.findByIdAndDelete(expenseId);
     if (!expense) {
       return { success: false, status: 404, message: "Expense not found" };

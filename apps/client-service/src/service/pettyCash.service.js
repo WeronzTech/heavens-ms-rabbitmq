@@ -95,22 +95,41 @@ export const addPettyCash = async (data) => {
       await existingPettyCash.save();
     }
 
-    if (totalAmountTransferred > 0) {
+    const transactions = [];
+
+    if (Number(inHandAmount) > 0) {
+      transactions.push(
+        {
+          systemName: ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH,
+          debit: Number(inHandAmount),
+        },
+        {
+          systemName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH,
+          credit: Number(inHandAmount),
+        }
+      );
+    }
+
+    if (Number(inAccountAmount) > 0) {
+      transactions.push(
+        {
+          systemName: ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH,
+          debit: Number(inAccountAmount),
+        },
+        {
+          systemName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
+          credit: Number(inAccountAmount),
+        }
+      );
+    }
+
+    if (transactions.length > 0) {
       try {
         await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
           date: new Date(),
           description: `Petty cash top-up for ${managerName}`,
           propertyId: property._id || property,
-          transactions: [
-            {
-              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH,
-              debit: totalAmountTransferred,
-            },
-            {
-              accountName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
-              credit: totalAmountTransferred,
-            },
-          ],
+          transactions,
           referenceId: existingPettyCash._id,
           referenceType: "PettyCash",
         });
@@ -252,6 +271,33 @@ export const getPettyCashByManager = async (data) => {
       status: 500,
       message: "Failed to fetch petty cash",
       error: error.message,
+      data: null,
+    };
+  }
+};
+
+export const getPettyCashByIdService = async (data) => {
+  try {
+    const { pettyCashId } = data;
+    const pettyCash = await PettyCash.findById(pettyCashId).select(
+      "managerName inHandAmount inAccountAmount"
+    );
+
+    if (!pettyCash) {
+      return {
+        success: false,
+        status: 404,
+        message: "PettyCash not found",
+        data: null,
+      };
+    }
+
+    return pettyCash;
+  } catch (err) {
+    return {
+      success: false,
+      status: 500,
+      message: err.message,
       data: null,
     };
   }

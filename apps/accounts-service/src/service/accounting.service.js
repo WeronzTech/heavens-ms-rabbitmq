@@ -7,6 +7,7 @@ import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { INVENTORY_PATTERN } from "../../../../libs/patterns/inventory/inventory.pattern.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 
 // Helper to find GST accounts based on rate and type
 const getGstAccountIds = async (rate, isIntraState, isPurchase) => {
@@ -778,6 +779,19 @@ export const getJournalEntryById = async (data) => {
     // ---------------------------
     // ✅ Fetch external reference if type = Asset
     // ---------------------------
+
+    if (referenceId && referenceType === "PettyCash") {
+      try {
+        referenceData = await sendRPCRequest(
+          CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_DATA_BY_ID,
+          { pettyCashId: referenceId.toString() }
+        );
+      } catch (err) {
+        console.error("❌ RPC fetch pettyCash failed:", err);
+        referenceData = null; // do not break entire response
+      }
+    }
+
     if (referenceId && referenceType === "Asset") {
       try {
         referenceData = await sendRPCRequest(
@@ -808,7 +822,8 @@ export const getJournalEntryById = async (data) => {
     if (
       referenceId &&
       referenceType !== "Asset" &&
-      referenceType !== "Inventory"
+      referenceType !== "Inventory" &&
+      referenceType !== "PettyCash"
     ) {
       const populated = await JournalEntry.populate(journalEntry, {
         path: "referenceId",

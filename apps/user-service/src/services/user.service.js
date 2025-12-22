@@ -2376,7 +2376,6 @@ export const getTodayCheckouts = async (data) => {
 export const extendUserDays = async (data) => {
   try {
     const { id, extendDate, additionalDays, newRentAmount, adminName } = data;
-    console.log(data);
 
     // Validate input
     if (!additionalDays || additionalDays < 1) {
@@ -2421,6 +2420,7 @@ export const extendUserDays = async (data) => {
             "stayDetails.extendDate": extendDate ? new Date(extendDate) : now,
             // "stayDetails.checkOutDate": extendDate ? new Date(extendDate) : now,
             "stayDetails.dailyRent": currentDailyRate, // Update rate if changed
+            paymentStatus: "pending",
           },
         },
         { new: true }
@@ -2736,7 +2736,7 @@ export const getPendingStatusRequests = async (data) => {
 export const respondToStatusRequest = async (data) => {
   try {
     const { id, requestId, status, comment, adminName } = data;
-    console.log(data);
+
     if (!["approved", "rejected"].includes(status)) {
       return {
         status: 400,
@@ -2815,11 +2815,12 @@ export const respondToStatusRequest = async (data) => {
     };
   } catch (error) {
     console.error("Error responding to request:", error);
+
     return {
-      status: 500,
+      status: error.status || 500,
       body: {
         success: false,
-        error: "Error processing request",
+        message: error.message || "Error processing request",
       },
     };
   }
@@ -3113,11 +3114,13 @@ export const getAllPaymentPendingUsers = async (data) => {
       projection["financialDetails.pendingRent"] = 1;
       projection["financialDetails.clearedTillMonth"] = 1;
     } else if (rentType === "daily") {
+      projection["userType"] = 1;
       projection["stayDetails.checkInDate"] = 1;
       projection["stayDetails.checkOutDate"] = 1;
       projection["financialDetails.totalAmount"] = 1;
       projection["financialDetails.pendingAmount"] = 1;
     } else if (rentType === "mess") {
+      projection["userType"] = 1;
       projection["messDetails.messStartDate"] = 1;
       projection["messDetails.messEndDate"] = 1;
       projection["financialDetails.totalAmount"] = 1;
@@ -3199,12 +3202,14 @@ export const getAllPaymentPendingUsers = async (data) => {
           rentClearedMonth: u.financialDetails?.clearedTillMonth || null,
         }),
         ...(rentType === "daily" && {
+          userType: u.userType,
           checkInDate: u.stayDetails?.checkInDate || null,
           checkOutDate: u.stayDetails?.checkOutDate || null,
           totalAmount: u.financialDetails?.totalAmount || null,
           pendingAmount: u.financialDetails?.pendingAmount || null,
         }),
         ...(rentType === "mess" && {
+          userType: u.userType,
           messStartDate: u.messDetails?.messStartDate || null,
           messEndDate: u.messDetails?.messEndDate || null,
           totalAmount: u.financialDetails?.totalAmount || null,
