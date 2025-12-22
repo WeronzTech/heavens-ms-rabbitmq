@@ -515,9 +515,7 @@ const processAndRecordPayment = async ({
       contact: user.contact,
       room: user.stayDetails?.roomNumber || "N/A",
       rent:
-        user.financialDetails?.monthlyRent ||
-        user.financialDetails?.dailyRent ||
-        0,
+        user.financialDetails?.monthlyRent || user.stayDetails?.dailyRent || 0,
       amount: amount,
       waveOffAmount: waveOffAmount,
       waveOffReason: waveOffReason,
