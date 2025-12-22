@@ -434,8 +434,10 @@ const processAndRecordPayment = async ({
       let newAccountBalance = totalAvailableAmount % monthlyRent;
 
       user.financialDetails.accountBalance = newAccountBalance;
-      user.financialDetails.pendingRent = newAccountBalance;
-      user.financialDetails.pendingAmount = newAccountBalance;
+      user.financialDetails.pendingRent =
+        user.financialDetails.monthlyRent - newAccountBalance;
+      user.financialDetails.pendingAmount =
+        user.financialDetails.monthlyRent - newAccountBalance;
       if (user.financialDetails.pendingRent <= 0) {
         user.financialDetails.pendingRent = 0;
         user.paymentStatus = "paid";
