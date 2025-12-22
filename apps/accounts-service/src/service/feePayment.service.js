@@ -396,6 +396,9 @@ const processAndRecordPayment = async ({
       if (user.financialDetails.pendingAmount <= 0) {
         user.paymentStatus = "paid";
         user.isBlocked = false;
+      } else {
+        user.paymentStatus = "pending";
+        user.isBlocked = true;
       }
     } else if (user.rentType === "monthly") {
       const monthlyRent = user.financialDetails.monthlyRent || 0;
@@ -431,12 +434,15 @@ const processAndRecordPayment = async ({
       let newAccountBalance = totalAvailableAmount % monthlyRent;
 
       user.financialDetails.accountBalance = newAccountBalance;
-      user.financialDetails.pendingRent =
-        currentPendingRent - monthsCleared * monthlyRent;
+      user.financialDetails.pendingRent = newAccountBalance;
+      user.financialDetails.pendingAmount = newAccountBalance;
       if (user.financialDetails.pendingRent <= 0) {
         user.financialDetails.pendingRent = 0;
         user.paymentStatus = "paid";
         user.isBlocked = false;
+      } else {
+        user.paymentStatus = "pending";
+        user.isBlocked = true;
       }
 
       if (monthsCleared > 0) {
@@ -595,6 +601,7 @@ const processAndRecordPayment = async ({
           financialDetails: user.financialDetails,
           paymentStatus: user.paymentStatus,
           referralInfo: user.referralInfo,
+          isBlocked: user.isBlocked,
         },
       }
     );
