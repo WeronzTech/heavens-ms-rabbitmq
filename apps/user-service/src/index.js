@@ -24,7 +24,7 @@ app.use(helmet());
 app.use(parseForwardedAuth);
 
 // Cron Jobs
-cron.schedule("* * * * *", sendRentReminders, {
+cron.schedule("0 18 * * *", sendRentReminders, {
   scheduled: true,
   timezone: "Asia/Kolkata",
 });
