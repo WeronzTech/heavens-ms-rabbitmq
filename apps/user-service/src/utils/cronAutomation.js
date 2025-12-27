@@ -254,9 +254,19 @@ export const sendRentReminders = async () => {
         // 5. CHECK: Has today passed (or is it) this specific due date?
         // Using 'day' granularity to ignore hours/minutes
         if (today.isSameOrAfter(specificDueDate, "day")) {
+          console.log(
+            "Here---------------------",
+            user.name,
+            specificDueDate.format()
+          );
           correctlyCalculatedPendingRent += monthlyRent;
           monthAddedLog.push(iterationMonth.format("YYYY-MM"));
         } else {
+          console.log(
+            "Here-----------again---------------------",
+            user.name,
+            specificDueDate.format()
+          );
           console.log(
             `[DEBUG] Skipping Rent for ${user.name} for ${iterationMonth.format(
               "MMM YYYY"
@@ -316,6 +326,11 @@ export const sendRentReminders = async () => {
         user.financialDetails.pendingRent = correctlyCalculatedPendingRent;
         // Also update payment status if they are now pending
         if (correctlyCalculatedPendingRent > 0) {
+          console.log(
+            "Here----today---------------------",
+            user.name,
+            specificDueDate.format()
+          );
           user.paymentStatus = "pending";
         } else {
           user.paymentStatus = "paid";
