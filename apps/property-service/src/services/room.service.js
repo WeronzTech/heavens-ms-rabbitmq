@@ -254,12 +254,65 @@ export const confirmRoomAssignment = async (data) => {
   }
 };
 
+// export const handleRemoveAssignment = async (data) => {
+//   const { userId, roomId } = data;
+//   console.log(data);
+//   let session; // Declare session here
+//   try {
+//     session = await mongoose.startSession(); // Assign it here
+//     session.startTransaction();
+
+//     const room = await Room.findById(roomId).session(session);
+//     console.log(room);
+//     if (!room) {
+//       await session.abortTransaction();
+//       return {
+//         status: 404,
+//         body: { error: "Room not found" },
+//       };
+//     }
+
+//     // Remove occupant from room
+//     room.occupant -= 1;
+//     room.vacantSlot += 1;
+//     room.roomOccupants = room.roomOccupants.filter(
+//       (occ) => !occ.userId.equals(userId)
+//     );
+
+//     await room.save({ session });
+
+//     await Property.findByIdAndUpdate(
+//       room.propertyId,
+//       { $inc: { occupiedBeds: -1 } },
+//       { session }
+//     );
+
+//     await session.commitTransaction();
+//     return {
+//       status: 200,
+//       body: { success: true },
+//     };
+//   } catch (error) {
+//     if (session) {
+//       await session.abortTransaction();
+//     }
+//     console.error("Error removing room assignment:", error);
+//     return {
+//       status: 500,
+//       body: { error: "Failed to remove room assignment" },
+//     };
+//   } finally {
+//     if (session) {
+//       session.endSession(); // Clean up
+//     }
+//   }
+// };
 export const handleRemoveAssignment = async (data) => {
   const { userId, roomId } = data;
   console.log(data);
-  let session; // Declare session here
+  let session;
   try {
-    session = await mongoose.startSession(); // Assign it here
+    session = await mongoose.startSession();
     session.startTransaction();
 
     const room = await Room.findById(roomId).session(session);
@@ -272,17 +325,35 @@ export const handleRemoveAssignment = async (data) => {
       };
     }
 
-    // Remove occupant from room
-    room.occupant -= 1;
-    room.vacantSlot += 1;
-    room.roomOccupants = room.roomOccupants.filter(
-      (occ) => !occ.userId.equals(userId)
+    // 1. CHECK: Is the user actually in this room?
+    const existingOccupantIndex = room.roomOccupants.findIndex((occ) =>
+      occ.userId.equals(userId)
     );
+
+    if (existingOccupantIndex === -1) {
+      // User is not in this room, do not decrement counts!
+      await session.abortTransaction();
+      return {
+        status: 400,
+        body: { error: "User is not assigned to this room." },
+      };
+    }
+
+    // 2. Remove the user specifically
+    room.roomOccupants.splice(existingOccupantIndex, 1);
+
+    // 3. Safe Math for Room Counts
+    room.occupant = Math.max(0, room.occupant - 1); // Prevent negative
+    room.vacantSlot += 1;
 
     await room.save({ session });
 
-    await Property.findByIdAndUpdate(
-      room.propertyId,
+    // 4. Safe Update for Property Counts
+    // We use a query filter to ensure we don't decrement if it's already 0
+    // OR we rely on the fact that we confirmed the user existed above.
+    // Ideally, if a user existed, occupiedBeds *should* be > 0.
+    await Property.findOneAndUpdate(
+      { _id: room.propertyId, occupiedBeds: { $gt: 0 } }, // Safety check query
       { $inc: { occupiedBeds: -1 } },
       { session }
     );
@@ -303,7 +374,7 @@ export const handleRemoveAssignment = async (data) => {
     };
   } finally {
     if (session) {
-      session.endSession(); // Clean up
+      session.endSession();
     }
   }
 };
