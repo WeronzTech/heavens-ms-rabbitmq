@@ -17,15 +17,15 @@ const agencyRoutes = Router();
 agencyRoutes
   .route("/")
   .get(getAllAgencies)
-  .post(hasPermission(PERMISSIONS.AGENCY_MANAGE), isAuthenticated, addAgency);
+  .post(isAuthenticated, hasPermission(PERMISSIONS.AGENCY_MANAGE), addAgency);
 
 agencyRoutes
   .route("/:agencyId")
-  .get(hasPermission(PERMISSIONS.AGENCY_VIEW), isAuthenticated, getAgencyById)
-  .put(hasPermission(PERMISSIONS.AGENCY_MANAGE), isAuthenticated, editAgency)
+  .get(isAuthenticated, hasPermission(PERMISSIONS.AGENCY_VIEW), getAgencyById)
+  .put(isAuthenticated, hasPermission(PERMISSIONS.AGENCY_MANAGE), editAgency)
   .delete(
-    hasPermission(PERMISSIONS.AGENCY_MANAGE),
     isAuthenticated,
+    hasPermission(PERMISSIONS.AGENCY_MANAGE),
     deleteAgency
   );
 
