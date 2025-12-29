@@ -326,11 +326,7 @@ export const sendRentReminders = async () => {
         user.financialDetails.pendingRent = correctlyCalculatedPendingRent;
         // Also update payment status if they are now pending
         if (correctlyCalculatedPendingRent > 0) {
-          console.log(
-            "Here----today---------------------",
-            user.name,
-            specificDueDate.format()
-          );
+          console.log("Here----today---------------------", user.name);
           user.paymentStatus = "pending";
         } else {
           user.paymentStatus = "paid";
