@@ -233,6 +233,27 @@ export const getUsageForPreparation = async (req, res) => {
   }
 };
 
+const createTokenMealBooking = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      INVENTORY_PATTERN.BOOKING.MANUAL_CREATE_TOKEN_BOOKINGS,
+      req.body // Expecting { userId } in body
+    );
+    if (response.status === 201) {
+      return res.status(201).json(response);
+    } else {
+      return res.status(response.status || 500).json(response);
+    }
+  } catch (error) {
+    console.error("API Gateway Error in createTokenMealBooking:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Internal Server Error in API Gateway.",
+    });
+  }
+};
+
 export {
   createMealBooking,
   getBookingById,
@@ -241,4 +262,5 @@ export {
   updateBookingStatus,
   deleteBooking,
   checkNextDayBooking,
+  createTokenMealBooking,
 };

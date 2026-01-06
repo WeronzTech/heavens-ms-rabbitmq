@@ -10,6 +10,7 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import { UsageForPreparation } from "../models/usageForPreparation.model.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import { WeeklyMenu } from "../models/messMenu.model.js";
 // Note: You might replace axios with sendRPCRequest for inter-service communication
 
 export const createMealBooking = async (data) => {
@@ -198,6 +199,10 @@ export const getBookingByProperty = async (data) => {
 
     const total = await MealBooking.countDocuments(query);
 
+    const tokenBookingCount = bookingsData.filter(
+      (b) => b.token === true
+    ).length;
+
     // --------------------------------------------------
     // BULK USER FETCH
     // --------------------------------------------------
@@ -251,6 +256,7 @@ export const getBookingByProperty = async (data) => {
       data: {
         data: filteredData,
         total,
+        tokenBookingCount,
         todayOnlyApplied: isTodayOnly,
       },
     };
@@ -617,6 +623,179 @@ export const getUsageByDate = async ({ date }) => {
     return { success: true, status: 200, data: usageData };
   } catch (error) {
     console.error("Error fetching usage for preparation data:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const createTokenMealBooking = async (data) => {
+  try {
+    const { userId } = data;
+    validateRequired(userId, "User ID");
+
+    // 1. Get User Details to find Property/Kitchen
+    let userDetails;
+    try {
+      const userResponse = await sendRPCRequest(
+        USER_PATTERN.USER.GET_USER_BY_ID,
+        { userId }
+      );
+      userDetails = userResponse.body.data;
+    } catch (error) {
+      console.error("Failed to fetch user details:", error.message);
+      return {
+        success: false,
+        status: 404,
+        message: "Could not find user details.",
+      };
+    }
+
+    const propertyId = userDetails?.stayDetails?.propertyId;
+    if (!propertyId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User not associated with a property.",
+      };
+    }
+
+    // Get Property details to fallback Kitchen ID if needed
+    const propertyResponse = await sendRPCRequest(
+      PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
+      { id: propertyId }
+    );
+
+    const kitchenId =
+      userDetails?.messDetails?.kitchenId || propertyResponse?.data?.kitchenId;
+
+    if (!kitchenId) {
+      return {
+        success: false,
+        status: 400,
+        message: "No Kitchen associated with this user or property.",
+      };
+    }
+
+    // 2. Determine Current Time and Day (IST)
+    const now = new Date();
+    // Convert current time to IST string for comparison with menu times (HH:mm)
+    const istOptions = {
+      timeZone: "Asia/Kolkata",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+    const currentTimeString = now.toLocaleTimeString("en-US", istOptions); // e.g., "14:30"
+    const currentDayName = now.toLocaleDateString("en-US", {
+      timeZone: "Asia/Kolkata",
+      weekday: "long",
+    }); // e.g., "Tuesday"
+
+    console.log(
+      `Token Booking Request: Time: ${currentTimeString}, Day: ${currentDayName}`
+    );
+
+    // 3. Fetch Weekly Menu
+    const weeklyMenu = await WeeklyMenu.findOne({ kitchenId }).lean();
+    if (!weeklyMenu) {
+      return {
+        success: false,
+        status: 404,
+        message: "Weekly menu not found for this kitchen.",
+      };
+    }
+
+    // 4. Determine Meal Type based on Time
+    // Filter mealTimes where current time is between start and end
+    const activeMeal = weeklyMenu.mealTimes.find((slot) => {
+      // Comparison of "HH:mm" strings works lexicographically (e.g. "14:00" > "12:00")
+      return currentTimeString >= slot.start && currentTimeString <= slot.end;
+    });
+
+    if (!activeMeal) {
+      return {
+        success: false,
+        status: 400,
+        message: `No meal is currently being served. Time: ${currentTimeString}`,
+      };
+    }
+
+    const mealType = activeMeal.mealType;
+
+    // 5. Verify that items exist for this day and meal type in the menu
+    const dailyMenu = weeklyMenu.menu.find(
+      (d) => d.dayOfWeek === currentDayName
+    );
+    if (!dailyMenu) {
+      return {
+        success: false,
+        status: 404,
+        message: `No menu defined for ${currentDayName}.`,
+      };
+    }
+
+    const mealItems = dailyMenu.meals.find((m) => m.mealType === mealType);
+    if (!mealItems) {
+      return {
+        success: false,
+        status: 404,
+        message: `No items defined for ${mealType} on ${currentDayName}.`,
+      };
+    }
+
+    // 6. Check for existing booking (Optional: prevent double token generation for same meal/day)
+    // To normalize the check date, we look for bookings made "today" (IST based)
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const existingBooking = await MealBooking.findOne({
+      userId,
+      bookingDate: { $gte: todayStart, $lte: todayEnd },
+      mealType,
+      token: true,
+    });
+
+    if (existingBooking) {
+      return {
+        success: false,
+        status: 409,
+        message: `Token already generated for ${mealType} today.`,
+        data: existingBooking,
+      };
+    }
+
+    // 7. Create the Token Booking
+    // Note: bookingDate is set to NOW because it's an immediate token booking
+    const newBooking = await MealBooking.create({
+      userId,
+      propertyId,
+      kitchenId,
+      menuId: weeklyMenu._id,
+      bookingDate: now,
+      mealType: mealType,
+      status: "Pending", // Or 'Delivered' if token generation implies immediate handover
+      token: true,
+      remarks: "Instant Token Booking",
+    });
+
+    return {
+      success: true,
+      status: 201,
+      message: `Token generated successfully for ${mealType}.`,
+      data: {
+        ...newBooking.toObject(),
+        items: mealItems.itemIds, // Returning the specific items inferred from menu
+        day: currentDayName,
+      },
+    };
+  } catch (error) {
+    console.error("Error creating token meal booking:", error);
     return {
       success: false,
       status: 500,

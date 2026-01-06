@@ -9,6 +9,7 @@ import {
   checkNextDayBooking,
   createManualMealBookings,
   getUsageForPreparation,
+  createTokenMealBooking,
 } from "../../controllers/inventory/mealBooking.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
@@ -32,6 +33,14 @@ messBookingRoutes
     isAuthenticated,
     hasPermission(PERMISSIONS.BOOKING_MANAGE),
     createManualMealBookings
+  );
+
+messBookingRoutes
+  .route("/manual-token")
+  .post(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.BOOKING_MANAGE),
+    createTokenMealBooking
   );
 
 messBookingRoutes

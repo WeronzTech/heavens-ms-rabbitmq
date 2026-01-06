@@ -17,6 +17,7 @@ export const INVENTORY_PATTERN = {
     DELETE_BOOKING: "inventory_delete_booking",
     CHECK_NEXT_DAY_BOOKING: "inventory_check_next_day_booking",
     MANUAL_CREATE_BOOKINGS: "inventory_manual_create_bookings",
+    MANUAL_CREATE_TOKEN_BOOKINGS: "inventory_manual_create_token_bookings",
     GET_USAGE_OF_INVENTORY: "inventory_get_usage_of_inventory",
   },
   ADDON_BOOKING: {

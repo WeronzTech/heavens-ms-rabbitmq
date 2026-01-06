@@ -10,6 +10,7 @@ import {
   checkNextDayBooking,
   createManualMealBookings,
   getUsageByDate,
+  createTokenMealBooking,
 } from "../services/mealBooking.service.js";
 
 createResponder(INVENTORY_PATTERN.BOOKING.CREATE_MEAL_BOOKING, async (data) => {
@@ -60,5 +61,12 @@ createResponder(
   INVENTORY_PATTERN.BOOKING.GET_USAGE_OF_INVENTORY,
   async (data) => {
     return await getUsageByDate(data);
+  }
+);
+
+createResponder(
+  INVENTORY_PATTERN.BOOKING.MANUAL_CREATE_TOKEN_BOOKINGS,
+  async (data) => {
+    return await createTokenMealBooking(data);
   }
 );

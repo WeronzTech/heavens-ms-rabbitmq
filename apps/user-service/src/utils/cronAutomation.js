@@ -237,46 +237,52 @@ export const sendRentReminders = async () => {
         .add(1, "months")
         .startOf("month");
 
-      let correctlyCalculatedPendingRent = 0;
-      let monthAddedLog = []; // For debug logging
-      let isFirstOverdueMonth = true;
+      const monthsCoveredByPending =
+        pendingAmount > 0 ? Math.ceil(pendingAmount / monthlyRent) : 0;
 
-      // 4. Loop while the iteration month is in the past or is the current month
-      // using isSameOrBefore with 'month' granularity
+      // 2. Start the total with the existing partial/pending amount.
+      let correctlyCalculatedPendingRent =
+        pendingAmount > 0 ? pendingAmount : 0;
+
+      let monthAddedLog = [];
+      let validDueMonthsCount = 0; // Counts how many due dates have actually passed
+      // <--- CHANGE END -------------------------------------------------------
+
       while (iterationMonth.isSameOrBefore(today, "month")) {
-        // Construct the specific due date for this month
         const specificDueDate = iterationMonth
           .clone()
           .date(billingDay)
           .startOf("day");
 
-        // Handling edge cases like Feb 30 -> Feb 28/29 automatically by moment,
-        // but explicit validation helps if needed. Moment handles it by clamping to end of month.
-
-        // 5. CHECK: Has today passed (or is it) this specific due date?
-        // Using 'day' granularity to ignore hours/minutes
+        // <--- CHANGE START: Strict Date Check --------------------------------
+        // Only process this month if the specific due date has been reached/passed
         if (today.isSameOrAfter(specificDueDate, "day")) {
-          let amountToAdd = monthlyRent;
+          validDueMonthsCount++; // We found a valid overdue month
 
-          // If this is the first month we are checking AND there is a leftover pendingAmount
-          if (isFirstOverdueMonth && pendingAmount > 0) {
-            amountToAdd = pendingAmount; // Use the partial balance
-            monthAddedLog.push(
-              `${iterationMonth.format("YYYY-MM")} (Partial: ${pendingAmount})`
-            );
-          } else {
-            // Otherwise, add full rent (standard behavior)
+          // console.log(
+          //   "monthsCoveredByPending",
+          //   monthsCoveredByPending,
+          //   validDueMonthsCount,
+          //   correctlyCalculatedPendingRent
+          // );
+          // Check: Is this valid month "extra" beyond what pendingAmount covers?
+          // Example: 9000 covers 1 month.
+          // - Dec 1st passed: validDueMonthsCount = 1. (1 > 1 is False). Don't add rent.
+          // - Jan 1st passed: validDueMonthsCount = 2. (2 > 1 is True). Add 6500.
+          if (validDueMonthsCount > monthsCoveredByPending) {
+            correctlyCalculatedPendingRent += monthlyRent;
             monthAddedLog.push(iterationMonth.format("YYYY-MM"));
+          } else {
+            monthAddedLog.push(
+              `${iterationMonth.format("YYYY-MM")} (Covered by PendingAmount)`
+            );
           }
 
-          correctlyCalculatedPendingRent += amountToAdd;
-
-          // Important: Set flag to false so next months in the loop use full rent
-          isFirstOverdueMonth = false;
           console.log(
             "Here---------------------",
             user.name,
-            specificDueDate.format()
+            specificDueDate.format(),
+            correctlyCalculatedPendingRent
           );
           // correctlyCalculatedPendingRent += monthlyRent;
           // monthAddedLog.push(iterationMonth.format("YYYY-MM"));
