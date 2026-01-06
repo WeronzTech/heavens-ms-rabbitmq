@@ -37,6 +37,10 @@ const mealBookingSchema = new Schema(
       enum: ["Pending", "Delivered"],
       default: "Pending",
     },
+    token: {
+      type: Boolean,
+      default: false,
+    },
     remarks: { type: String, trim: true },
   },
   { timestamps: true }
