@@ -200,7 +200,7 @@ export const getBookingByProperty = async (data) => {
     const total = await MealBooking.countDocuments(query);
 
     const tokenBookingCount = bookingsData.filter(
-      (b) => b.token === true
+      (b) => b?.token === true
     ).length;
 
     // --------------------------------------------------
@@ -508,6 +508,7 @@ export const checkNextDayBooking = async (data) => {
         bookingStartTime: booking.menuId?.bookingStartTime,
         bookingEndTime: booking.menuId?.bookingEndTime,
         mealTimes: mealTimeInfo,
+        token: booking?.token || false,
         partnerName: booking.partnerName,
       };
     });
