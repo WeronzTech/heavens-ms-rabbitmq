@@ -475,13 +475,14 @@ export const checkNextDayBooking = async (data) => {
     const bookings = await MealBooking.find({
       userId,
       bookingDate: { $gte: startOfDay, $lt: endOfDay },
-    })
-      .populate({
-        path: "menuId",
-        select: "bookingStartTime bookingEndTime mealTimes menu",
-        populate: { path: "menu.meals.itemIds", select: "name" },
-      })
-      .select("orderId mealType menuId status bookingDate partnerName");
+    }).populate({
+      path: "menuId",
+      select: "bookingStartTime bookingEndTime mealTimes menu",
+      populate: { path: "menu.meals.itemIds", select: "name" },
+    });
+    // .select("orderId mealType menuId status bookingDate partnerName");
+
+    console.log("Booking", bookings);
 
     const hasBooking = bookings && bookings.length > 0;
     let message = hasBooking
@@ -512,6 +513,7 @@ export const checkNextDayBooking = async (data) => {
         partnerName: booking.partnerName,
       };
     });
+    // console.log("bookingDetails", bookingDetails);
 
     return {
       success: true,
