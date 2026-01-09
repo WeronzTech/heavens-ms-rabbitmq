@@ -761,14 +761,14 @@ export const createTokenMealBooking = async (data) => {
       userId,
       bookingDate: { $gte: todayStart, $lte: todayEnd },
       mealType,
-      token: true,
+      // token: true,
     });
 
     if (existingBooking) {
       return {
         success: false,
         status: 409,
-        message: `Token already generated for ${mealType} today.`,
+        message: `Booking already generated for ${mealType} today.`,
         data: existingBooking,
       };
     }
