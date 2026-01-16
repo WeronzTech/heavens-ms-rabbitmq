@@ -77,26 +77,42 @@ export const notifyMealTimings = async () => {
       {}
     );
     const properties = res?.data || [];
+    // console.log("properties", properties);
 
     for (const property of properties) {
-      const { propertyId, mealTimes = [] } = property;
+      const { kitchenId, mealTimes = [] } = property;
 
-      const studentRes = await sendRPCRequest(
-        USER_PATTERN.USER.GET_USERS_BY_RENT_TYPE,
-        {
-          propertyId,
-        }
+      const propertyIds = Array.isArray(kitchenId.propertyId)
+        ? kitchenId.propertyId
+        : [kitchenId.propertyId];
+
+      const studentRes = await Promise.all(
+        propertyIds.map((propId) =>
+          sendRPCRequest(USER_PATTERN.USER.GET_USERS_BY_RENT_TYPE, {
+            propertyId: propId,
+            all: true,
+          })
+        )
       );
-      const studentIds = studentRes.data || [];
+      // console.log("studentRes", studentRes);
+      const allStudentObjects = studentRes.flatMap(
+        (res) => res.body.data || []
+      );
+      const studentIds = allStudentObjects.map((student) => student._id);
+      // console.log("studentIds", studentIds);
 
       for (const meal of mealTimes) {
         const mealType = meal.mealType;
         const startTime = parseISTTime(meal.start);
         const endTime = parseISTTime(meal.end);
+        // console.log(`Processing ${mealType}: ${startTime} - ${endTime} `);
 
         const diffToStart = startTime.diff(nowIST, "minutes");
         const diffToEnd = endTime.diff(nowIST, "minutes");
         const diffFromStart = nowIST.diff(startTime, "minutes");
+        // console.log(
+        //   `diffToStart: ${diffToStart}, diffToEnd: ${diffToEnd}, diffFromStart: ${diffFromStart}`
+        // );
 
         let message = null;
 
@@ -123,7 +139,7 @@ export const notifyMealTimings = async () => {
             if (fcmDoc?.token?.length) {
               for (const token of fcmDoc.token) {
                 try {
-                  await sendPushNotificationToUser(token, message);
+                  // await sendPushNotificationToUser(token, message);
                   console.log(`✅ Sent "${message.title}" to ${studentId}`);
                 } catch (err) {
                   console.error(

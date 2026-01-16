@@ -122,17 +122,18 @@ export const getTodaysMenu = async (data) => {
 
 export const fetchAllPropertiesBookingTimes = async () => {
   try {
-    const data = await WeeklyMenu.aggregate([
+    let data = await WeeklyMenu.aggregate([
       {
         $project: {
           _id: 0,
-          propertyId: 1,
+          kitchenId: 1,
           bookingStartTime: 1,
           bookingEndTime: 1,
           mealTimes: 1,
         },
       },
     ]);
+    data = await WeeklyMenu.populate(data, { path: "kitchenId" });
     return {
       success: true,
       status: 200,
