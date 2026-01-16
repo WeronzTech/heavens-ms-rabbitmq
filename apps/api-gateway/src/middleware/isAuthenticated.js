@@ -14,7 +14,7 @@ const isAuthenticated = async (req, res, next) => {
     { userId: decodedUser.id }
   );
   if (userServiceResponse.body.success) {
-    req.userRole = "68eb52a92289c6788c8511a7";
+    req.userRole = "696a3fabab3bc642277db2ff";
   } else {
     req.userRole = decodedUser?.roleId;
   }
