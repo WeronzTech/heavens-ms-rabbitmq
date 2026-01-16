@@ -139,7 +139,7 @@ export const notifyMealTimings = async () => {
             if (fcmDoc?.token?.length) {
               for (const token of fcmDoc.token) {
                 try {
-                  // await sendPushNotificationToUser(token, message);
+                  await sendPushNotificationToUser(token, message);
                   console.log(`✅ Sent "${message.title}" to ${studentId}`);
                 } catch (err) {
                   console.error(
