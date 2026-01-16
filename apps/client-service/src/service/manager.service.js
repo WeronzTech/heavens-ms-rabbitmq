@@ -32,10 +32,10 @@ export const registerManager = async (data) => {
       !phone ||
       !password ||
       !salary ||
-      !propertyId ||
-      !files ||
-      !files.photo ||
-      !files.aadharImage
+      !propertyId
+      // !files ||
+      // !files.photo ||
+      // !files.aadharImage
     ) {
       return {
         success: false,
@@ -160,6 +160,7 @@ export const getManagerByEmail = async (data) => {
         message: "Manager does not exist.",
       };
     }
+    console.log(manager);
     return {
       success: true,
       status: 200,

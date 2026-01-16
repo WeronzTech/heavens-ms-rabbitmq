@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
-import { uploadToFirebase } from "../../../../libs/common/imageOperation.js";
+import {
+  deleteFromFirebase,
+  uploadToFirebase,
+} from "../../../../libs/common/imageOperation.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
@@ -150,7 +153,7 @@ export const addExpense = async (data) => {
     const creditAccount =
       paymentMethod === "Petty Cash"
         ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
-        : paymentMethod === "Cash" || "cash"
+        : paymentMethod === "Cash" || paymentMethod === "cash"
         ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
         : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
@@ -408,6 +411,16 @@ export const deleteExpense = async (data) => {
 
     if (!existingExpense) {
       return { success: false, status: 404, message: "Expense not found" };
+    }
+
+    // ✅ Delete bill image from Firebase if exists
+    if (existingExpense.imageUrl) {
+      try {
+        await deleteFromFirebase(existingExpense.imageUrl);
+      } catch (err) {
+        console.error("Failed to delete expense image from Firebase:", err);
+        // Optional: decide whether to continue or fail
+      }
     }
 
     // ✅ Petty cash adjustment logic

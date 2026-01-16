@@ -1838,37 +1838,37 @@ export const getWaveOffedPayments = async (filters) => {
 
 export const getAllCashPayments = async ({}) => {
   try {
-    const startDate = new Date("2025-10-13T00:00:00.000Z");
+    const startDate = new Date("2025-12-08T00:00:00.000Z");
 
     // Fetch all cash payments
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
-      createdAt: { $gte: startDate },
-    }).sort({ createdAt: -1 });
+      paymentDate: { $gte: startDate },
+    }).sort({ paymentDate: -1 });
 
     // Fetch all deposit cash payments
     const DepositPayments = await Deposits.find({
       paymentMethod: "Cash",
-      createdAt: { $gte: startDate },
-    }).sort({ createdAt: -1 });
+      paymentDate: { $gte: startDate },
+    }).sort({ paymentDate: -1 });
 
     // Fetch all cash expenses from Expense collection
     const Expenses = await Expense.find({
       paymentMethod: "Cash",
-      createdAt: { $gte: startDate },
-    }).sort({ createdAt: -1 });
+      date: { $gte: startDate },
+    }).sort({ date: -1 });
 
     // Fetch all cash commissions
     const Commissions = await Commission.find({
       paymentType: "Cash",
-      createdAt: { $gte: startDate },
-    }).sort({ createdAt: -1 });
+      paymentDate: { $gte: startDate },
+    }).sort({ paymentDate: -1 });
 
     // Fetch all cash staff salary payments
     const StaffSalaries = await StaffSalaryHistory.find({
       paymentMethod: "Cash",
-      createdAt: { $gte: startDate },
-    }).sort({ createdAt: -1 });
+      date: { $gte: startDate },
+    }).sort({ date: -1 });
 
     const PendingVouchers = await Voucher.find({
       status: "Pending",
