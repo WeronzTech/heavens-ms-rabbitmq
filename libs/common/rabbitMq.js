@@ -257,7 +257,7 @@ async function connect() {
           pendingRequests.delete(correlationId);
         }
       },
-      { noAck: true }
+      { noAck: true },
     );
 
     publisherChannel.on("error", (err) => {
@@ -268,7 +268,7 @@ async function connect() {
     initialConnectionAttempts++;
     if (initialConnectionAttempts >= MAX_INITIAL_ATTEMPTS) {
       console.error(
-        `🔥🔥🔥 [RabbitMQ] Gave up after ${MAX_INITIAL_ATTEMPTS} attempts.`
+        `🔥🔥🔥 [RabbitMQ] Gave up after ${MAX_INITIAL_ATTEMPTS} attempts.`,
       );
       return;
     }
@@ -290,7 +290,7 @@ async function createResponder(queueName, handler) {
 
     if (!replyTo || !correlationId) {
       console.warn(
-        `[${queueName}] Invalid message missing replyTo/correlationId`
+        `[${queueName}] Invalid message missing replyTo/correlationId`,
       );
       return listenerChannel.nack(msg, false, false);
     }
@@ -302,7 +302,7 @@ async function createResponder(queueName, handler) {
       listenerChannel.sendToQueue(
         replyTo,
         Buffer.from(JSON.stringify(response)),
-        { correlationId }
+        { correlationId },
       );
 
       listenerChannel.ack(msg);
@@ -318,7 +318,7 @@ async function createResponder(queueName, handler) {
       listenerChannel.sendToQueue(
         replyTo,
         Buffer.from(JSON.stringify(errorResponse)),
-        { correlationId }
+        { correlationId },
       );
 
       listenerChannel.ack(msg); // Ack even on error so message doesn't get stuck
@@ -353,7 +353,7 @@ async function sendRPCRequest(queueName, data) {
         {
           correlationId,
           replyTo: replyQueue, // Reply to our single shared queue
-        }
+        },
       );
     } catch (err) {
       pendingRequests.delete(correlationId);

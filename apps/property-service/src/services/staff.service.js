@@ -44,7 +44,7 @@ export const getAllStaff = async (data) => {
       try {
         const accessibleKitchens = await getAccessibleKitchens(propertyId);
         const accessibleKitchenIds = accessibleKitchens.map((k) =>
-          k._id.toString()
+          k._id.toString(),
         );
 
         if (accessibleKitchenIds.length > 0) {
@@ -77,7 +77,7 @@ export const getAllStaff = async (data) => {
           };
         }
         return staffObject;
-      })
+      }),
     );
 
     // --- Include manager data if requested ---
@@ -85,7 +85,7 @@ export const getAllStaff = async (data) => {
       try {
         const managerResponse = await sendRPCRequest(
           CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
-          { propertyId, joinDate, status, name }
+          { propertyId, joinDate, status, name },
         );
 
         const managerData = managerResponse?.data || managerResponse;
@@ -102,7 +102,7 @@ export const getAllStaff = async (data) => {
                 return enrichedManager;
               }
               return null;
-            })
+            }),
           );
 
           enrichedStaff.push(...enrichedManagers.filter(Boolean));
@@ -110,7 +110,7 @@ export const getAllStaff = async (data) => {
       } catch (error) {
         console.error(
           `Could not fetch or process manager for property ${propertyId}:`,
-          error.message
+          error.message,
         );
       }
     }
@@ -159,7 +159,7 @@ export const getStaffById = async (data) => {
       try {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: propertyId }
+          { id: propertyId },
         );
 
         if (propertyResponse?.data) {
@@ -174,7 +174,7 @@ export const getStaffById = async (data) => {
       } catch (error) {
         console.error(
           `❌ Failed to fetch property details for ID ${propertyId}:`,
-          error.message
+          error.message,
         );
         staffObject.Property = { name: "Could not fetch property" };
       }
@@ -271,7 +271,7 @@ export const getStaffByPropertyId = async (data) => {
           staffObject.role = { _id: staff.role, name: roleName };
         }
         return staffObject;
-      })
+      }),
     );
 
     return {
@@ -298,7 +298,7 @@ export const addStaff = async (data) => {
       contactNumber,
       address,
       email,
-      role,
+      // role,
       salary,
       joinDate,
       panNumber,
@@ -310,18 +310,18 @@ export const addStaff = async (data) => {
       files, // files passed via RPC
     } = data;
     console.log(data);
-    if (
-      !files ||
-      !files.photo ||
-      !files.aadharFrontImage ||
-      !files.aadharBackImage ||
-      !files.panCardImage
-    ) {
-      return {
-        status: 400,
-        message: "Missing required documents.",
-      };
-    }
+    // if (
+    //   !files ||
+    //   !files.photo ||
+    //   !files.aadharFrontImage ||
+    //   !files.aadharBackImage ||
+    //   !files.panCardImage
+    // ) {
+    //   return {
+    //     status: 400,
+    //     message: "Missing required documents.",
+    //   };
+    // }
 
     // ✅ Validate property
     const existingProperty = await Property.findById(propertyId);
@@ -342,19 +342,19 @@ export const addStaff = async (data) => {
       if (files.aadharFrontImage) {
         aadharFrontUrl = await uploadToFirebase(
           files.aadharFrontImage,
-          "staff-documents"
+          "staff-documents",
         );
       }
       if (files.aadharBackImage) {
         aadharBackUrl = await uploadToFirebase(
           files.aadharBackImage,
-          "staff-documents"
+          "staff-documents",
         );
       }
       if (files.panCardImage) {
         panCardUrl = await uploadToFirebase(
           files.panCardImage,
-          "staff-documents"
+          "staff-documents",
         );
       }
     }
@@ -368,7 +368,7 @@ export const addStaff = async (data) => {
       contactNumber,
       address,
       email,
-      role,
+      // role,
       salary,
       pendingSalary: salary,
       joinDate,
@@ -439,7 +439,7 @@ export const updateStaff = async (data) => {
         }
         updateData.aadharFrontImage = await uploadToFirebase(
           files.aadharFrontImage,
-          "staff-documents"
+          "staff-documents",
         );
       }
 
@@ -449,7 +449,7 @@ export const updateStaff = async (data) => {
         }
         updateData.aadharBackImage = await uploadToFirebase(
           files.aadharBackImage,
-          "staff-documents"
+          "staff-documents",
         );
       }
       if (files.panCardImage) {
@@ -458,7 +458,7 @@ export const updateStaff = async (data) => {
         }
         updateData.panCardImage = await uploadToFirebase(
           files.panCardImage,
-          "staff-documents"
+          "staff-documents",
         );
       }
     }
@@ -544,7 +544,7 @@ export const getAllStaffsForAttendance = async (data) => {
       try {
         const accessibleKitchens = await getAccessibleKitchens(propertyId);
         const accessibleKitchenIds = accessibleKitchens.map((k) =>
-          k._id.toString()
+          k._id.toString(),
         );
 
         if (accessibleKitchenIds.length > 0) {
@@ -575,7 +575,7 @@ export const getAllStaffsForAttendance = async (data) => {
       23,
       59,
       59,
-      999
+      999,
     );
 
     // Enrich staff with role names and attendance data
@@ -633,7 +633,7 @@ export const getAllStaffsForAttendance = async (data) => {
         staffObject.monthlyPresentDays = monthlyPresentCount;
 
         return staffObject;
-      })
+      }),
     );
 
     // --- Include manager data if requested ---
@@ -641,7 +641,7 @@ export const getAllStaffsForAttendance = async (data) => {
       try {
         const managerResponse = await sendRPCRequest(
           CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
-          { propertyId, joinDate, status, name }
+          { propertyId, joinDate, status, name },
         );
 
         const managerData = managerResponse?.data || managerResponse;
@@ -699,7 +699,7 @@ export const getAllStaffsForAttendance = async (data) => {
                 return enrichedManager;
               }
               return null;
-            })
+            }),
           );
 
           enrichedStaff.push(...enrichedManagers.filter(Boolean));
@@ -707,7 +707,7 @@ export const getAllStaffsForAttendance = async (data) => {
       } catch (error) {
         console.error(
           `Could not fetch or process manager for property ${propertyId}:`,
-          error.message
+          error.message,
         );
       }
     }

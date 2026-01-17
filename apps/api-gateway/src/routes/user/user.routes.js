@@ -39,13 +39,13 @@ userRoutes.get(
   "/push-notification",
   isAuthenticated,
   hasPermission(PERMISSIONS.USER_VIEW),
-  getUserIds
+  getUserIds,
 );
 userRoutes.get(
   "/birthday",
   isAuthenticated,
   hasPermission(PERMISSIONS.USER_VIEW),
-  getUsersWithBirthdayToday
+  getUsersWithBirthdayToday,
 );
 
 // Authentication
@@ -59,41 +59,41 @@ userRoutes.use(isAuthenticated);
 userRoutes.get(
   "/pending-approvals",
   hasPermission(PERMISSIONS.USER_APPROVAL),
-  getUnapprovedUsers
+  getUnapprovedUsers,
 );
 userRoutes.put(
   "/:id/approve",
   hasPermission(PERMISSIONS.USER_APPROVAL),
-  approveUser
+  approveUser,
 );
 userRoutes.delete(
   "/:id/reject",
   hasPermission(PERMISSIONS.USER_APPROVAL),
-  rejectUser
+  rejectUser,
 );
 
 // Stay Management
 userRoutes.put(
   "/:id/vacate",
   hasPermission(PERMISSIONS.USER_MANAGE),
-  vacateUser
+  vacateUser,
 );
 userRoutes.put(
   "/:id/rejoin",
   hasPermission(PERMISSIONS.USER_MANAGE),
-  rejoinUser
+  rejoinUser,
 );
 userRoutes.put(
   "/:id/extend",
   hasPermission(PERMISSIONS.USER_MANAGE),
-  extendUserDays
+  extendUserDays,
 );
 
 // Daily Checkouts
 userRoutes.get(
   "/checkouts",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getTodayCheckouts
+  getTodayCheckouts,
 );
 
 // Profile
@@ -114,7 +114,7 @@ userRoutes.put(
       maxCount: 1,
     },
   ]),
-  updateProfileCompletion
+  updateProfileCompletion,
 );
 
 // User Management
@@ -122,28 +122,28 @@ userRoutes.get("/", hasPermission(PERMISSIONS.USER_VIEW), getUsersByRentType);
 userRoutes.get(
   "/pending-payments",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getAllPendingPayments
+  getAllPendingPayments,
 );
 userRoutes.get(
   "/pending-deposits",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getAllPendingDeposits
+  getAllPendingDeposits,
 );
 userRoutes.get(
   "/offBoarding",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getCheckOutedUsersByRentType
+  getCheckOutedUsersByRentType,
 );
 userRoutes.get(
   "/byAgency",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getUsersByAgencyController
+  getUsersByAgencyController,
 );
 
 userRoutes.post(
   "/allocateUsersToAgent",
   hasPermission(PERMISSIONS.USER_VIEW),
-  allocateUsersToAgent
+  allocateUsersToAgent,
 );
 
 userRoutes
@@ -159,7 +159,7 @@ userRoutes
       { name: "partnerAadharFront", maxCount: 1 },
       { name: "partnerAadharBack", maxCount: 1 },
     ]),
-    adminUpdateUser
+    adminUpdateUser,
   );
 
 // Status Requests
@@ -170,17 +170,17 @@ userRoutes
 userRoutes.get(
   "/status-requests/pending",
   hasPermission(PERMISSIONS.USER_STATUS_MANAGE),
-  getPendingStatusRequests
+  getPendingStatusRequests,
 );
 userRoutes.put(
   "/:id/status-requests/:requestId/respond",
   hasPermission(PERMISSIONS.USER_STATUS_MANAGE),
-  respondToStatusRequest
+  respondToStatusRequest,
 );
 userRoutes.put(
   "/:id/block-status",
   hasPermission(PERMISSIONS.USER_STATUS_MANAGE),
-  handleBlockStatus
+  handleBlockStatus,
 );
 
 export default userRoutes;

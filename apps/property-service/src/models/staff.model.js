@@ -13,13 +13,13 @@ const staffSchema = new mongoose.Schema(
     dob: { type: Date, required: true },
     contactNumber: { type: String, required: true },
     address: { type: String, required: false },
-    email: { type: String, required: true },
+    email: { type: String, required: false },
     role: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
     },
     photo: { type: String, required: false },
-    panCardNumber: { type: String, required: true },
+    panCardNumber: { type: String, required: false },
     aadharFrontImage: { type: String, required: false },
     panCardImage: { type: String, required: false },
     aadharBackImage: { type: String, required: false },
@@ -49,7 +49,7 @@ const staffSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 staffSchema.pre("save", async function (next) {
@@ -66,7 +66,7 @@ staffSchema.pre("save", async function (next) {
           month: parseInt(month, 10),
         },
         { $inc: { count: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
+        { new: true, upsert: true, setDefaultsOnInsert: true },
       );
 
       if (!counter) {

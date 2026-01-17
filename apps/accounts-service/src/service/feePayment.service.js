@@ -205,7 +205,7 @@ export const updateFeePayment = async (paymentId, updateData) => {
       updateFields.collectedBy = collectedBy.toString().trim();
     if (fullyClearedRentMonths !== undefined) {
       updateFields.fullyClearedRentMonths = Array.isArray(
-        fullyClearedRentMonths
+        fullyClearedRentMonths,
       )
         ? fullyClearedRentMonths.map((month) => month.toString().trim())
         : [];
@@ -248,7 +248,7 @@ export const updateFeePayment = async (paymentId, updateData) => {
     const updatedPayment = await Payments.findByIdAndUpdate(
       paymentId,
       { $set: updateFields },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     return {
@@ -333,7 +333,7 @@ const generateReceiptNumber = async (property, session) => {
   const counter = await ReceiptCounter.findOneAndUpdate(
     { propertyId: property.propertyId, monthYear },
     { $inc: { sequence: 1 } },
-    { new: true, upsert: true, session }
+    { new: true, upsert: true, session },
   );
 
   const seq = String(counter.sequence).padStart(4, "0");
@@ -343,7 +343,7 @@ const generateReceiptNumber = async (property, session) => {
 
   // Example format: REC-GHS-202510-0007
   const receiptNumber = `HVNS-${propertyCode}-${moment().format(
-    "YYYYMM"
+    "YYYYMM",
   )}-${seq}`;
 
   return receiptNumber;
@@ -657,7 +657,7 @@ const processAndRecordPayment = async ({
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId }
+      { userId },
     );
     if (!userResponse.body.success) {
       throw new Error(userResponse.message || "User not found.");
@@ -761,7 +761,7 @@ const processAndRecordPayment = async ({
       // If 6500 pending, and we paid 6000: Result 500.
       user.financialDetails.pendingRent = Math.max(
         0,
-        currentPendingRent - totalAvailableAmount
+        currentPendingRent - totalAvailableAmount,
       );
       user.financialDetails.pendingAmount = user.financialDetails.pendingRent; // Sync fields
 
@@ -793,7 +793,7 @@ const processAndRecordPayment = async ({
             paymentMonthDate.toLocaleString("default", {
               month: "long",
               year: "numeric",
-            })
+            }),
           );
         }
 
@@ -801,7 +801,7 @@ const processAndRecordPayment = async ({
         finalClearedDate.setMonth(finalClearedDate.getMonth() + monthsCleared);
 
         user.financialDetails.clearedTillMonth = `${finalClearedDate.getFullYear()}-${String(
-          finalClearedDate.getMonth() + 1
+          finalClearedDate.getMonth() + 1,
         ).padStart(2, "0")}`;
 
         const joinDay = new Date(user.stayDetails.joinDate).getDate();
@@ -809,7 +809,7 @@ const processAndRecordPayment = async ({
         user.financialDetails.nextDueDate = new Date(
           finalClearedDate.getFullYear(),
           finalClearedDate.getMonth() + 1,
-          joinDay
+          joinDay,
         );
 
         if (newAccountBalance > 0) {
@@ -841,7 +841,7 @@ const processAndRecordPayment = async ({
 
     const receiptNumber = await generateReceiptNumber(
       user.stayDetails,
-      session
+      session,
     );
 
     const newPayment = new Payments({
@@ -926,7 +926,7 @@ const processAndRecordPayment = async ({
         referenceId: newPayment._id,
         referenceType: "Payments",
       },
-      { session }
+      { session },
     );
 
     const updateUserResponse = await sendRPCRequest(
@@ -939,7 +939,7 @@ const processAndRecordPayment = async ({
           referralInfo: user.referralInfo,
           isBlocked: user.isBlocked,
         },
-      }
+      },
     );
     const userEmail = updateUserResponse?.body?.data?.email;
     if (!updateUserResponse.body.success) {
@@ -988,7 +988,7 @@ export const initiateOnlinePayment = async (data) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId }
+      { userId },
     );
     if (!userResponse.body.success) {
       return { success: false, status: 404, message: "User not found." };
@@ -1002,7 +1002,7 @@ export const initiateOnlinePayment = async (data) => {
     if (propertyId) {
       const propertyResponse = await sendRPCRequest(
         PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-        { id: propertyId }
+        { id: propertyId },
       );
       if (
         propertyResponse.success &&
@@ -1016,7 +1016,7 @@ export const initiateOnlinePayment = async (data) => {
     if (referralAmountUsed > 0) {
       const settingsResponse = await sendRPCRequest(
         USER_PATTERN.REFERRAL.GET_SETTINGS,
-        {}
+        {},
       );
       if (!settingsResponse?.success) {
         throw new Error("Could not retrieve referral settings.");
@@ -1087,7 +1087,7 @@ export const initiateOnlinePayment = async (data) => {
       const razorpayResponse = await createRazorpayOrderId(
         paymentAmount,
         keyId,
-        keySecret
+        keySecret,
       );
       if (!razorpayResponse.success) {
         return {
@@ -1141,7 +1141,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId }
+      { userId },
     );
     if (userResponse.body.success) {
       const user = userResponse.body.data;
@@ -1149,7 +1149,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       if (propertyId) {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: propertyId }
+          { id: propertyId },
         );
         if (
           propertyResponse.success &&
@@ -1170,7 +1170,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       razorpay_payment_id,
       razorpay_signature,
     },
-    keySecret
+    keySecret,
   );
   if (!isVerified) {
     return {
@@ -1397,6 +1397,7 @@ export const getAllFeePayments = async (data) => {
           receiptNumber: 1,
           userId: 1,
           property: 1,
+          remarks: 1,
           // Include the formatted journal entry
           journalEntry: {
             _id: "$journalEntry._id",
@@ -1488,7 +1489,7 @@ export const getMonthWiseRentCollection = async () => {
         {},
         {
           projection: { paymentDate: 1, amount: 1 },
-        }
+        },
       )
       .toArray();
 
@@ -1649,7 +1650,7 @@ export const getNextDueDate = async (data) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId }
+      { userId },
     );
 
     if (!userResponse.body.success) {
@@ -1813,7 +1814,7 @@ export const getWaveOffedPayments = async (filters) => {
     // Total wave-off amount
     const totalWaveOff = waveOffedPayments.reduce(
       (sum, payment) => sum + (payment.waveOffAmount || 0),
-      0
+      0,
     );
 
     return {
@@ -1877,33 +1878,33 @@ export const getAllCashPayments = async ({}) => {
     // Calculate total cash payments (inflow)
     const totalCashPayments = CashPayments.reduce(
       (sum, payment) => sum + (payment.amount || 0),
-      0
+      0,
     );
 
     // Calculate total cash payments (inflow)
     const totalDepositPayments = DepositPayments.reduce(
       (sum, payment) => sum + (payment.amountPaid || 0),
-      0
+      0,
     );
     // Calculate total expenses (outflows)
     const totalExpenses = Expenses.reduce(
       (sum, exp) => sum + (exp.amount || 0),
-      0
+      0,
     );
 
     const totalCommissions = Commissions.reduce(
       (sum, com) => sum + (com.amount || 0),
-      0
+      0,
     );
 
     const totalStaffSalaries = StaffSalaries.reduce(
       (sum, sal) => sum + (sal.paidAmount || 0),
-      0
+      0,
     );
 
     const totalPendingVoucherRemaining = PendingVouchers.reduce(
       (sum, voucher) => sum + (voucher.remainingAmount || 0),
-      0
+      0,
     );
 
     // Total cash inflow
@@ -2022,7 +2023,7 @@ export const getFeePaymentsAnalytics = async (data) => {
         "en",
         {
           month: "long",
-        }
+        },
       );
 
       return {

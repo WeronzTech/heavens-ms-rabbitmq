@@ -2,12 +2,10 @@ import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
 import { AUTH_PATTERN } from "../../../../../libs/patterns/auth/auth.pattern.js";
 
 export const tenantLogin = async (req, res) => {
-  const { email, password, roleName } = req.body;
-  console.log("Here");
+  const { email, password } = req.body;
   const response = await sendRPCRequest(AUTH_PATTERN.AUTH.TENANT_LOGIN, {
     email,
     password,
-    roleName,
   });
 
   if (response.status === 200) {
@@ -38,7 +36,7 @@ export const forgotPasswordUser = async (req, res) => {
 
   const response = await sendRPCRequest(
     AUTH_PATTERN.AUTH.FORGOT_PASSWORD_USER,
-    { email }
+    { email },
   );
 
   return res.status(response.status).json(response);
@@ -60,7 +58,7 @@ export const refreshAccessToken = async (req, res) => {
 
   const response = await sendRPCRequest(
     AUTH_PATTERN.AUTH.REFRESH_ACCESS_TOKEN,
-    { refreshToken, deviceId }
+    { refreshToken, deviceId },
   );
 
   return res.status(response.status).json(response);
