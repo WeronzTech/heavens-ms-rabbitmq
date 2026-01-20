@@ -329,15 +329,53 @@ export const sendRentReminders = async () => {
         user.financialDetails.nextDueDate
       ) {
         // Calculate block threshold using IST
+        // const dueDate = moment(user.financialDetails.nextDueDate)
+        //   .utcOffset("+05:30")
+        //   .startOf("day");
+        // // Calculate the cut-off date (Due Date + 5 Days)
+        // const blockThresholdDate = dueDate.clone().add(5, "days");
+
+        // // If today is strictly after the 5-day grace period
+        // if (today.isAfter(blockThresholdDate, "day")) {
+        //   shouldBlockUser = true;
+        // }
         const dueDate = moment(user.financialDetails.nextDueDate)
           .utcOffset("+05:30")
           .startOf("day");
-        // Calculate the cut-off date (Due Date + 5 Days)
-        const blockThresholdDate = dueDate.clone().add(5, "days");
+        const standardBlockThreshold = dueDate.clone().add(5, "days");
 
-        // If today is strictly after the 5-day grace period
-        if (today.isAfter(blockThresholdDate, "day")) {
-          shouldBlockUser = true;
+        // 2. Extension Logic Setup: Check if a special extension date exists
+        let isExtensionApplicable = false;
+        let extensionDateMoment = null;
+
+        if (user.isAccessBlockExtendDate) {
+          extensionDateMoment = moment(user.isAccessBlockExtendDate)
+            .utcOffset("+05:30")
+            .startOf("day");
+
+          // Check if the extension date is in the CURRENT month relative to 'today'
+          if (extensionDateMoment.isSame(today, "month")) {
+            isExtensionApplicable = true;
+          }
+        }
+
+        // 3. Decision Matrix
+        if (isExtensionApplicable) {
+          // --- SCENARIO A: Extension exists for this month ---
+          // Block ONLY if today is strictly after the specific extension date
+          if (today.isAfter(extensionDateMoment, "day")) {
+            shouldBlockUser = true;
+            // blockReason = `Extension date (${extensionDateMoment.format(
+            //   "YYYY-MM-DD"
+            // )}) passed`;
+          }
+        } else {
+          // --- SCENARIO B: No extension OR extension is for a different month ---
+          // Block if today is strictly after the standard 5-day grace period
+          if (today.isAfter(standardBlockThreshold, "day")) {
+            shouldBlockUser = true;
+            // blockReason = "Standard 5-day grace period passed";
+          }
         }
       }
 

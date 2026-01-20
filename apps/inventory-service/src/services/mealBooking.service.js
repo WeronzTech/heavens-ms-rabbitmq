@@ -200,7 +200,7 @@ export const getBookingByProperty = async (data) => {
     const total = await MealBooking.countDocuments(query);
 
     const tokenBookingCount = bookingsData.filter(
-      (b) => b.token === true
+      (b) => b?.token === true
     ).length;
 
     // --------------------------------------------------
@@ -475,13 +475,14 @@ export const checkNextDayBooking = async (data) => {
     const bookings = await MealBooking.find({
       userId,
       bookingDate: { $gte: startOfDay, $lt: endOfDay },
-    })
-      .populate({
-        path: "menuId",
-        select: "bookingStartTime bookingEndTime mealTimes menu",
-        populate: { path: "menu.meals.itemIds", select: "name" },
-      })
-      .select("orderId mealType menuId status bookingDate partnerName");
+    }).populate({
+      path: "menuId",
+      select: "bookingStartTime bookingEndTime mealTimes menu",
+      populate: { path: "menu.meals.itemIds", select: "name" },
+    });
+    // .select("orderId mealType menuId status bookingDate partnerName");
+
+    console.log("Booking", bookings);
 
     const hasBooking = bookings && bookings.length > 0;
     let message = hasBooking
@@ -508,9 +509,11 @@ export const checkNextDayBooking = async (data) => {
         bookingStartTime: booking.menuId?.bookingStartTime,
         bookingEndTime: booking.menuId?.bookingEndTime,
         mealTimes: mealTimeInfo,
+        token: booking?.token || false,
         partnerName: booking.partnerName,
       };
     });
+    // console.log("bookingDetails", bookingDetails);
 
     return {
       success: true,
@@ -758,14 +761,14 @@ export const createTokenMealBooking = async (data) => {
       userId,
       bookingDate: { $gte: todayStart, $lte: todayEnd },
       mealType,
-      token: true,
+      // token: true,
     });
 
     if (existingBooking) {
       return {
         success: false,
         status: 409,
-        message: `Token already generated for ${mealType} today.`,
+        message: `Booking already generated for ${mealType} today.`,
         data: existingBooking,
       };
     }

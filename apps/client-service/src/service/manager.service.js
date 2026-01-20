@@ -32,10 +32,10 @@ export const registerManager = async (data) => {
       !phone ||
       !password ||
       !salary ||
-      !propertyId ||
-      !files ||
-      !files.photo ||
-      !files.aadharImage
+      !propertyId
+      // !files ||
+      // !files.photo ||
+      // !files.aadharImage
     ) {
       return {
         success: false,
@@ -44,28 +44,28 @@ export const registerManager = async (data) => {
       };
     }
 
-    if (!INDIVIDUAL_PAN_REGEX.test(panNumber.toUpperCase())) {
-      return {
-        success: false,
-        status: 400,
-        message:
-          "Invalid PAN format. Must be a 10-character individual PAN (e.g., ABCPA1234A).",
-      };
-    }
+    // if (!INDIVIDUAL_PAN_REGEX.test(panNumber.toUpperCase())) {
+    //   return {
+    //     success: false,
+    //     status: 400,
+    //     message:
+    //       "Invalid PAN format. Must be a 10-character individual PAN (e.g., ABCPA1234A).",
+    //   };
+    // }
 
-    const nameParts = name.trim().split(" ");
-    const lastName =
-      nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
-    const firstLetterOfLastName = lastName.charAt(0).toUpperCase();
-    const fifthCharOfPan = panNumber.charAt(4).toUpperCase();
+    // const nameParts = name.trim().split(" ");
+    // const lastName =
+    //   nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+    // const firstLetterOfLastName = lastName.charAt(0).toUpperCase();
+    // const fifthCharOfPan = panNumber.charAt(4).toUpperCase();
 
-    if (fifthCharOfPan !== firstLetterOfLastName) {
-      return {
-        success: false,
-        status: 400,
-        message: `PAN card's 5th character ('${fifthCharOfPan}') does not match the first letter of the surname ('${firstLetterOfLastName}').`,
-      };
-    }
+    // if (fifthCharOfPan !== firstLetterOfLastName) {
+    //   return {
+    //     success: false,
+    //     status: 400,
+    //     message: `PAN card's 5th character ('${fifthCharOfPan}') does not match the first letter of the surname ('${firstLetterOfLastName}').`,
+    //   };
+    // }
 
     let photoUrl = null;
     let aadharUrl = null;
@@ -160,6 +160,7 @@ export const getManagerByEmail = async (data) => {
         message: "Manager does not exist.",
       };
     }
+    console.log(manager);
     return {
       success: true,
       status: 200,

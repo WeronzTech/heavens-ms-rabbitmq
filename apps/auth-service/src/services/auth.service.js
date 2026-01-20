@@ -9,21 +9,125 @@ import { generateTokens } from "../utils/jwt.utils.js";
 import emailService from "../../../../libs/email/email.service.js";
 import crypto from "crypto";
 
+// export const tenantLogin = async (data) => {
+//   const { email, password } = data;
+//   console.log(data);
+//   try {
+//     const clientResponse = await sendRPCRequest(
+//       CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_EMAIL,
+//       {
+//         email,
+//       }
+//     );
+
+//     console.log("CLient", clientResponse);
+
+//     const client = clientResponse?.data;
+
+//     if (!client || !client.role) {
+//       return {
+//         success: false,
+//         status: 401,
+//         message: "Invalid credentials",
+//       };
+//     }
+
+//     const role = await Role.findById(client.role);
+//     if (!role) {
+//       return {
+//         success: false,
+//         status: 401,
+//         message: "Role not found for this user",
+//       };
+//     }
+
+//     const isPasswordValid = await bcrypt.compare(password, client.password);
+//     if (!isPasswordValid) {
+//       return {
+//         success: false,
+//         status: 401,
+//         message: "Invalid password",
+//       };
+//     }
+
+//     if (!client.loginEnabled) {
+//       return {
+//         success: false,
+//         status: 403,
+//         message: "Login disabled for this account",
+//       };
+//     }
+
+//     const token = jwt.sign(
+//       {
+//         id: client._id,
+//         roleId: role._id,
+//         roleName: role.roleName,
+//         permissions: role.permissions,
+//         userName: client.name,
+//       },
+//       process.env.JWT_SECRET_KEY,
+//       { expiresIn: "1d" }
+//     );
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Login successful",
+//       data: {
+//         token,
+//         client: {
+//           id: client._id,
+//           email: client.email,
+//           name: client.name,
+//           properties: client.propertyId,
+//           role: {
+//             id: role._id,
+//             name: role.roleName,
+//             type: role.roleType,
+//             permissions: role.permissions,
+//           },
+//         },
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Login service error:", error.message);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: error.message || "An internal server error occurred.",
+//     };
+//   }
+// };
 export const tenantLogin = async (data) => {
   const { email, password } = data;
 
   try {
-    const clientResponse = await sendRPCRequest(
+    let userResponse;
+    let userType = "CLIENT";
+
+    // 1️⃣ Try Client login first
+    userResponse = await sendRPCRequest(
       CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_EMAIL,
-      {
-        email,
-      }
+      { email }
     );
-    console.log("CLient", clientResponse);
 
-    const client = clientResponse?.data;
+    let user = userResponse?.data;
 
-    if (!client || !client.role) {
+    // 2️⃣ If client not found → try Manager
+    if (!user) {
+      userType = "MANAGER";
+
+      userResponse = await sendRPCRequest(
+        CLIENT_PATTERN.MANAGER.GET_MANAGER_BY_EMAIL,
+        { email }
+      );
+
+      user = userResponse?.data;
+    }
+
+    // 3️⃣ User not found
+    if (!user || !user.role) {
       return {
         success: false,
         status: 401,
@@ -31,7 +135,8 @@ export const tenantLogin = async (data) => {
       };
     }
 
-    const role = await Role.findById(client.role);
+    // 4️⃣ Fetch role
+    const role = await Role.findById(user.role);
     if (!role) {
       return {
         success: false,
@@ -40,7 +145,8 @@ export const tenantLogin = async (data) => {
       };
     }
 
-    const isPasswordValid = await bcrypt.compare(password, client.password);
+    // 5️⃣ Password validation
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return {
         success: false,
@@ -49,7 +155,8 @@ export const tenantLogin = async (data) => {
       };
     }
 
-    if (!client.loginEnabled) {
+    // 6️⃣ Login enabled check
+    if (!user.loginEnabled) {
       return {
         success: false,
         status: 403,
@@ -57,18 +164,21 @@ export const tenantLogin = async (data) => {
       };
     }
 
+    // 7️⃣ Generate JWT
     const token = jwt.sign(
       {
-        id: client._id,
+        id: user._id,
         roleId: role._id,
         roleName: role.roleName,
         permissions: role.permissions,
-        userName: client.name,
+        userName: user.name,
+        userType, // 👈 CLIENT or MANAGER
       },
       process.env.JWT_SECRET_KEY,
       { expiresIn: "1d" }
     );
 
+    // 8️⃣ Unified response
     return {
       success: true,
       status: 200,
@@ -76,10 +186,11 @@ export const tenantLogin = async (data) => {
       data: {
         token,
         client: {
-          id: client._id,
-          email: client.email,
-          name: client.name,
-          properties: client.propertyId,
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          userType,
+          properties: user.propertyId || [],
           role: {
             id: role._id,
             name: role.roleName,

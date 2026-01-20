@@ -27,7 +27,7 @@ maintenanceRoutes.route("/create").post(
       maxCount: 1,
     },
   ]),
-  createMaintenance
+  createMaintenance,
 );
 
 maintenanceRoutes
@@ -43,7 +43,7 @@ maintenanceRoutes
   .route("/assign-staff/:maintenanceId")
   .patch(
     hasPermission(PERMISSIONS.MAINTENANCE_MANAGE),
-    assignStaffToMaintenance
+    assignStaffToMaintenance,
   );
 maintenanceRoutes
   .route("/resolve/:maintenanceId")

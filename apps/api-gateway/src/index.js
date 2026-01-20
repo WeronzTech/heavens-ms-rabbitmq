@@ -79,7 +79,7 @@ app.use(
       "https://partner.heavensliving.in",
       "http://192.168.1.80:8082",
       "http://192.168.1.102:8082",
-      "http://192.168.1.75:8082",
+      "http://192.168.1.77:8082",
       "http://192.168.1.80:5173",
       "http://localhost:8082",
       "http://localhost:8083",
