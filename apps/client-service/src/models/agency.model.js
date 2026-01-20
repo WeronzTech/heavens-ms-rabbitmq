@@ -60,13 +60,12 @@ const agencySchema = new Schema(
     },
     contactNumber: {
       type: String,
-      unique: true,
       required: function () {
         return !this.hasAgency;
       },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Agency = mongoose.model("Agency", agencySchema);
