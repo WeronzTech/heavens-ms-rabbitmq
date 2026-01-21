@@ -196,7 +196,7 @@ import moment from "moment";
 
 export const sendRentReminders = async () => {
   console.log(
-    "Running daily job: Updating overdue rent for all monthly users..."
+    "Running daily job: Updating overdue rent for all monthly users...",
   );
   try {
     // 1. Force TODAY to be IST (UTC+05:30) and start of day to avoid time discrepancies
@@ -218,6 +218,7 @@ export const sendRentReminders = async () => {
         monthlyRent,
         pendingRent: currentPendingRentInDB,
         pendingAmount,
+        accountBalance,
       } = user.financialDetails;
 
       if (!monthlyRent || monthlyRent <= 0) continue;
@@ -274,7 +275,7 @@ export const sendRentReminders = async () => {
             monthAddedLog.push(iterationMonth.format("YYYY-MM"));
           } else {
             monthAddedLog.push(
-              `${iterationMonth.format("YYYY-MM")} (Covered by PendingAmount)`
+              `${iterationMonth.format("YYYY-MM")} (Covered by PendingAmount)`,
             );
           }
 
@@ -282,7 +283,7 @@ export const sendRentReminders = async () => {
             "Here---------------------",
             user.name,
             specificDueDate.format(),
-            correctlyCalculatedPendingRent
+            correctlyCalculatedPendingRent,
           );
           // correctlyCalculatedPendingRent += monthlyRent;
           // monthAddedLog.push(iterationMonth.format("YYYY-MM"));
@@ -290,19 +291,31 @@ export const sendRentReminders = async () => {
           console.log(
             "Here-----------again---------------------",
             user.name,
-            specificDueDate.format()
+            specificDueDate.format(),
           );
           console.log(
             `[DEBUG] Skipping Rent for ${user.name} for ${iterationMonth.format(
-              "MMM YYYY"
+              "MMM YYYY",
             )}. Due: ${specificDueDate.format(
-              "YYYY-MM-DD"
-            )}, Today: ${today.format("YYYY-MM-DD")}`
+              "YYYY-MM-DD",
+            )}, Today: ${today.format("YYYY-MM-DD")}`,
           );
         }
 
         // Move to check the next month
         iterationMonth.add(1, "months");
+      }
+
+      if (accountBalance && accountBalance > 0) {
+        correctlyCalculatedPendingRent -= accountBalance;
+
+        // Ensure rent doesn't go below zero (e.g. if Balance is 5000 and Rent is 4000)
+        correctlyCalculatedPendingRent = Math.max(
+          0,
+          correctlyCalculatedPendingRent,
+        );
+
+        monthAddedLog.push(`(Deducted Account Balance: -${accountBalance})`);
       }
 
       // Log for specific users to debug production issues
@@ -311,8 +324,8 @@ export const sendRentReminders = async () => {
           `[DEBUG-USER] ${
             user.name
           } | BillingDay: ${billingDay} | PendingRent Calc: ${correctlyCalculatedPendingRent} | Months: ${monthAddedLog.join(
-            ", "
-          )}`
+            ", ",
+          )}`,
         );
       }
 
@@ -398,7 +411,7 @@ export const sendRentReminders = async () => {
         if (shouldBlockUser) {
           user.isBlocked = true;
           console.log(
-            `Blocking user ${user.name} (ID: ${user._id}) due to overdue rent > 5 days.`
+            `Blocking user ${user.name} (ID: ${user._id}) due to overdue rent > 5 days.`,
           );
         }
 
@@ -407,15 +420,15 @@ export const sendRentReminders = async () => {
           `Corrected overdue rent for ${
             user.name
           } to ₹${correctlyCalculatedPendingRent}. Reasons: ${monthAddedLog.join(
-            ", "
-          )}`
+            ", ",
+          )}`,
         );
       }
     }
   } catch (error) {
     console.error(
       "An error occurred during the overdue rent update part of the cron job:",
-      error
+      error,
     );
   }
 
@@ -477,22 +490,22 @@ export const sendRentReminders = async () => {
               description: notificationPayload.description,
               userId: notificationPayload.userId,
             },
-          }
+          },
         );
         console.log(
-          `Successfully sent notification to user: ${user.name} (${user._id})`
+          `Successfully sent notification to user: ${user.name} (${user._id})`,
         );
       } catch (apiError) {
         console.error(
           `Failed to send notification to user ${user._id}:`,
-          apiError.response?.data || apiError.message
+          apiError.response?.data || apiError.message,
         );
       }
     }
   } catch (error) {
     console.error(
       "An error occurred during the rent reminder cron job:",
-      error
+      error,
     );
   }
 };

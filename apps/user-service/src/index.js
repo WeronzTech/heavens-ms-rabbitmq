@@ -65,7 +65,7 @@ const startServer = async () => {
     // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.USER_PORT, () => {
       console.log(
-        `[USER] Service is fully started and running on port ${process.env.USER_PORT}`
+        `[USER] Service is fully started and running on port ${process.env.USER_PORT}`,
       );
     });
 
