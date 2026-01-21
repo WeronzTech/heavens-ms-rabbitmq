@@ -234,8 +234,12 @@ const userSchema = new mongoose.Schema(
           referralEarnings: { type: Number, default: 0 },
           availableBalance: { type: Number, default: 0 }, // NEW: The spendable balance
           withdrawnAmount: { type: Number, default: 0 },
+          referredBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            default: null,
+          },
         },
-        { _id: false }
+        { _id: false },
       ),
       default: {},
     },
@@ -308,7 +312,7 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     // Add discriminator key for potential future sub-schemas
     discriminatorKey: "userType",
-  }
+  },
 );
 
 // Indexes for performance optimization
@@ -340,7 +344,7 @@ userSchema.pre("save", async function (next) {
           month: parseInt(month, 10),
         },
         { $inc: { count: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
+        { new: true, upsert: true, setDefaultsOnInsert: true },
       );
 
       if (!counter) {
@@ -410,7 +414,7 @@ userSchema.pre("save", function (next) {
 // Static method to get users by rent type
 userSchema.statics.findByRentType = function (
   rentType,
-  additionalFilters = {}
+  additionalFilters = {},
 ) {
   return this.find({ rentType, ...additionalFilters });
 };
