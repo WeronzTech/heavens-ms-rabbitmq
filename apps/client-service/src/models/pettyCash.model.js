@@ -10,7 +10,7 @@ const pettycashSchema = new mongoose.Schema(
       ref: "Manager",
       required: true,
     },
-    property: mongoose.Schema.Types.ObjectId,
+    // property: mongoose.Schema.Types.ObjectId,
   },
   { timestamps: true }
 );

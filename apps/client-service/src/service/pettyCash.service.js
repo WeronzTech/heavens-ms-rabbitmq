@@ -16,7 +16,7 @@ export const addPettyCash = async (data) => {
       inAccountAmount,
       manager,
       managerName,
-      property: requestedProperty,
+      // property: requestedProperty,
     } = data;
 
     // Find the manager
@@ -25,56 +25,56 @@ export const addPettyCash = async (data) => {
       return {
         success: false,
         message: "Manager not found",
-        status: 404,
+        status: 404, 
         data: null,
       };
     }
 
-    // Get properties from manager
-    let properties = client.propertyId;
+    // // Get properties from manager
+    // let properties = client.propertyId;
 
-    // Ensure properties is an array
-    if (!Array.isArray(properties)) {
-      properties = properties ? [properties] : [];
-    }
+    // // Ensure properties is an array
+    // if (!Array.isArray(properties)) {
+    //   properties = properties ? [properties] : [];
+    // }
 
-    if (properties.length === 0) {
-      return {
-        success: false,
-        message: "Manager is not associated with any property",
-        status: 400,
-        data: null,
-      };
-    }
+    // if (properties.length === 0) {
+    //   return {
+    //     success: false,
+    //     message: "Manager is not associated with any property",
+    //     status: 400,
+    //     data: null,
+    //   };
+    // }
 
-    let property;
+    // let property;
 
-    // If property is specified in request, use it (after validation)
-    if (requestedProperty) {
-      const isValidProperty = properties.some(
-        (p) =>
-          p.toString() === requestedProperty.toString() ||
-          (p._id && p._id.toString() === requestedProperty.toString())
-      );
+    // // If property is specified in request, use it (after validation)
+    // if (requestedProperty) {
+    //   const isValidProperty = properties.some(
+    //     (p) =>
+    //       p.toString() === requestedProperty.toString() ||
+    //       (p._id && p._id.toString() === requestedProperty.toString())
+    //   );
 
-      if (!isValidProperty) {
-        return {
-          success: false,
-          message: "Manager is not associated with the specified property",
-          status: 400,
-          data: null,
-        };
-      }
-      property = requestedProperty;
-    } else {
-      // Use the first property by default
-      property = properties[0];
-    }
+    //   if (!isValidProperty) {
+    //     return {
+    //       success: false,
+    //       message: "Manager is not associated with the specified property",
+    //       status: 400,
+    //       data: null,
+    //     };
+    //   }
+    //   property = requestedProperty;
+    // } else {
+    //   // Use the first property by default
+    //   property = properties[0];
+    // }
 
     // Find existing petty cash by manager ID and property
     let existingPettyCash = await PettyCash.findOne({
       manager,
-      property: property._id || property,
+      // property: property._id || property,
     });
 
     if (existingPettyCash) {
@@ -90,7 +90,7 @@ export const addPettyCash = async (data) => {
         inAccountAmount: Number(inAccountAmount || 0),
         manager,
         managerName,
-        property: property._id || property,
+        // property: property._id || property,
       });
       await existingPettyCash.save();
     }
@@ -128,7 +128,7 @@ export const addPettyCash = async (data) => {
         await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
           date: new Date(),
           description: `Petty cash top-up for ${managerName}`,
-          propertyId: property._id || property,
+          // propertyId: property._id || property,
           transactions,
           referenceId: existingPettyCash._id,
           referenceType: "PettyCash",
@@ -150,7 +150,7 @@ export const addPettyCash = async (data) => {
         inAccountAmount: existingPettyCash.inAccountAmount,
         manager: existingPettyCash.manager,
         managerName: existingPettyCash.managerName,
-        property: existingPettyCash.property,
+        // property: existingPettyCash.property,
         createdAt: existingPettyCash.createdAt,
         updatedAt: existingPettyCash.updatedAt,
       },
