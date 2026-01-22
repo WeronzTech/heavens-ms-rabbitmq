@@ -3,8 +3,18 @@ import { CLIENT_PATTERN } from "../../../../../libs/patterns/client/client.patte
 
 export const addPettyCashController = async (req, res) => {
   try {
-    const { inHandAmount, inAccountAmount, manager, managerName, property } =
-      req.body;
+    const {
+      inHandAmount,
+      inAccountAmount,
+      manager,
+      managerName,
+      transactionId,
+      date,
+      notes,
+      createdBy,
+      createdByName,
+      paymentMode,
+    } = req.body;
 
     const pettyCash = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH,
@@ -13,8 +23,13 @@ export const addPettyCashController = async (req, res) => {
         inAccountAmount,
         manager,
         managerName,
-        property,
-      }
+        transactionId,
+        date,
+        notes,
+        createdBy,
+        createdByName,
+        paymentMode,
+      },
     );
 
     if (pettyCash.status === 200) {
@@ -38,7 +53,7 @@ export const getPettyCashController = async (req, res) => {
 
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH,
-      { propertyId, managerId }
+      { propertyId, managerId },
     );
 
     res.status(response?.status || 500).json(response);
@@ -59,7 +74,7 @@ export const getPettyCashByManagerController = async (req, res) => {
 
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-      { managerId }
+      { managerId },
     );
 
     res.status(response?.status || 500).json(response);

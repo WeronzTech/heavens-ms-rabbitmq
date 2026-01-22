@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../../../accounts-service/src/config/accountMapping.config.js";
+import PettyCashTransaction from "../models/pettyCashTransaction.model.js";
+
 // const ACCOUNT_NAMES_CONST = {
 //   PETTY_CASH: "Petty Cash",
 //   BANK_ACCOUNT: "Bank Account",
@@ -16,84 +18,59 @@ export const addPettyCash = async (data) => {
       inAccountAmount,
       manager,
       managerName,
-      // property: requestedProperty,
+      transactionId,
+      date,
+      notes,
+      createdBy,
+      createdByName,
+      paymentMode,
     } = data;
 
-    // Find the manager
     const client = await Manager.findById(manager);
     if (!client) {
       return {
         success: false,
         message: "Manager not found",
-        status: 404, 
-        data: null,
+        status: 404,
       };
     }
 
-    // // Get properties from manager
-    // let properties = client.propertyId;
+    let pettyCash = await PettyCash.findOne({ manager });
 
-    // // Ensure properties is an array
-    // if (!Array.isArray(properties)) {
-    //   properties = properties ? [properties] : [];
-    // }
-
-    // if (properties.length === 0) {
-    //   return {
-    //     success: false,
-    //     message: "Manager is not associated with any property",
-    //     status: 400,
-    //     data: null,
-    //   };
-    // }
-
-    // let property;
-
-    // // If property is specified in request, use it (after validation)
-    // if (requestedProperty) {
-    //   const isValidProperty = properties.some(
-    //     (p) =>
-    //       p.toString() === requestedProperty.toString() ||
-    //       (p._id && p._id.toString() === requestedProperty.toString())
-    //   );
-
-    //   if (!isValidProperty) {
-    //     return {
-    //       success: false,
-    //       message: "Manager is not associated with the specified property",
-    //       status: 400,
-    //       data: null,
-    //     };
-    //   }
-    //   property = requestedProperty;
-    // } else {
-    //   // Use the first property by default
-    //   property = properties[0];
-    // }
-
-    // Find existing petty cash by manager ID and property
-    let existingPettyCash = await PettyCash.findOne({
-      manager,
-      // property: property._id || property,
-    });
-
-    if (existingPettyCash) {
-      // Update existing petty cash
-      existingPettyCash.inHandAmount += Number(inHandAmount || 0);
-      existingPettyCash.inAccountAmount += Number(inAccountAmount || 0);
-      existingPettyCash.updatedAt = new Date();
-      await existingPettyCash.save();
-    } else {
-      // Create new petty cash entry
-      existingPettyCash = new PettyCash({
-        inHandAmount: Number(inHandAmount || 0),
-        inAccountAmount: Number(inAccountAmount || 0),
+    if (!pettyCash) {
+      pettyCash = await PettyCash.create({
         manager,
         managerName,
-        // property: property._id || property,
+        inHandAmount: 0,
+        inAccountAmount: 0,
       });
-      await existingPettyCash.save();
     }
+
+    // Update balances
+    pettyCash.inHandAmount += Number(inHandAmount || 0);
+    pettyCash.inAccountAmount += Number(inAccountAmount || 0);
+    await pettyCash.save();
+
+    // 🔹 Create transaction record (ledger)
+    await PettyCashTransaction.create({
+      pettyCash: pettyCash._id,
+      manager,
+      managerName,
+      inHandAmount: Number(inHandAmount || 0),
+      inAccountAmount: Number(inAccountAmount || 0),
+      balanceAfter: {
+        inHandAmount: pettyCash.inHandAmount,
+        inAccountAmount: pettyCash.inAccountAmount,
+      },
+      date,
+      transactionId,
+      notes,
+      referenceId: pettyCash._id,
+      referenceType: "PettyCash",
+      createdBy,
+      createdByName,
+      paymentMode,
+    });
 
     const transactions = [];
 
@@ -106,7 +83,7 @@ export const addPettyCash = async (data) => {
         {
           systemName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH,
           credit: Number(inHandAmount),
-        }
+        },
       );
     }
 
@@ -119,7 +96,7 @@ export const addPettyCash = async (data) => {
         {
           systemName: ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK,
           credit: Number(inAccountAmount),
-        }
+        },
       );
     }
 
@@ -130,12 +107,12 @@ export const addPettyCash = async (data) => {
           description: `Petty cash top-up for ${managerName}`,
           // propertyId: property._id || property,
           transactions,
-          referenceId: existingPettyCash._id,
+          referenceId: pettyCash._id,
           referenceType: "PettyCash",
         });
       } catch (rpcError) {
         console.error(
-          `[ClientService] Failed to create journal entry for petty cash ${existingPettyCash._id}: ${rpcError.message}`
+          `[ClientService] Failed to create journal entry for petty cash ${pettyCash._id}: ${rpcError.message}`,
         );
       }
     }
@@ -145,14 +122,13 @@ export const addPettyCash = async (data) => {
       message: "Petty cash updated successfully",
       status: 200,
       data: {
-        id: existingPettyCash._id,
-        inHandAmount: existingPettyCash.inHandAmount,
-        inAccountAmount: existingPettyCash.inAccountAmount,
-        manager: existingPettyCash.manager,
-        managerName: existingPettyCash.managerName,
-        // property: existingPettyCash.property,
-        createdAt: existingPettyCash.createdAt,
-        updatedAt: existingPettyCash.updatedAt,
+        id: pettyCash._id,
+        inHandAmount: pettyCash.inHandAmount,
+        inAccountAmount: pettyCash.inAccountAmount,
+        manager: pettyCash.manager,
+        managerName: pettyCash.managerName,
+        createdAt: pettyCash.createdAt,
+        updatedAt: pettyCash.updatedAt,
       },
     };
   } catch (error) {
@@ -280,7 +256,7 @@ export const getPettyCashByIdService = async (data) => {
   try {
     const { pettyCashId } = data;
     const pettyCash = await PettyCash.findById(pettyCashId).select(
-      "managerName inHandAmount inAccountAmount"
+      "managerName inHandAmount inAccountAmount",
     );
 
     if (!pettyCash) {
