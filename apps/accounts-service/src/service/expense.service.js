@@ -96,7 +96,7 @@ export const addExpense = async (data) => {
     if (paymentMethod === "Petty Cash") {
       const pettyCashResponse = await sendRPCRequest(
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-        { managerId: handledBy }
+        { managerId: handledBy },
       );
       // console.log(pettyCashResponse);
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
@@ -154,8 +154,8 @@ export const addExpense = async (data) => {
       paymentMethod === "Petty Cash"
         ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
         : paymentMethod === "Cash" || paymentMethod === "cash"
-        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
-        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     // Map expense category to debit account (Example mapping)
     // You should fetch the account by name from ChartOfAccount for robustness
@@ -163,10 +163,10 @@ export const addExpense = async (data) => {
       expense.type === "PG"
         ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
         : expense.type === "Mess"
-        ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
-        : expense.type === "Others"
-        ? ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL
-        : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL; // Fallback
+          ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+          : expense.type === "Others"
+            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL
+            : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL; // Fallback
 
     await createJournalEntry(
       {
@@ -180,7 +180,7 @@ export const addExpense = async (data) => {
         referenceId: expense._id,
         referenceType: "Expense",
       },
-      { session }
+      { session },
     );
 
     if (fromVoucher && voucher) {
@@ -485,7 +485,6 @@ export const addExpenseCategory = async (data) => {
     const { mainCategory, subCategory } = data;
 
     const existing = await ExpenseCategory.findOne({
-      mainCategory,
       subCategory: { $regex: new RegExp(`^${subCategory}$`, "i") },
     });
 
@@ -493,7 +492,7 @@ export const addExpenseCategory = async (data) => {
       return {
         success: false,
         status: 400,
-        message: `Subcategory "${subCategory}" already exists under "${mainCategory}".`,
+        message: `Subcategory "${subCategory}" already exists under PG/Mess/Others".`,
       };
     }
     const expenseCategory = await ExpenseCategory.create({
@@ -631,7 +630,7 @@ export const getExpenseAnalytics = async (data) => {
           acc[t.type] = t.totalAmount;
           return acc;
         },
-        { PG: 0, Mess: 0, Others: 0 }
+        { PG: 0, Mess: 0, Others: 0 },
       );
 
       const monthName = new Date(0, monthData._id - 1).toLocaleString("en", {
@@ -763,7 +762,7 @@ export const updateExpense = async (data) => {
         const imageUrl = await uploadToFirebase(
           billImage,
           "expense-images",
-          true
+          true,
         );
         existingExpense.imageUrl = imageUrl;
       } catch (err) {
