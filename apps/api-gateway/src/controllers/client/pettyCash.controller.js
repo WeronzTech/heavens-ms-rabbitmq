@@ -74,7 +74,7 @@ export const getPettyCashByManagerController = async (req, res) => {
 
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-      { managerId },
+      { managerId }
     );
 
     res.status(response?.status || 500).json(response);
@@ -85,6 +85,30 @@ export const getPettyCashByManagerController = async (req, res) => {
       status: 500,
       message:
         "An internal server error occurred while fetching petty cash by manager.",
+    });
+  }
+};
+
+export const getPettyCashTransactionsByManagerController = async (req, res) => {
+  try {
+    const managerId = req.params.id;
+
+    console.log("Manager",managerId)
+
+    const response = await sendRPCRequest(
+      CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_TRANSACTIONS_BY_MANAGER,
+      { managerId }
+    );
+    console.log("Response",response)
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error fetching petty cash transactions by manager:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching petty cash transactions by manager.",
     });
   }
 };

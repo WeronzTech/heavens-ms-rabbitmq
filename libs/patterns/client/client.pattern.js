@@ -26,6 +26,7 @@ export const CLIENT_PATTERN = {
     GET_PETTYCASH: "get_pettycash",
     GET_PETTYCASH_BY_MANAGER: "get_pettycash_by_manager",
     GET_PETTYCASH_DATA_BY_ID: "get_pettycash_data_by_id",
+    GET_PETTYCASH_TRANSACTIONS_BY_MANAGER: "get_pettycash_transactions_by_manager",
   },
   AGENCY: {
     GET_AGENCIES: "get_agencies",

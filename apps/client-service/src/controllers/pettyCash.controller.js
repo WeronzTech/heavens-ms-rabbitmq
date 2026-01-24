@@ -5,6 +5,7 @@ import {
   getPettyCash,
   getPettyCashByIdService,
   getPettyCashByManager,
+  getPettyCashTransactionsByManager,
 } from "../service/pettyCash.service.js";
 
 createResponder(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, async (data) => {
@@ -26,5 +27,12 @@ createResponder(
   CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_DATA_BY_ID,
   async (data) => {
     return await getPettyCashByIdService(data);
+  }
+);
+
+createResponder(
+  CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_TRANSACTIONS_BY_MANAGER,
+  async (data) => {
+    return await getPettyCashTransactionsByManager(data);
   }
 );

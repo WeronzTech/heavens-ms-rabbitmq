@@ -6,6 +6,8 @@ import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pa
 import { ACCOUNT_SYSTEM_NAMES } from "../../../accounts-service/src/config/accountMapping.config.js";
 import PettyCashTransaction from "../models/pettyCashTransaction.model.js";
 
+
+
 // const ACCOUNT_NAMES_CONST = {
 //   PETTY_CASH: "Petty Cash",
 //   BANK_ACCOUNT: "Bank Account",
@@ -274,6 +276,100 @@ export const getPettyCashByIdService = async (data) => {
       success: false,
       status: 500,
       message: err.message,
+      data: null,
+    };
+  }
+};
+
+
+
+
+export const getPettyCashTransactionsByManager = async (data) => {
+  try {
+    const { managerId } = data;
+
+    if (!managerId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Manager ID is required",
+        data: null,
+      };
+    }
+
+    // Validate if manager exists
+    const manager = await Manager.findById(managerId);
+    if (!manager) {
+      return {
+        success: false,
+        status: 404,
+        message: "Manager not found",
+        data: null,
+      };
+    }
+
+    // Get petty cash record for this manager
+    const pettyCash = await PettyCash.findOne({ manager: managerId });
+    
+    if (!pettyCash) {
+      return {
+        success: true,
+        status: 200,
+        message: "No petty cash transactions found for this manager",
+        data: [],
+      };
+    }
+
+    // Fetch all transactions for this manager, sorted by date (newest first)
+    const transactions = await PettyCashTransaction.find({ manager: managerId })
+      .sort({ date: -1, createdAt: -1 })
+      .lean();
+
+    // Format the response
+    const formattedTransactions = transactions.map(transaction => ({
+      id: transaction._id,
+      pettyCashId: transaction.pettyCash,
+      managerId: transaction.manager,
+      managerName: transaction.managerName,
+      inHandAmount: transaction.inHandAmount,
+      inAccountAmount: transaction.inAccountAmount,
+      balanceAfter: transaction.balanceAfter,
+      paymentMode: transaction.paymentMode,
+      date: transaction.date,
+      transactionId: transaction.transactionId,
+      notes: transaction.notes,
+      referenceId: transaction.referenceId,
+      referenceType: transaction.referenceType,
+      createdBy: transaction.createdBy,
+      createdByName: transaction.createdbyName, // Note: field name mismatch - createdbyName in schema
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt
+    }));
+
+    return {
+      success: true,
+      status: 200,
+      message: "Petty cash transactions fetched successfully",
+      data: {
+        managerId,
+        managerName: manager.name || transactions[0]?.managerName,
+        pettyCashId: pettyCash._id,
+        currentBalance: {
+          inHandAmount: pettyCash.inHandAmount,
+          inAccountAmount: pettyCash.inAccountAmount,
+          total: pettyCash.inHandAmount + pettyCash.inAccountAmount
+        },
+        transactions: formattedTransactions,
+        count: transactions.length
+      },
+    };
+  } catch (error) {
+    console.error("Petty cash transactions fetch error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to fetch petty cash transactions",
+      error: error.message,
       data: null,
     };
   }

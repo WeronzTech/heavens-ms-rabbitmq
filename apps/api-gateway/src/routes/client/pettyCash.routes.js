@@ -3,6 +3,7 @@ import {
   addPettyCashController,
   getPettyCashByManagerController,
   getPettyCashController,
+  getPettyCashTransactionsByManagerController,
 } from "../../controllers/client/pettyCash.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
@@ -24,10 +25,20 @@ pettyCashRoutes.get(
   getPettyCashController
 );
 
+
+pettyCashRoutes.get(
+  "/transaction/:id",
+  hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
+  getPettyCashTransactionsByManagerController
+);
+
 pettyCashRoutes.get(
   "/:id",
   hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
   getPettyCashByManagerController
 );
+
+
+
 
 export default pettyCashRoutes;
