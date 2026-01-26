@@ -43,6 +43,7 @@ import {
 import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 
 export const fetchUserData = async (data) => {
   try {
@@ -57,7 +58,7 @@ export const fetchUserData = async (data) => {
 
     // Find users who are occupying the given roomId
     const occupants = await User.find({ "stayDetails.roomId": roomId }).select(
-      "name paymentStatus contact userType stayDetails"
+      "name paymentStatus contact userType stayDetails",
     );
 
     if (!occupants || occupants.length === 0) {
@@ -215,7 +216,7 @@ export const registerUser = async (data) => {
       name,
       contact,
       stayDetails,
-      messDetails
+      messDetails,
     );
     if (validationError) {
       return { statusCode: 400, body: validationError };
@@ -422,7 +423,7 @@ export const getUnapprovedUsers = async (data) => {
     // console.log(filter);
     let residents = await User.find(filter)
       .select(
-        "name email contact userType stayDetails messDetails propertyId createdAt"
+        "name email contact userType stayDetails messDetails propertyId createdAt",
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -439,14 +440,14 @@ export const getUnapprovedUsers = async (data) => {
         // Call inventory-service to get kitchens accessible to this property
         const accessibleKitchens = await getAccessibleKitchens({ propertyId });
         const accessibleKitchenIds = accessibleKitchens.map((k) =>
-          k._id.toString()
+          k._id.toString(),
         );
 
         // Filter MessOnly users - only keep those with kitchens accessible to the property
         residents = residents.filter((user) => {
           if (user.userType !== "messOnly") return true;
           return accessibleKitchenIds.includes(
-            user.messDetails?.kitchenId?.toString()
+            user.messDetails?.kitchenId?.toString(),
           );
         });
       } else {
@@ -632,16 +633,16 @@ export const approveUser = async (data) => {
       });
 
       const refundable = Number(
-        refundableDeposit ?? user.stayDetails?.refundableDeposit ?? 0
+        refundableDeposit ?? user.stayDetails?.refundableDeposit ?? 0,
       );
       const nonRefundable = Number(
-        nonRefundableDeposit ?? user.stayDetails?.nonRefundableDeposit ?? 0
+        nonRefundableDeposit ?? user.stayDetails?.nonRefundableDeposit ?? 0,
       );
 
       const depositStatus =
         refundable === 0 && nonRefundable === 0
           ? null
-          : user.stayDetails?.depositStatus ?? "pending";
+          : (user.stayDetails?.depositStatus ?? "pending");
 
       if (user.rentType === "monthly") {
         updates.stayDetails = {
@@ -710,13 +711,13 @@ export const approveUser = async (data) => {
     const verificationToken = crypto.randomBytes(32).toString("hex");
     updates.emailVerificationToken = verificationToken;
     updates.emailVerificationExpires = new Date(
-      Date.now() + 24 * 60 * 60 * 1000
+      Date.now() + 24 * 60 * 60 * 1000,
     );
 
     const updatedUser = await User.findByIdAndUpdate(
       id,
       { $set: updates },
-      { new: true, lean: true }
+      { new: true, lean: true },
     );
 
     try {
@@ -880,7 +881,7 @@ export const verifyEmail = async (data) => {
 
     if (!user) {
       const html = await renderVerificationError(
-        "Invalid token or token expired"
+        "Invalid token or token expired",
       );
       return {
         status: 400,
@@ -937,7 +938,7 @@ export const updateProfileCompletion = async (data) => {
       console.log("Uploading Aadhar front image...");
       aadharFrontUrl = await uploadToFirebase(
         files.aadharFront[0],
-        "user-documents"
+        "user-documents",
       );
       console.log("Aadhar front uploaded:", aadharFrontUrl);
     }
@@ -946,7 +947,7 @@ export const updateProfileCompletion = async (data) => {
       console.log("Uploading Aadhar back image...");
       aadharBackUrl = await uploadToFirebase(
         files.aadharBack[0],
-        "user-documents"
+        "user-documents",
       );
       console.log("Aadhar back uploaded:", aadharBackUrl);
     }
@@ -956,7 +957,7 @@ export const updateProfileCompletion = async (data) => {
       console.log("Uploading coliving partner Aadhar front...");
       partnerAadharFrontUrl = await uploadToFirebase(
         files.partnerAadharFront[0],
-        "user-documents"
+        "user-documents",
       );
       console.log("Partner Aadhar front uploaded:", partnerAadharFrontUrl);
     }
@@ -965,7 +966,7 @@ export const updateProfileCompletion = async (data) => {
       console.log("Uploading coliving partner Aadhar back...");
       partnerAadharBackUrl = await uploadToFirebase(
         files.partnerAadharBack[0],
-        "user-documents"
+        "user-documents",
       );
       console.log("Partner Aadhar back uploaded:", partnerAadharBackUrl);
     }
@@ -1084,7 +1085,7 @@ export const adminUpdateUser = async (data) => {
     if (files?.profileImg?.[0]) {
       personal.profileImg = await uploadToFirebase(
         files.profileImg[0],
-        "user-photos"
+        "user-photos",
       );
     } else if (shouldDeleteProfile) {
       personal.profileImg = null;
@@ -1104,7 +1105,7 @@ export const adminUpdateUser = async (data) => {
     if (files?.aadharFront?.[0]) {
       personal.aadharFront = await uploadToFirebase(
         files.aadharFront[0],
-        "user-documents"
+        "user-documents",
       );
     } else if (shouldDeleteFront) {
       personal.aadharFront = null;
@@ -1124,7 +1125,7 @@ export const adminUpdateUser = async (data) => {
     if (files?.aadharBack?.[0]) {
       personal.aadharBack = await uploadToFirebase(
         files.aadharBack[0],
-        "user-documents"
+        "user-documents",
       );
     } else if (shouldDeleteBack) {
       personal.aadharBack = null;
@@ -1144,7 +1145,7 @@ export const adminUpdateUser = async (data) => {
     if (files?.partnerProfileImg?.[0]) {
       coLiving.profileImg = await uploadToFirebase(
         files.partnerProfileImg[0],
-        "user-photos"
+        "user-photos",
       );
     } else if (shouldDeletePartnerProfile) {
       coLiving.profileImg = null;
@@ -1164,7 +1165,7 @@ export const adminUpdateUser = async (data) => {
     if (files?.partnerAadharFront?.[0]) {
       coLiving.aadharFront = await uploadToFirebase(
         files.partnerAadharFront[0],
-        "user-documents"
+        "user-documents",
       );
     } else if (shouldDeletePartnerFront) {
       coLiving.aadharFront = null;
@@ -1184,7 +1185,7 @@ export const adminUpdateUser = async (data) => {
     if (files?.partnerAadharBack?.[0]) {
       coLiving.aadharBack = await uploadToFirebase(
         files.partnerAadharBack[0],
-        "user-documents"
+        "user-documents",
       );
     } else if (shouldDeletePartnerBack) {
       coLiving.aadharBack = null;
@@ -1315,9 +1316,23 @@ export const getHeavensUserById = async (data) => {
 
     user.rentReminder = rentReminder;
 
+    const agentResponse = await sendRPCRequest(
+      CLIENT_PATTERN.AGENCY.GET_AGENCY_BY_ID,
+      { agencyId: user?.referralInfo?.referredBy },
+    );
+
+    let referredBy = null;
+
+    if (agentResponse?.success && agentResponse?.data) {
+      referredBy = {
+        agentName: agentResponse.data.agentName,
+        agencyName: agentResponse.data.agencyName,
+      };
+    }
+
     return {
       status: 200,
-      body: { success: true, data: { ...user, rentReminder } },
+      body: { success: true, data: { ...user, rentReminder, referredBy } },
     };
   } catch (error) {
     console.error("getHeavensUserById error:", error);
@@ -1387,19 +1402,19 @@ export const getUsersByRentType = async (data) => {
           accessibleKitchensResponse.data
         ) {
           const kitchenIds = accessibleKitchensResponse.data.map((k) =>
-            k._id.toString()
+            k._id.toString(),
           );
           queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
         } else {
           console.error(
             "Failed to fetch accessible kitchens:",
-            accessibleKitchensResponse.message
+            accessibleKitchensResponse.message,
           );
           queryConditions["messDetails.kitchenId"] = { $in: [] };
         }
       } else {
         queryConditions["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
-          propertyId
+          propertyId,
         );
       }
     }
@@ -2138,7 +2153,7 @@ export const getUserIds = async (data) => {
           isBlocked: false,
           isVacated: false,
         },
-        projection
+        projection,
       );
     }
 
@@ -2229,7 +2244,7 @@ export const getTodayCheckouts = async (data) => {
 
       const users = await User.find(query)
         .select(
-          `${commonFields} stayDetails.roomNumber stayDetails.sharingType stayDetails.dailyRent stayDetails.checkInDate stayDetails.checkOutDate stayDetails.extendDate`
+          `${commonFields} stayDetails.roomNumber stayDetails.sharingType stayDetails.dailyRent stayDetails.checkInDate stayDetails.checkOutDate stayDetails.extendDate`,
         )
         .lean();
 
@@ -2283,7 +2298,7 @@ export const getTodayCheckouts = async (data) => {
 
       const users = await User.find(query)
         .select(
-          `${commonFields} messDetails.kitchenName messDetails.kitchenId messDetails.rent messDetails.messStartDate messDetails.messEndDate messDetails.extendDate`
+          `${commonFields} messDetails.kitchenName messDetails.kitchenId messDetails.rent messDetails.messStartDate messDetails.messEndDate messDetails.extendDate`,
         )
         .lean();
 
@@ -2297,10 +2312,12 @@ export const getTodayCheckouts = async (data) => {
         if (kitchenIds.length > 0) {
           const accessibleKitchens = await getAccessibleKitchens(propertyId);
           const accessibleKitchenIds = accessibleKitchens.data?.map((k) =>
-            k._id.toString()
+            k._id.toString(),
           );
           filteredUsers = users?.filter((u) =>
-            accessibleKitchenIds?.includes(u.messDetails?.kitchenId?.toString())
+            accessibleKitchenIds?.includes(
+              u.messDetails?.kitchenId?.toString(),
+            ),
           );
         } else {
           filteredUsers = [];
@@ -2423,7 +2440,7 @@ export const extendUserDays = async (data) => {
             paymentStatus: "pending",
           },
         },
-        { new: true }
+        { new: true },
       );
     } else if (user.userType === "messOnly") {
       // For MessOnly users
@@ -2448,7 +2465,7 @@ export const extendUserDays = async (data) => {
             "messDetails.rent": currentMessRate, // Update rate if changed
           },
         },
-        { new: true }
+        { new: true },
       );
     } else {
       return {
@@ -2529,7 +2546,7 @@ export const createStatusRequest = async (data) => {
 
     // Fetch user
     const user = await User.findById(id).select(
-      "paymentStatus stayDetails.depositStatus currentStatus currentStatusRequest"
+      "paymentStatus stayDetails.depositStatus currentStatus currentStatusRequest",
     );
 
     if (!user) {
@@ -2609,7 +2626,7 @@ export const createStatusRequest = async (data) => {
         $push: { statusRequests: newRequest },
         $set: { currentStatusRequest: newRequest },
       },
-      { new: true }
+      { new: true },
     );
 
     return {
@@ -2704,7 +2721,7 @@ export const getPendingStatusRequests = async (data) => {
             },
             {
               $set: { "statusRequests.$.isRefundEligible": true },
-            }
+            },
           );
 
           // Also reflect in returned data
@@ -2903,7 +2920,7 @@ export const handleBlockStatus = async (data) => {
       updates.isBlocked = false;
       updates.isAccessBlockExtendDate = new Date(extendDate);
       message = `User unblocked with access extended until ${new Date(
-        extendDate
+        extendDate,
       ).toDateString()}`;
     } else {
       return {
@@ -2948,7 +2965,7 @@ export const handleBlockStatus = async (data) => {
                   ? user.messDetails?.kitchenName
                   : user.stayDetails?.propertyName
               } with access extended until ${new Date(
-                extendDate
+                extendDate,
               ).toDateString()}`,
         propertyId:
           user.userType === "messOnly"
@@ -2991,7 +3008,7 @@ export const setResetToken = async (data) => {
 
   await User.updateOne(
     { _id: userId },
-    { resetPasswordToken: token, resetPasswordExpires: expiry }
+    { resetPasswordToken: token, resetPasswordExpires: expiry },
   );
   return { success: true };
 };
@@ -3018,7 +3035,7 @@ export const updatePassword = async ({ userId, password }) => {
       password: hashedPassword,
       resetPasswordToken: null,
       resetPasswordExpires: null,
-    }
+    },
   );
 
   return {
@@ -3173,7 +3190,7 @@ export const getAllPaymentPendingUsers = async (data) => {
     // 🔥 Call Accounts service to get latest payments
     const paymentsResponse = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
-      { userIds }
+      { userIds },
     );
 
     const paymentsMap = {};
@@ -3339,13 +3356,13 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
       const accessibleKitchens = accessibleKitchensResponse?.data || [];
 
       const accessibleKitchenIds = accessibleKitchens.map((k) =>
-        k._id.toString()
+        k._id.toString(),
       );
 
       matchCondition.$or.push({
         "messDetails.kitchenId": {
           $in: accessibleKitchenIds.map(
-            (id) => new mongoose.Types.ObjectId(id)
+            (id) => new mongoose.Types.ObjectId(id),
           ),
         },
       });
@@ -3438,7 +3455,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
   } catch (error) {
     console.error(
       "User Service - getUserStatisticsForAccountDashboard Error:",
-      error
+      error,
     );
     return {
       success: false,
@@ -3477,7 +3494,7 @@ export const getUsersByAgencyService = async (data) => {
         "stayDetails.refundableDeposit": 1,
         "stayDetails.depositAmountPaid": 1,
         "stayDetails.joinDate": 1,
-      }
+      },
     ).lean();
 
     if (!users || users.length === 0) {
@@ -3491,7 +3508,7 @@ export const getUsersByAgencyService = async (data) => {
     // Calculate total commissionEarned
     const totalCommission = users.reduce(
       (sum, user) => sum + (user.commissionEarned || 0),
-      0
+      0,
     );
 
     return {
@@ -3637,7 +3654,7 @@ export const getUsersForMakingPayment = async (data) => {
   } catch (error) {
     console.error(
       "Error fetching users by rentType for making payment:",
-      error
+      error,
     );
     return {
       status: 500,
@@ -3662,7 +3679,7 @@ export const getUserDepositStatisticsForAccountDashboard = async (data) => {
       0,
       23,
       59,
-      59
+      59,
     );
 
     // 🧮 Base filter (property + current month joinDate)
@@ -3673,14 +3690,14 @@ export const getUserDepositStatisticsForAccountDashboard = async (data) => {
 
     if (propertyId) {
       matchCondition["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
-        propertyId
+        propertyId,
       );
     }
 
     // ✅ Get all current-month users
     const users = await User.find(matchCondition)
       .select(
-        "stayDetails.nonRefundableDeposit stayDetails.refundableDeposit stayDetails.depositStatus stayDetails.joinDate"
+        "stayDetails.nonRefundableDeposit stayDetails.refundableDeposit stayDetails.depositStatus stayDetails.joinDate",
       )
       .lean();
 
@@ -3734,7 +3751,7 @@ export const getUserDepositStatisticsForAccountDashboard = async (data) => {
   } catch (error) {
     console.error(
       "User Service - getUserDepositStatisticsForAccountDashboard Error:",
-      error
+      error,
     );
     return {
       success: false,
@@ -3801,7 +3818,7 @@ export const getPendingDepositPayments = async (data) => {
     // ✅ Apply property filter if provided
     if (propertyId && mongoose.Types.ObjectId.isValid(propertyId)) {
       matchStage["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
-        propertyId
+        propertyId,
       );
     }
 
@@ -3837,7 +3854,7 @@ export const getPendingDepositPayments = async (data) => {
     // 🔥 Call Accounts service to get latest payments
     const depositsResponse = await sendRPCRequest(
       ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.GET_LATEST_DEPOSIT_PAYMENT_BY_USERID,
-      { userIds }
+      { userIds },
     );
 
     const depositsMap = {};
@@ -3921,7 +3938,7 @@ export const allocateUsersToAgent = async (data) => {
     // Bulk update: assign the agent to each user
     const result = await User.updateMany(
       { _id: { $in: userIds } },
-      { $set: { agent: agentId } }
+      { $set: { agent: agentId } },
     );
 
     return {
@@ -3955,7 +3972,7 @@ export const allocateCommissionToUsers = async (data) => {
 
     const result = await User.updateMany(
       { _id: { $in: userIds } },
-      { $inc: { commissionEarned: amountPerUser } }
+      { $inc: { commissionEarned: amountPerUser } },
     );
 
     return {
@@ -4003,7 +4020,7 @@ export const registerUserFromPanel = async (data) => {
       name,
       contact,
       stayDetails,
-      messDetails
+      messDetails,
     );
     if (validationError) {
       return { statusCode: 400, body: validationError };
