@@ -234,7 +234,6 @@ export const getAllSalaryRecords = async (filters) => {
     };
   }
 };
-
 export const updateSalaryStatus = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -242,7 +241,12 @@ export const updateSalaryStatus = async (data) => {
     const { 
       salaryId, 
       status, 
-      updatedBy
+      updatedBy,
+      // New optional fields for payment details
+      paymentMethod,
+      transactionId,
+      giverName,
+      paymentDate
     } = data;
 
     // Validate status
@@ -274,21 +278,48 @@ export const updateSalaryStatus = async (data) => {
       };
     }
 
-    // Update only the status field
+    // Update data object
     const updateData = {
       status: status,
     };
 
-    // If changing to paid and no paidAmount exists, set it to salary amount
-    if (status === "paid" && (!salaryRecord.paidAmount || salaryRecord.paidAmount === 0)) {
+    if (status === "paid") {
+      // If changing to paid
       updateData.paidAmount = salaryRecord.salary;
       updateData.salaryPending = 0;
-    }
-
-    // If changing to pending, reset paid amount
-    if (status === "pending") {
+      
+      // Add payment details if provided
+      if (paymentMethod) {
+        updateData.paymentMethod = paymentMethod;
+      }
+      
+      // Only set transactionId if provided (optional)
+      if (transactionId) {
+        updateData.transactionId = transactionId;
+      }
+      
+      // Only set giverName if provided (optional)
+      if (giverName) {
+        updateData.giverName = giverName;
+      }
+      
+      // Set payment date - use provided date or current date
+      updateData.paymentDate = paymentDate ? new Date(paymentDate) : new Date();
+      
+      // Set paidBy if not already set
+      if (!salaryRecord.paidBy && updatedBy) {
+        updateData.paidBy = updatedBy;
+      }
+    } else if (status === "pending") {
+      // If changing to pending, reset payment details
       updateData.paidAmount = 0;
       updateData.salaryPending = salaryRecord.salary;
+      
+      // Clear payment details when reverting to pending
+      updateData.paymentMethod = undefined;
+      updateData.transactionId = undefined;
+      updateData.giverName = undefined;
+      updateData.paymentDate = undefined;
     }
 
     const updatedRecord = await StaffSalaryHistory.findByIdAndUpdate(
@@ -297,11 +328,33 @@ export const updateSalaryStatus = async (data) => {
       { new: true, session }
     );
 
-    // Create simple account log for status change (without amount)
+    // Create account log for status change with payment details
+    let logDescription = `Salary status changed to ${status} for ${salaryRecord.employeeName}`;
+    
+    if (status === "paid") {
+      const paymentDetails = [];
+      
+      if (paymentMethod) {
+        paymentDetails.push(`via ${paymentMethod}`);
+      }
+      
+      if (transactionId) {
+        paymentDetails.push(`(Transaction ID: ${transactionId})`);
+      }
+      
+      if (giverName) {
+        paymentDetails.push(`(Received from: ${giverName})`);
+      }
+      
+      if (paymentDetails.length > 0) {
+        logDescription += ` ${paymentDetails.join(' ')}`;
+      }
+    }
+
     await createAccountLog({
       logType: "Salary",
       action: "Status Update",
-      description: `Salary status changed to ${status} for ${salaryRecord.employeeName}`,
+      description: logDescription,
       propertyId: salaryRecord.propertyId,
       performedBy: updatedBy,
       referenceId: salaryRecord._id,
