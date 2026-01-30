@@ -29,6 +29,8 @@ const staffSalaryHistorySchema = new mongoose.Schema({
     required: false, // Not required for auto-generation
   },
   paymentMethod: { type: String },
+  giverName: { type: String , required: false},
+  paymentDate: { type: String , required: false},
   transactionId: { type: String },
   remarkType: {
     type: String,
