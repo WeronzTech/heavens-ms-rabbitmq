@@ -38,7 +38,7 @@ mealRoutes
 mealRoutes.get(
   "/property-menu",
   hasPermission(PERMISSIONS.MENU_VIEW),
-  getMessMenuByPropertyId
+  getMessMenuByPropertyId,
 ); // Get menu by property id
 
 export default mealRoutes;

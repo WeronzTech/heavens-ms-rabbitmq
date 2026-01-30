@@ -16,29 +16,25 @@ pettyCashRoutes.use(isAuthenticated);
 pettyCashRoutes.post(
   "/add",
   hasPermission(PERMISSIONS.PETTY_CASH_MANAGE),
-  addPettyCashController
+  addPettyCashController,
 );
 
 pettyCashRoutes.get(
   "/",
-  hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
-  getPettyCashController
+  hasPermission(PERMISSIONS.PETTYCASH_VIEW),
+  getPettyCashController,
 );
-
 
 pettyCashRoutes.get(
   "/transaction/:id",
-  hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
-  getPettyCashTransactionsByManagerController
+  hasPermission(PERMISSIONS.PETTYCASH_VIEW),
+  getPettyCashTransactionsByManagerController,
 );
 
 pettyCashRoutes.get(
   "/:id",
-  hasPermission(PERMISSIONS.PETTY_CASH_VIEW),
-  getPettyCashByManagerController
+  hasPermission(PERMISSIONS.PETTYCASH_VIEW),
+  getPettyCashByManagerController,
 );
-
-
-
 
 export default pettyCashRoutes;

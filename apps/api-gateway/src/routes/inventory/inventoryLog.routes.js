@@ -11,7 +11,7 @@ inventoryLogRoutes.use(isAuthenticated);
 inventoryLogRoutes.get(
   "/get",
   hasPermission(PERMISSIONS.LOGS_INVENTORY_VIEW),
-  getInventoryLogs
+  getInventoryLogs,
 );
 
 export default inventoryLogRoutes;

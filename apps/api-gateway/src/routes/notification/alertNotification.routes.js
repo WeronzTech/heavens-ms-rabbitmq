@@ -16,17 +16,17 @@ alertNotificationRoutes.use(isAuthenticated);
 alertNotificationRoutes.post(
   "/add",
   upload.fields([{ name: "alertNotificationImage", maxCount: 1 }]),
-  addAlertNotificationController
+  addAlertNotificationController,
 );
 alertNotificationRoutes.get(
   "/",
   hasPermission(PERMISSIONS.NOTIFICATION_VIEW),
-  getAlertNotificationsController
+  getAlertNotificationsController,
 );
 alertNotificationRoutes.delete(
   "/:id",
   hasPermission(PERMISSIONS.NOTIFICATION_MANAGE),
-  deleteAlertNotificationController
+  deleteAlertNotificationController,
 );
 
 export default alertNotificationRoutes;

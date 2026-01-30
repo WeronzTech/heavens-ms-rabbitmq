@@ -25,67 +25,67 @@ expenseRoutes.post(
   "/add",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
   upload.fields([{ name: "billImage", maxCount: 1 }]),
-  addExpenseController
+  addExpenseController,
 );
 
 expenseRoutes.post(
   "/add-category",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
-  addExpenseCategoryController
+  addExpenseCategoryController,
 );
 
 expenseRoutes.get(
   "/categories/by-main",
   hasPermission(PERMISSIONS.EXPENSE_VIEW),
-  getCategoryByMainCategoryController
+  getCategoryByMainCategoryController,
 );
 
 expenseRoutes.get(
   "/all",
   hasPermission(PERMISSIONS.EXPENSE_VIEW),
-  getAllExpensesController
+  getAllExpensesController,
 );
 
 expenseRoutes.get(
   "/get-all",
   hasPermission(PERMISSIONS.EXPENSE_VIEW),
-  getAllCategoriesController
+  getAllCategoriesController,
 );
 
 expenseRoutes.get(
   "/analytics",
   hasPermission(PERMISSIONS.EXPENSE_VIEW),
-  getExpenseAnalytics
+  getExpenseAnalytics,
 );
 
 expenseRoutes.put(
   "/update/:expenseId",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
-  updateExpenseController
+  updateExpenseController,
 );
 
 expenseRoutes.delete(
   "/delete/:expenseId",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
-  deleteExpenseController
+  deleteExpenseController,
 );
 
 expenseRoutes.delete(
   "/categories/:categoryId",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
-  deleteCategoryController
+  deleteCategoryController,
 );
 
 expenseRoutes.get(
   "/pettycash-manager",
-  hasPermission(PERMISSIONS.EXPENSE_VIEW),
-  getPettyCashPaymentByManager
+  hasPermission(PERMISSIONS.PETTYCASH_VIEW),
+  getPettyCashPaymentByManager,
 );
 
 expenseRoutes.get(
   "/:expenseId",
   hasPermission(PERMISSIONS.EXPENSE_VIEW),
-  getExpenseByIdController
+  getExpenseByIdController,
 );
 
 export default expenseRoutes;

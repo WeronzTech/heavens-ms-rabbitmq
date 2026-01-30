@@ -11,7 +11,7 @@ logRoutes.use(isAuthenticated);
 logRoutes.get(
   "/",
   hasPermission(PERMISSIONS.LOGS_ACCOUNTS_VIEW),
-  getAccountLogs
+  getAccountLogs,
 );
 
 export default logRoutes;

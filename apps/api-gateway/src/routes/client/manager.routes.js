@@ -34,7 +34,7 @@ managerRoutes.post(
       maxCount: 1,
     },
   ]),
-  registerManager
+  registerManager,
 );
 
 managerRoutes.post("/login", validateManagerCredentials);
@@ -44,17 +44,12 @@ managerRoutes.post("/by-email", getManagerByEmail);
 
 managerRoutes.use(isAuthenticated);
 
-managerRoutes.get("/", hasPermission(PERMISSIONS.MANAGER_VIEW), getAllManagers);
+managerRoutes.get("/", getAllManagers);
 
-managerRoutes.get(
-  "/:id",
-  hasPermission(PERMISSIONS.MANAGER_VIEW),
-  getManagerById
-);
+managerRoutes.get("/:id", getManagerById);
 
 managerRoutes.put(
   "/edit/:id",
-  hasPermission(PERMISSIONS.MANAGER_MANAGE),
   upload.fields([
     {
       name: "photo",
@@ -69,19 +64,11 @@ managerRoutes.put(
       maxCount: 1,
     },
   ]),
-  editManager
+  editManager,
 );
 
-managerRoutes.put(
-  "/status/:id",
-  hasPermission(PERMISSIONS.MANAGER_MANAGE),
-  changeManagerStatus
-);
+managerRoutes.put("/status/:id", changeManagerStatus);
 
-managerRoutes.delete(
-  "/delete/:id",
-  hasPermission(PERMISSIONS.MANAGER_MANAGE),
-  deleteManager
-);
+managerRoutes.delete("/delete/:id", deleteManager);
 
 export default managerRoutes;

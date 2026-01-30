@@ -14,11 +14,11 @@ salaryRoutes.use(isAuthenticated);
 
 salaryRoutes
   .route("/")
-  .get(hasPermission(PERMISSIONS.SALARY_VIEW), getAllSalaryRecords)
-  .post(hasPermission(PERMISSIONS.SALARY_MANAGE), manualAddSalary);
- 
+  .get(hasPermission(PERMISSIONS.EMPLOYEE_MANAGE), getAllSalaryRecords)
+  .post(hasPermission(PERMISSIONS.EMPLOYEE_MANAGE), manualAddSalary);
 
-salaryRoutes.route("/:id/status")
-  .patch(hasPermission(PERMISSIONS.SALARY_MANAGE), updateSalaryStatus);
+salaryRoutes
+  .route("/:id/status")
+  .patch(hasPermission(PERMISSIONS.EMPLOYEE_MANAGE), updateSalaryStatus);
 
 export default salaryRoutes;

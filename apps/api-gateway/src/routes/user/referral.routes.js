@@ -17,13 +17,13 @@ referralRoutes
   .route("/settings")
   .get(
     isAuthenticated,
-    hasPermission(PERMISSIONS.REFERRAL_VIEW),
-    getReferralSettings
+    hasPermission(PERMISSIONS.REFERRAL_MANAGE),
+    getReferralSettings,
   )
   .put(
     isAuthenticated,
     hasPermission(PERMISSIONS.REFERRAL_MANAGE),
-    updateReferralSettings
+    updateReferralSettings,
   );
 
 export default referralRoutes;

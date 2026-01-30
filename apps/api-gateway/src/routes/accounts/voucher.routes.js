@@ -15,19 +15,19 @@ voucherRoutes.use(isAuthenticated);
 voucherRoutes.post(
   "/add",
   hasPermission(PERMISSIONS.VOUCHER_MANAGE),
-  addVoucherController
+  addVoucherController,
 );
 
 voucherRoutes.get(
   "/by-property",
   hasPermission(PERMISSIONS.VOUCHER_VIEW),
-  getVoucherByPropertyController
+  getVoucherByPropertyController,
 );
 
 voucherRoutes.delete(
   "/:voucherId",
   hasPermission(PERMISSIONS.VOUCHER_MANAGE),
-  deleteVoucherController
+  deleteVoucherController,
 );
 
 export default voucherRoutes;

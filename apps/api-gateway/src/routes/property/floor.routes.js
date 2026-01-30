@@ -18,32 +18,32 @@ floorRoutes.use(isAuthenticated);
 // Create a new floor
 floorRoutes.post(
   "/",
-  hasPermission(PERMISSIONS.PROPERTY_MANAGE), // Assuming a general property manage permission
-  addFloor
+  hasPermission(PERMISSIONS.FLOOR_MANAGE), // Assuming a general property manage permission
+  addFloor,
 );
 
 // Get all floors for a specific property (using query ?propertyId=...)
 floorRoutes.get(
   "/",
-  hasPermission(PERMISSIONS.PROPERTY_VIEW), // Assuming a general property view permission
-  getFloorsByPropertyId
+  hasPermission(PERMISSIONS.FLOOR_VIEW), // Assuming a general property view permission
+  getFloorsByPropertyId,
 );
 
 // Get a single floor by its ID
-floorRoutes.get("/get-by-id/:id", hasPermission(PERMISSIONS.PROPERTY_VIEW), getFloorById);
+floorRoutes.get(
+  "/get-by-id/:id",
+  hasPermission(PERMISSIONS.FLOOR_VIEW),
+  getFloorById,
+);
 
 // Update an existing floor
-floorRoutes.put(
-  "/:id",
-  hasPermission(PERMISSIONS.PROPERTY_MANAGE),
-  updateFloor
-);
+floorRoutes.put("/:id", hasPermission(PERMISSIONS.FLOOR_MANAGE), updateFloor);
 
 // Delete a floor
 floorRoutes.delete(
   "/:id",
-  hasPermission(PERMISSIONS.PROPERTY_MANAGE),
-  deleteFloor
+  hasPermission(PERMISSIONS.FLOOR_MANAGE),
+  deleteFloor,
 );
 
 export default floorRoutes;

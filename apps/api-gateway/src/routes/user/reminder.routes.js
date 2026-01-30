@@ -15,35 +15,31 @@ const reminderRoutes = express.Router();
 
 reminderRoutes.use(isAuthenticated);
 
-reminderRoutes.post(
-  "/",
-  hasPermission(PERMISSIONS.REMINDER_MANAGE),
-  createNote
-);
+reminderRoutes.post("/", hasPermission(PERMISSIONS.USER_MANAGE), createNote);
 reminderRoutes.get(
   "/:id",
-  hasPermission(PERMISSIONS.REMINDER_VIEW),
-  getUserNotes
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  getUserNotes,
 );
 reminderRoutes.get(
   "/active/reminders",
-  hasPermission(PERMISSIONS.REMINDER_VIEW),
-  getActiveReminders
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  getActiveReminders,
 );
 reminderRoutes.patch(
   "/:id/complete",
-  hasPermission(PERMISSIONS.REMINDER_MANAGE),
-  completeReminder
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  completeReminder,
 );
 reminderRoutes.patch(
   "/:id/snooze",
-  hasPermission(PERMISSIONS.REMINDER_MANAGE),
-  snoozeReminder
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  snoozeReminder,
 );
 reminderRoutes.delete(
   "/:id",
-  hasPermission(PERMISSIONS.REMINDER_MANAGE),
-  deleteNote
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  deleteNote,
 );
 
 export default reminderRoutes;

@@ -6,7 +6,7 @@ export const hasPermission = (requiredPermission) => {
   return async (req, res, next) => {
     const roleResponse = await sendRPCRequest(
       AUTH_PATTERN.ROLE.GET_ROLE_BY_ID,
-      { id: req.userRole }
+      { id: req.userRole },
     );
 
     const userPermissions = roleResponse.data.permissions || [];
@@ -24,7 +24,7 @@ export const hasPermission = (requiredPermission) => {
     // If neither check passes, deny access
     return res.status(403).json({
       message:
-        "Forbidden: You do not have the required permission to perform this action.",
+        "You do not have the required permission to perform this action.",
     });
   };
 };

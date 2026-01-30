@@ -19,24 +19,24 @@ carouselRoutes.post(
   "/add",
   hasPermission(PERMISSIONS.CAROUSEL_MANAGE),
   upload.single("file"),
-  addCarouselImagesController
+  addCarouselImagesController,
 );
 carouselRoutes.get(
   "/get",
-  hasPermission(PERMISSIONS.CAROUSEL_VIEW),
-  getAllCarouselController
+  hasPermission(PERMISSIONS.CAROUSEL_MANAGE),
+  getAllCarouselController,
 );
 
 carouselRoutes.put(
   "/update/:id",
   hasPermission(PERMISSIONS.CAROUSEL_MANAGE),
   upload.single("file"),
-  updateCarouselImagesController
+  updateCarouselImagesController,
 );
 carouselRoutes.delete(
   "/delete/:id",
   hasPermission(PERMISSIONS.CAROUSEL_MANAGE),
-  deleteCarouselController
+  deleteCarouselController,
 );
 
 export default carouselRoutes;

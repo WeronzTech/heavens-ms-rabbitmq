@@ -55,11 +55,11 @@ export const getRoleName = async (data) => {
 export const updateRole = async (data) => {
   try {
     const { id, roleName, permissions, reportTo } = data;
-
+    console.log(data);
     const updatedRole = await Role.findByIdAndUpdate(
       id,
       { roleName, permissions, reportTo },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedRole) {

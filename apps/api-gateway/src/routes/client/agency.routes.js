@@ -17,16 +17,28 @@ const agencyRoutes = Router();
 agencyRoutes
   .route("/")
   .get(getAllAgencies)
-  .post(isAuthenticated, hasPermission(PERMISSIONS.AGENCY_MANAGE), addAgency);
+  .post(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.COMMISSION_MANAGE),
+    addAgency,
+  );
 
 agencyRoutes
   .route("/:agencyId")
-  .get(isAuthenticated, hasPermission(PERMISSIONS.AGENCY_VIEW), getAgencyById)
-  .put(isAuthenticated, hasPermission(PERMISSIONS.AGENCY_MANAGE), editAgency)
+  .get(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.COMMISSION_MANAGE),
+    getAgencyById,
+  )
+  .put(
+    isAuthenticated,
+    hasPermission(PERMISSIONS.COMMISSION_MANAGE),
+    editAgency,
+  )
   .delete(
     isAuthenticated,
-    hasPermission(PERMISSIONS.AGENCY_MANAGE),
-    deleteAgency
+    hasPermission(PERMISSIONS.COMMISSION_MANAGE),
+    deleteAgency,
   );
 
 export default agencyRoutes;

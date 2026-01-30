@@ -1345,8 +1345,18 @@ export const getHeavensUserById = async (data) => {
 
 export const getUsersByRentType = async (data) => {
   try {
-    const { rentType, propertyId, all, page, limit, search, status, joinDate } =
-      data;
+    const {
+      // allowedPropertyIds,
+      rentType,
+      propertyId,
+      all,
+      page,
+      limit,
+      search,
+      status,
+      joinDate,
+      // isAdmin,
+    } = data;
 
     // New flag to determine whether to fetch all users (no pagination)
     const fetchAll = all === true || all === "true";

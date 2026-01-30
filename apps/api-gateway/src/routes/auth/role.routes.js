@@ -17,7 +17,7 @@ roleRoutes.use(isAuthenticated);
 roleRoutes.post("/", hasPermission(PERMISSIONS.ROLES_MANAGE), createRole);
 roleRoutes.put("/:id", hasPermission(PERMISSIONS.ROLES_MANAGE), updateRole);
 roleRoutes.delete("/:id", hasPermission(PERMISSIONS.ROLES_MANAGE), deleteRole);
-roleRoutes.get("/", hasPermission(PERMISSIONS.ROLES_VIEW), getAllRoles);
-roleRoutes.get("/:id", hasPermission(PERMISSIONS.ROLES_VIEW), getRoleById);
+roleRoutes.get("/", getAllRoles);
+roleRoutes.get("/:id", getRoleById);
 
 export default roleRoutes;

@@ -56,19 +56,15 @@ userRoutes.get("/email/verify", verifyEmail);
 userRoutes.use(isAuthenticated);
 
 // Approval
-userRoutes.get(
-  "/pending-approvals",
-  hasPermission(PERMISSIONS.USER_APPROVAL),
-  getUnapprovedUsers,
-);
+userRoutes.get("/pending-approvals", isAuthenticated, getUnapprovedUsers);
 userRoutes.put(
   "/:id/approve",
-  hasPermission(PERMISSIONS.USER_APPROVAL),
+  hasPermission(PERMISSIONS.USER_MANAGE),
   approveUser,
 );
 userRoutes.delete(
   "/:id/reject",
-  hasPermission(PERMISSIONS.USER_APPROVAL),
+  hasPermission(PERMISSIONS.USER_MANAGE),
   rejectUser,
 );
 
@@ -90,11 +86,7 @@ userRoutes.put(
 );
 
 // Daily Checkouts
-userRoutes.get(
-  "/checkouts",
-  hasPermission(PERMISSIONS.USER_VIEW),
-  getTodayCheckouts,
-);
+userRoutes.get("/checkouts", getTodayCheckouts);
 
 // Profile
 userRoutes.put(
@@ -118,17 +110,14 @@ userRoutes.put(
 );
 
 // User Management
-userRoutes.get("/", hasPermission(PERMISSIONS.USER_VIEW), getUsersByRentType);
 userRoutes.get(
-  "/pending-payments",
+  "/",
+  isAuthenticated,
   hasPermission(PERMISSIONS.USER_VIEW),
-  getAllPendingPayments,
+  getUsersByRentType,
 );
-userRoutes.get(
-  "/pending-deposits",
-  hasPermission(PERMISSIONS.USER_VIEW),
-  getAllPendingDeposits,
-);
+userRoutes.get("/pending-payments", getAllPendingPayments);
+userRoutes.get("/pending-deposits", getAllPendingDeposits);
 userRoutes.get(
   "/offBoarding",
   hasPermission(PERMISSIONS.USER_VIEW),
@@ -165,21 +154,21 @@ userRoutes
 // Status Requests
 userRoutes
   .route("/:id/status-requests")
-  .post(hasPermission(PERMISSIONS.USER_STATUS_MANAGE), createStatusRequest)
-  .get(hasPermission(PERMISSIONS.USER_STATUS_MANAGE), getUserStatusRequests);
+  .post(hasPermission(PERMISSIONS.USER_MANAGE), createStatusRequest)
+  .get(hasPermission(PERMISSIONS.USER_VIEW), getUserStatusRequests);
 userRoutes.get(
   "/status-requests/pending",
-  hasPermission(PERMISSIONS.USER_STATUS_MANAGE),
+  hasPermission(PERMISSIONS.USER_VIEW),
   getPendingStatusRequests,
 );
 userRoutes.put(
   "/:id/status-requests/:requestId/respond",
-  hasPermission(PERMISSIONS.USER_STATUS_MANAGE),
+  hasPermission(PERMISSIONS.USER_MANAGE),
   respondToStatusRequest,
 );
 userRoutes.put(
   "/:id/block-status",
-  hasPermission(PERMISSIONS.USER_STATUS_MANAGE),
+  hasPermission(PERMISSIONS.USER_MANAGE),
   handleBlockStatus,
 );
 

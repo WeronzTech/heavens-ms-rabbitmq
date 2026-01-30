@@ -10,8 +10,8 @@ dashboardRoutes.use(isAuthenticated);
 
 dashboardRoutes.get(
   "/stats",
-  hasPermission(PERMISSIONS.PROPERTY_DASHBOARD_VIEW),
-  getDashboardStats
+  hasPermission(PERMISSIONS.DASHBOARD),
+  getDashboardStats,
 );
 
 export default dashboardRoutes;

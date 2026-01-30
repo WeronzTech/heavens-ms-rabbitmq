@@ -20,7 +20,7 @@ staffRoutes.use(isAuthenticated);
 
 staffRoutes.post(
   "/add",
-  hasPermission(PERMISSIONS.STAFF_MANAGE),
+  hasPermission(PERMISSIONS.EMPLOYEE_MANAGE),
   upload.fields([
     {
       name: "photo",
@@ -39,7 +39,7 @@ staffRoutes.post(
       maxCount: 1,
     },
   ]),
-  addStaff
+  addStaff,
 );
 
 staffRoutes.get("/getAll", hasPermission(PERMISSIONS.STAFF_VIEW), getAllStaff);
@@ -48,13 +48,13 @@ staffRoutes.get("/:id", hasPermission(PERMISSIONS.STAFF_VIEW), getStaffById);
 
 staffRoutes.put(
   "/status/:id",
-  hasPermission(PERMISSIONS.STAFF_MANAGE),
-  staffStatusChange
+  hasPermission(PERMISSIONS.EMPLOYEE_MANAGE),
+  staffStatusChange,
 );
 
 staffRoutes.put(
   "/update/:id",
-  hasPermission(PERMISSIONS.STAFF_MANAGE),
+  hasPermission(PERMISSIONS.EMPLOYEE_MANAGE),
   upload.fields([
     {
       name: "photo",
@@ -73,21 +73,21 @@ staffRoutes.put(
       maxCount: 1,
     },
   ]),
-  updateStaff
+  updateStaff,
 );
 
 staffRoutes.get("/attendance/getAll", getAllStaffForAttendance);
 
 staffRoutes.delete(
   "/delete/:id",
-  hasPermission(PERMISSIONS.STAFF_MANAGE),
-  deleteStaff
+  hasPermission(PERMISSIONS.EMPLOYEE_MANAGE),
+  deleteStaff,
 );
 
 staffRoutes.get(
   "/by-property/:propertyId",
   hasPermission(PERMISSIONS.STAFF_VIEW),
-  getStaffByPropertyId
+  getStaffByPropertyId,
 );
 
 export default staffRoutes;

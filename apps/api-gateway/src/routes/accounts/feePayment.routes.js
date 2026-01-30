@@ -29,91 +29,91 @@ feePaymentRoutes.use(isAuthenticated);
 feePaymentRoutes.post(
   "/add-payment",
   hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
-  addFeePaymentController
+  addFeePaymentController,
 );
 
 feePaymentRoutes.get(
   "/monthly",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getMonthWiseRentCollectionController
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getMonthWiseRentCollectionController,
 );
 
 feePaymentRoutes.get(
   "/financial/summary",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getFinancialSummary
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getFinancialSummary,
 );
 
 feePaymentRoutes.post(
   "/initiate-online",
   hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
-  initiateOnlinePayment
+  initiateOnlinePayment,
 );
 feePaymentRoutes.post(
   "/verify-online",
   hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
-  verifyAndRecordOnlinePayment
+  verifyAndRecordOnlinePayment,
 );
 feePaymentRoutes.post(
   "/record-manual",
   hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
-  recordManualPayment
+  recordManualPayment,
 );
 feePaymentRoutes.get("/next-due-date", getNextDueDate);
 feePaymentRoutes.put(
   "/update/:id",
   hasPermission(PERMISSIONS.FEE_PAYMENT_MANAGE),
-  updateFeePaymentController
+  updateFeePaymentController,
 );
 
 feePaymentRoutes.get(
   "/",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getAllFeePaymentsController
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getAllFeePaymentsController,
 );
 
 feePaymentRoutes.get(
   "/get_all_payments",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getAllAccountsPaymentController
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getAllAccountsPaymentController,
 );
 
 feePaymentRoutes.get("/user-payments", getUserPaymentsController);
 
 feePaymentRoutes.get(
   "/transactionHistory/:userId",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getTransactionHistoryByUserId
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getTransactionHistoryByUserId,
 );
 
 feePaymentRoutes.get(
   "/latestPayment/:userId",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getLatestFeePaymentByUserId
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getLatestFeePaymentByUserId,
 );
 
 feePaymentRoutes.get(
   "/waveoff",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getWaveOffedPaymentsController
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getWaveOffedPaymentsController,
 );
 
 feePaymentRoutes.get(
   "/cashPayments",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getAllCashPaymentsController
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getAllCashPaymentsController,
 );
 
 feePaymentRoutes.get(
   "/analytics",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getFeePaymentsAnalytics
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getFeePaymentsAnalytics,
 );
 
 feePaymentRoutes.get(
   "/:paymentId",
-  hasPermission(PERMISSIONS.FEE_PAYMENT_VIEW),
-  getFeePaymentController
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getFeePaymentController,
 );
 
 export default feePaymentRoutes;

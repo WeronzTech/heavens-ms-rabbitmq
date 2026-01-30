@@ -13,7 +13,6 @@ import path from "path";
 export const getAccountDashboardDataForIncomeSection = async (data) => {
   try {
     const { propertyId } = data;
-
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
@@ -30,7 +29,7 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
       23,
       59,
       59,
-      999
+      999,
     );
     const lastMonthStart = new Date(
       lastMonthYear,
@@ -39,7 +38,7 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
       0,
       0,
       0,
-      0
+      0,
     );
     const lastMonthEnd = new Date(lastMonthYear, lastMonth, 0, 23, 59, 59, 999);
 
@@ -97,7 +96,7 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.DASHBOARD.GET_USER_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
-      { propertyId }
+      { propertyId },
     );
 
     if (!userResponse.success) {
@@ -114,7 +113,7 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
 
     rentTypes.forEach((rentType) => {
       const paymentStat = paymentStats.find(
-        (stat) => stat._id === rentType
+        (stat) => stat._id === rentType,
       ) || {
         currentMonthReceived: 0,
         lastMonthReceived: 0,
@@ -157,7 +156,7 @@ export const getAccountDashboardDataForIncomeSection = async (data) => {
 
       if (paymentStat.lastMonthReceived > 0) {
         comparisonPercentage = Math.abs(
-          (rawDifference / paymentStat.lastMonthReceived) * 100
+          (rawDifference / paymentStat.lastMonthReceived) * 100,
         );
       } else if (paymentStat.currentMonthReceived > 0) {
         comparisonPercentage = 100;
@@ -224,7 +223,7 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
       23,
       59,
       59,
-      999
+      999,
     );
     const lastMonthStart = new Date(
       lastMonthYear,
@@ -233,7 +232,7 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
       0,
       0,
       0,
-      0
+      0,
     );
     const lastMonthEnd = new Date(lastMonthYear, lastMonth, 0, 23, 59, 59, 999);
 
@@ -319,7 +318,7 @@ export const getAccountDashboardDataForExpenseSection = async (data) => {
     let percentageChange = 0;
     if (result.lastMonthExpense !== 0) {
       percentageChange = Math.abs(
-        (rawDifference / result.lastMonthExpense) * 100
+        (rawDifference / result.lastMonthExpense) * 100,
       );
     }
 
@@ -368,7 +367,7 @@ export const getAccountDashboardDataForDepositSection = async (data) => {
       0,
       23,
       59,
-      59
+      59,
     );
 
     // 💰 Total deposits received (this month)
@@ -393,7 +392,7 @@ export const getAccountDashboardDataForDepositSection = async (data) => {
     // 👥 Fetch user-related deposit statistics via RPC
     const userResponse = await sendRPCRequest(
       USER_PATTERN.DASHBOARD.GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
-      { propertyId }
+      { propertyId },
     );
 
     if (!userResponse.success) {
@@ -475,7 +474,7 @@ export const getMonthlyIncomeExpenseSummaryForMainDashboard = async (data) => {
         ...depositYears,
         ...expenseYears,
         ...salaryYears,
-      ])
+      ]),
     ).sort((a, b) => b - a); // descending order
 
     // -------------------------------------
@@ -693,11 +692,11 @@ export const getGSTReport = async ({ format, month, year } = {}) => {
     // 4️⃣ Totals
     const totalIncome = feePayments.reduce(
       (sum, f) => sum + (f.amount || 0),
-      0
+      0,
     );
     const totalExpense = allExpenses.reduce(
       (sum, e) => sum + (e.amount || 0),
-      0
+      0,
     );
     const netProfit = totalIncome - totalExpense;
 
@@ -826,7 +825,7 @@ export const getGSTReport = async ({ format, month, year } = {}) => {
               : "-"
           }`,
           20,
-          (y += 6)
+          (y += 6),
         );
       });
 
@@ -847,7 +846,7 @@ export const getGSTReport = async ({ format, month, year } = {}) => {
             e.date ? new Date(e.date).toISOString().split("T")[0] : "-"
           } | ${e.property?.name || "-"}`,
           20,
-          (y += 6)
+          (y += 6),
         );
       });
 

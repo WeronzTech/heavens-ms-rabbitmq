@@ -10,8 +10,8 @@ userLogRoutes.use(isAuthenticated);
 
 userLogRoutes.get(
   "/activityLogs",
-  hasPermission(PERMISSIONS.LOGS_USER_VIEW),
-  getActivityLogs
+  hasPermission(PERMISSIONS.LOGS_VIEW),
+  getActivityLogs,
 );
 
 export default userLogRoutes;

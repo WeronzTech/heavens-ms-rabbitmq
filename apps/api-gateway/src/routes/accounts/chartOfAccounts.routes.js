@@ -22,49 +22,49 @@ coaRoutes.use(isAuthenticated);
 coaRoutes.post(
   "/category",
   hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
-  createAccountCategory
+  createAccountCategory,
 );
 coaRoutes.get(
   "/category",
-  hasPermission(PERMISSIONS.ACCOUNTS_VIEW),
-  getAccountCategories
+  hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
+  getAccountCategories,
 );
 coaRoutes.put(
   "/category/:id",
   hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
-  updateAccountCategory
+  updateAccountCategory,
 );
 coaRoutes.delete(
   "/category/:id",
   hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
-  deleteAccountCategory
+  deleteAccountCategory,
 );
 
 // --- Account (Ledger) Routes ---
 coaRoutes.post(
   "/account",
   hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
-  createAccount
+  createAccount,
 );
 coaRoutes.get(
   "/account",
-  hasPermission(PERMISSIONS.ACCOUNTS_VIEW),
-  getAccounts
+  hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
+  getAccounts,
 );
 coaRoutes.get(
   "/account/:id",
-  hasPermission(PERMISSIONS.ACCOUNTS_VIEW),
-  getAccountById
+  hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
+  getAccountById,
 );
 coaRoutes.put(
   "/account/:id",
   hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
-  updateAccount
+  updateAccount,
 );
 coaRoutes.delete(
   "/account/:id",
   hasPermission(PERMISSIONS.ACCOUNTS_MANAGE),
-  deleteAccount // Body must contain { moveToAccountId: "..." } if transactions exist
+  deleteAccount, // Body must contain { moveToAccountId: "..." } if transactions exist
 );
 
 export default coaRoutes;

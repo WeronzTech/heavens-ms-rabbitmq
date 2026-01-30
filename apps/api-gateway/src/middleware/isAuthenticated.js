@@ -11,7 +11,7 @@ const isAuthenticated = async (req, res, next) => {
 
   const userServiceResponse = await sendRPCRequest(
     USER_PATTERN.USER.GET_USER_BY_ID,
-    { userId: decodedUser.id }
+    { userId: decodedUser.id },
   );
   if (userServiceResponse.body.success) {
     req.userRole = "696a3fabab3bc642277db2ff";
@@ -21,6 +21,8 @@ const isAuthenticated = async (req, res, next) => {
 
   req.userAuth = decodedUser?.id;
   req.userName = decodedUser?.userName;
+  req.roleName = decodedUser?.roleName;
+  req.properties = decodedUser?.properties;
 
   if (!decodedUser) {
     res.status(401).json({

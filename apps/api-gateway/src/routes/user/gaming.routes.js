@@ -28,38 +28,38 @@ gamingRoutes.use(isAuthenticated);
 gamingRoutes
   .route("/items")
   .post(
-    hasPermission(PERMISSIONS.GAMING_ITEM_MANAGE),
+    hasPermission(PERMISSIONS.GAMING_MANAGE),
     upload.fields([{ name: "itemImage", maxCount: 1 }]),
-    createGamingItem
+    createGamingItem,
   )
-  .get(hasPermission(PERMISSIONS.GAMING_ITEM_VIEW), getAllGamingItems);
+  .get(hasPermission(PERMISSIONS.GAMING_MANAGE), getAllGamingItems);
 
 gamingRoutes
   .route("/items/:itemId")
-  .get(hasPermission(PERMISSIONS.GAMING_ITEM_VIEW), getGamingItemById)
+  .get(hasPermission(PERMISSIONS.GAMING_MANAGE), getGamingItemById)
   .patch(
-    hasPermission(PERMISSIONS.GAMING_ITEM_MANAGE),
+    hasPermission(PERMISSIONS.GAMING_MANAGE),
     upload.fields([{ name: "itemImage", maxCount: 1 }]),
-    updateGamingItem
+    updateGamingItem,
   )
-  .delete(hasPermission(PERMISSIONS.GAMING_ITEM_MANAGE), deleteGamingItem);
+  .delete(hasPermission(PERMISSIONS.GAMING_MANAGE), deleteGamingItem);
 
 gamingRoutes
   .route("/items/status/:itemId")
-  .patch(hasPermission(PERMISSIONS.GAMING_ITEM_MANAGE), updateGamingItemStatus);
+  .patch(hasPermission(PERMISSIONS.GAMING_MANAGE), updateGamingItemStatus);
 
 // --- GAMING ORDER & PAYMENT ROUTES ---
 gamingRoutes
   .route("/orders")
-  .get(hasPermission(PERMISSIONS.GAMING_ORDER_VIEW), getAllOrders);
+  .get(hasPermission(PERMISSIONS.GAMING_MANAGE), getAllOrders);
 
 gamingRoutes
   .route("/orders/:orderId")
-  .get(hasPermission(PERMISSIONS.GAMING_ORDER_VIEW), getOrderById);
+  .get(hasPermission(PERMISSIONS.GAMING_MANAGE), getOrderById);
 
 gamingRoutes
   .route("/orders/status/:orderId")
-  .patch(hasPermission(PERMISSIONS.GAMING_ORDER_MANAGE), updateOrderStatus);
+  .patch(hasPermission(PERMISSIONS.GAMING_MANAGE), updateOrderStatus);
 
 // Renamed endpoints for clarity in the payment flow
 gamingRoutes.post("/orders/initiate", initiateOrder);

@@ -19,23 +19,23 @@ commissionRoutes.use(isAuthenticated);
 commissionRoutes
   .route("/")
   .post(hasPermission(PERMISSIONS.COMMISSION_MANAGE), addCommission)
-  .get(hasPermission(PERMISSIONS.COMMISSION_VIEW), getAllCommissions);
+  .get(hasPermission(PERMISSIONS.COMMISSION_MANAGE), getAllCommissions);
 
 commissionRoutes.get(
   "/check-user",
-  hasPermission(PERMISSIONS.COMMISSION_VIEW),
-  checkUserCommission
+  hasPermission(PERMISSIONS.COMMISSION_MANAGE),
+  checkUserCommission,
 );
 
 commissionRoutes.get(
   "/by-property",
-  hasPermission(PERMISSIONS.COMMISSION_VIEW),
-  getCommissionByPropertyController
+  hasPermission(PERMISSIONS.COMMISSION_MANAGE),
+  getCommissionByPropertyController,
 );
 
 commissionRoutes
   .route("/:commissionId")
-  .get(hasPermission(PERMISSIONS.COMMISSION_VIEW), getCommissionById)
+  .get(hasPermission(PERMISSIONS.COMMISSION_MANAGE), getCommissionById)
   .put(hasPermission(PERMISSIONS.COMMISSION_MANAGE), editCommission)
   .delete(hasPermission(PERMISSIONS.COMMISSION_MANAGE), deleteCommission);
 

@@ -18,38 +18,38 @@ categoryRoutes.use(isAuthenticated);
 
 categoryRoutes.get(
   "/get-by-property",
-  hasPermission(PERMISSIONS.CATEGORY_VIEW),
-  getCategoriesByPropertyId
+  hasPermission(PERMISSIONS.RECIPE_VIEW),
+  getCategoriesByPropertyId,
 );
 categoryRoutes.post(
   "/",
-  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
-  addCategory
+  hasPermission(PERMISSIONS.RECIPE_MANAGE),
+  addCategory,
 );
 categoryRoutes.get(
   "/recipe-category/:kitchenId",
-  hasPermission(PERMISSIONS.CATEGORY_VIEW),
-  getRecipeCategoriesByKitchen
+  hasPermission(PERMISSIONS.RECIPE_VIEW),
+  getRecipeCategoriesByKitchen,
 );
 categoryRoutes.get(
   "/recipe-category-id/:id",
-  hasPermission(PERMISSIONS.CATEGORY_VIEW),
-  getRecipeCategoryById
+  hasPermission(PERMISSIONS.RECIPE_VIEW),
+  getRecipeCategoryById,
 );
 categoryRoutes.post(
   "/recipe-category",
-  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
-  createRecipeCategory
+  hasPermission(PERMISSIONS.RECIPE_MANAGE),
+  createRecipeCategory,
 );
 categoryRoutes.put(
   "/recipe-category/:id",
-  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
-  updateRecipeCategory
+  hasPermission(PERMISSIONS.RECIPE_MANAGE),
+  updateRecipeCategory,
 );
 categoryRoutes.delete(
   "/recipe-category/:id",
-  hasPermission(PERMISSIONS.CATEGORY_MANAGE),
-  deleteRecipeCategory
+  hasPermission(PERMISSIONS.RECIPE_MANAGE),
+  deleteRecipeCategory,
 );
 
 export default categoryRoutes;

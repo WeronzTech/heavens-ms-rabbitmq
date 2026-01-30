@@ -1,8 +1,8 @@
 import express from "express";
 
-import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
+// import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
-import { hasPermission } from "../../middleware/hasPermission.js";
+// import { hasPermission } from "../../middleware/hasPermission.js";
 import {
   getAllBusPayments,
   getTransactionHistoryByUserId,
@@ -15,32 +15,15 @@ const busPaymentRoutes = express.Router();
 
 busPaymentRoutes.use(isAuthenticated);
 
-busPaymentRoutes.post(
-  "/initiate-online",
-  hasPermission(PERMISSIONS.BUS_FEE_MANAGE),
-  initiateOnlineBusPayment
-);
-busPaymentRoutes.post(
-  "/verify-online",
-  hasPermission(PERMISSIONS.BUS_FEE_MANAGE),
-  verifyAndRecordOnlineBusPayment
-);
-busPaymentRoutes.post(
-  "/record-manual",
-  hasPermission(PERMISSIONS.BUS_FEE_MANAGE),
-  recordManualBusPayment
-);
+busPaymentRoutes.post("/initiate-online", initiateOnlineBusPayment);
+busPaymentRoutes.post("/verify-online", verifyAndRecordOnlineBusPayment);
+busPaymentRoutes.post("/record-manual", recordManualBusPayment);
 
-busPaymentRoutes.get(
-  "/",
-  hasPermission(PERMISSIONS.BUS_FEE_VIEW),
-  getAllBusPayments
-);
+busPaymentRoutes.get("/", getAllBusPayments);
 
 busPaymentRoutes.get(
   "/transactionHistory/:userId",
-  hasPermission(PERMISSIONS.BUS_FEE_VIEW),
-  getTransactionHistoryByUserId
+  getTransactionHistoryByUserId,
 );
 
 export default busPaymentRoutes;

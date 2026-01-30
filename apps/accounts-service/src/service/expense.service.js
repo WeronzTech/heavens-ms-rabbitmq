@@ -670,7 +670,7 @@ export const getPettyCashPaymentsByManager = async ({ managerId }) => {
       paymentMethod: "Petty Cash",
     }).sort({ createdAt: -1 });
 
-    console.log("Fetched pettyCashPayments:", pettyCashPayments);
+    // console.log("Fetched pettyCashPayments:", pettyCashPayments);
 
     return {
       success: true,

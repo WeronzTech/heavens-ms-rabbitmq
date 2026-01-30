@@ -109,7 +109,7 @@ export const tenantLogin = async (data) => {
     // 1️⃣ Try Client login first
     userResponse = await sendRPCRequest(
       CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_EMAIL,
-      { email }
+      { email },
     );
 
     let user = userResponse?.data;
@@ -120,7 +120,7 @@ export const tenantLogin = async (data) => {
 
       userResponse = await sendRPCRequest(
         CLIENT_PATTERN.MANAGER.GET_MANAGER_BY_EMAIL,
-        { email }
+        { email },
       );
 
       user = userResponse?.data;
@@ -163,6 +163,7 @@ export const tenantLogin = async (data) => {
         message: "Login disabled for this account",
       };
     }
+    console.log(user);
 
     // 7️⃣ Generate JWT
     const token = jwt.sign(
@@ -172,10 +173,11 @@ export const tenantLogin = async (data) => {
         roleName: role.roleName,
         permissions: role.permissions,
         userName: user.name,
+        properties: user.propertyId,
         userType, // 👈 CLIENT or MANAGER
       },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     // 8️⃣ Unified response
@@ -217,7 +219,7 @@ export const userLogin = async (loginData) => {
     // 1. Fetch user data from User Service
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_EMAIL,
-      { email }
+      { email },
     );
 
     if (!userResponse.success) {
@@ -302,7 +304,7 @@ export const userLogin = async (loginData) => {
         },
         $setOnInsert: { createdAt: new Date() },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     // 7. Return success response
@@ -342,7 +344,7 @@ export const forgotPasswordUser = async (data) => {
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_EMAIL,
-      { email }
+      { email },
     );
     if (!userResponse.success) {
       return {
@@ -374,7 +376,7 @@ export const forgotPasswordUser = async (data) => {
     await emailService.sendPasswordResetEmail(
       user,
       resetUrl,
-      RESET_TOKEN_EXPIRY_HOURS
+      RESET_TOKEN_EXPIRY_HOURS,
     );
 
     return {
@@ -406,7 +408,7 @@ export const resetPassword = async (data) => {
     // ✅ Ask user-service to validate token + get user
     const userResponse = await sendRPCRequest(
       USER_PATTERN.PASSWORD.GET_USER_BY_RESET_TOKEN,
-      { token: hashedToken }
+      { token: hashedToken },
     );
 
     if (!userResponse.success) {
@@ -478,7 +480,7 @@ export const refreshAccessToken = async (data) => {
     } else {
       // Check previous tokens (for token rotation scenarios)
       isValidToken = tokenDoc.previousRefreshTokens.some(
-        (t) => t.token === refreshToken
+        (t) => t.token === refreshToken,
       );
     }
 
@@ -489,14 +491,14 @@ export const refreshAccessToken = async (data) => {
     // Get fresh student data
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId }
+      { userId },
     );
     const user = userResponse.body.data;
 
     // Generate new tokens
     const { accessToken, refreshToken: newRefreshToken } = await generateTokens(
       user,
-      deviceId
+      deviceId,
     );
 
     // Update the token document with the new refresh token
@@ -513,7 +515,7 @@ export const refreshAccessToken = async (data) => {
             $slice: -5, // Keep last 5 refresh tokens
           },
         },
-      }
+      },
     );
 
     return {
