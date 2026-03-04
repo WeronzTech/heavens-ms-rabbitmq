@@ -24,13 +24,14 @@ import {
   rejoinUser,
   respondToStatusRequest,
   updateProfileCompletion,
+  updateRentAndDates,
   vacateUser,
   verifyEmail,
 } from "../../controllers/user/user.controller.js";
-import { upload } from "../../../../../libs/common/imageOperation.js";
-import { isAuthenticated } from "../../middleware/isAuthenticated.js";
-import { hasPermission } from "../../middleware/hasPermission.js";
-import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
+import {upload} from "../../../../../libs/common/imageOperation.js";
+import {isAuthenticated} from "../../middleware/isAuthenticated.js";
+import {hasPermission} from "../../middleware/hasPermission.js";
+import {PERMISSIONS} from "../../../../../libs/common/permissions.list.js";
 
 const userRoutes = express.Router();
 
@@ -135,18 +136,24 @@ userRoutes.post(
   allocateUsersToAgent,
 );
 
+userRoutes.put(
+  "/update-rent-dates",
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  updateRentAndDates,
+);
+
 userRoutes
   .route("/:id")
   .get(hasPermission(PERMISSIONS.USER_VIEW), getHeavensUserById)
   .put(
     hasPermission(PERMISSIONS.USER_MANAGE),
     upload.fields([
-      { name: "profileImg", maxCount: 1 },
-      { name: "aadharFront", maxCount: 1 },
-      { name: "aadharBack", maxCount: 1 },
-      { name: "partnerProfileImg", maxCount: 1 },
-      { name: "partnerAadharFront", maxCount: 1 },
-      { name: "partnerAadharBack", maxCount: 1 },
+      {name: "profileImg", maxCount: 1},
+      {name: "aadharFront", maxCount: 1},
+      {name: "aadharBack", maxCount: 1},
+      {name: "partnerProfileImg", maxCount: 1},
+      {name: "partnerAadharFront", maxCount: 1},
+      {name: "partnerAadharBack", maxCount: 1},
     ]),
     adminUpdateUser,
   );

@@ -1,6 +1,6 @@
 import Payments from "../models/feePayments.model.js";
-import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
 import {
   createRazorpayOrderId,
   verifyPayment as verifyRazorpaySignature,
@@ -9,17 +9,18 @@ import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
-import { createAccountLog } from "./accountsLog.service.js";
-import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
+import {createAccountLog} from "./accountsLog.service.js";
+import {SOCKET_PATTERN} from "../../../../libs/patterns/socket/socket.pattern.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import Deposits from "../models/depositPayments.model.js";
 import Voucher from "../models/voucher.model.js";
 import emailService from "../../../../libs/email/email.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
-import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import {createJournalEntry} from "./accounting.service.js";
+import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
+import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
 import dotenv from "dotenv";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
 
 dotenv.config();
 
@@ -247,8 +248,8 @@ export const updateFeePayment = async (paymentId, updateData) => {
     // ✅ Update payment
     const updatedPayment = await Payments.findByIdAndUpdate(
       paymentId,
-      { $set: updateFields },
-      { new: true, runValidators: true },
+      {$set: updateFields},
+      {new: true, runValidators: true},
     );
 
     return {
@@ -271,7 +272,7 @@ export const updateFeePayment = async (paymentId, updateData) => {
 export const getFeePaymentById = async (data) => {
   try {
     // Extract paymentId from data object
-    const { paymentId } = data;
+    const {paymentId} = data;
 
     // Validate paymentId exists
     if (!paymentId) {
@@ -331,9 +332,9 @@ export const getFeePaymentById = async (data) => {
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
   const counter = await ReceiptCounter.findOneAndUpdate(
-    { propertyId: property.propertyId, monthYear },
-    { $inc: { sequence: 1 } },
-    { new: true, upsert: true, session },
+    {propertyId: property.propertyId, monthYear},
+    {$inc: {sequence: 1}},
+    {new: true, upsert: true, session},
   );
 
   const seq = String(counter.sequence).padStart(4, "0");
@@ -638,6 +639,341 @@ const generateReceiptNumber = async (property, session) => {
 //     session.endSession();
 //   }
 // };
+
+// const processAndRecordPayment = async ({
+//   userId,
+//   amount,
+//   paymentMethod,
+//   transactionId = null,
+//   razorpayDetails = {},
+//   waveOffAmount = 0,
+//   waveOffReason = null,
+//   referralAmountUsed = 0,
+//   paymentDate,
+//   collectedBy = "",
+//   remarks = "",
+// }) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const userResponse = await sendRPCRequest(
+//       USER_PATTERN.USER.GET_USER_BY_ID,
+//       {userId},
+//     );
+//     if (!userResponse.body.success) {
+//       throw new Error(userResponse.message || "User not found.");
+//     }
+//     const user = userResponse.body.data;
+
+//     if (referralAmountUsed > 0) {
+//       user.referralInfo.availableBalance -= referralAmountUsed;
+//       user.referralInfo.withdrawnAmount += referralAmountUsed;
+//     }
+
+//     let paymentForMonths = [];
+//     let advanceForMonths = [];
+
+//     if (user.rentType === "daily" || user.rentType === "mess") {
+//       // ... (Daily/Mess logic remains unchanged) ...
+//       const totalCredit = amount + waveOffAmount + referralAmountUsed;
+//       user.financialDetails.pendingAmount -= totalCredit;
+//       if (user.financialDetails.pendingAmount <= 0) {
+//         user.paymentStatus = "paid";
+//         user.isBlocked = false;
+//       } else {
+//         user.paymentStatus = "pending";
+//         user.isBlocked = true;
+//       }
+//     } else if (user.rentType === "monthly") {
+//       const monthlyRent = user.financialDetails.monthlyRent || 0;
+//       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
+
+//       // --- 🔴 CHANGE 1: REMOVED AUTO-RESET LOGIC ---
+//       // The block below was recalculating full rent based on dates, ignoring previous partial payments.
+//       // If the user paid 6000/6500, pendingRent is 500.
+//       // This block was seeing "1 month passed" and resetting pendingRent back to 6500.
+//       /*
+//       const { clearedTillMonth } = user.financialDetails;
+//       if (clearedTillMonth) {
+//         const today = moment();
+//         const nextDueMonth = moment(clearedTillMonth, "YYYY-MM").add(
+//           1,
+//           "months"
+//         );
+//         if (today.isAfter(nextDueMonth)) {
+//           const monthsDue = today.diff(nextDueMonth, "months") + 1;
+//           user.financialDetails.pendingRent = monthsDue * monthlyRent;
+//         }
+//       }
+//       */
+//       // ---------------------------------------------
+
+//       const currentBalance = user.financialDetails.accountBalance || 0;
+//       const currentPendingRent = user.financialDetails.pendingRent || 0;
+
+//       const totalAvailableAmount =
+//         amount + currentBalance + waveOffAmount + referralAmountUsed;
+
+//       // --- 🟢 CHANGE 2: INTELLIGENT MONTHS CLEARED CALCULATION ---
+//       // Old Logic: Math.floor(totalAvailableAmount / monthlyRent) -> 500/6500 = 0 (WRONG)
+//       // New Logic: Check if we clear the specific pending amount first.
+
+//       let monthsCleared = 0;
+//       let effectiveRemainingAmount = totalAvailableAmount;
+
+//       // If we have a pending rent (e.g., 500) and we are paying enough to cover it (500)
+//       if (currentPendingRent > 0) {
+//         if (effectiveRemainingAmount >= currentPendingRent) {
+//           // We successfully cleared the partial balance for the pending month
+//           monthsCleared += 1;
+//           effectiveRemainingAmount -= currentPendingRent;
+
+//           // Now calculate any ADDITIONAL full months cleared with surplus money
+//           monthsCleared += Math.floor(effectiveRemainingAmount / monthlyRent);
+//         } else {
+//           // We paid some (e.g., 6000 out of 6500), but not enough to clear the full month
+//           monthsCleared = 0;
+//         }
+//       } else {
+//         // No pending rent, simple division for advance payments
+//         monthsCleared = Math.floor(effectiveRemainingAmount / monthlyRent);
+//       }
+
+//       // Calculate new balance (Advance)
+//       let newAccountBalance = 0;
+//       if (
+//         currentPendingRent > 0 &&
+//         totalAvailableAmount >= currentPendingRent
+//       ) {
+//         // Balance is whatever is left after clearing pending + full months
+//         newAccountBalance =
+//           (totalAvailableAmount - currentPendingRent) % monthlyRent;
+//       } else if (currentPendingRent <= 0) {
+//         newAccountBalance = totalAvailableAmount % monthlyRent;
+//       }
+//       // If we didn't cover pending rent, balance is effectively 0 (it's all absorbed)
+
+//       // -----------------------------------------------------------
+
+//       user.financialDetails.accountBalance = newAccountBalance;
+
+//       // Update Pending Rent
+//       // If 500 pending, and we paid 500: Result 0.
+//       // If 6500 pending, and we paid 6000: Result 500.
+//       user.financialDetails.pendingRent = Math.max(
+//         0,
+//         currentPendingRent - totalAvailableAmount,
+//       );
+//       user.financialDetails.pendingAmount = user.financialDetails.pendingRent; // Sync fields
+
+//       // --- 🟢 CHANGE 3: STATUS UPDATE ---
+//       if (user.financialDetails.pendingRent <= 0) {
+//         user.financialDetails.pendingRent = 0;
+//         user.paymentStatus = "paid";
+//         user.isBlocked = false;
+//       } else {
+//         user.paymentStatus = "pending";
+//         user.isBlocked = true;
+//       }
+
+//       if (monthsCleared > 0) {
+//         const lastClearedDate = user.financialDetails.clearedTillMonth
+//           ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
+//           : new Date(user.stayDetails.joinDate);
+
+//         if (!user.financialDetails.clearedTillMonth) {
+//           // Adjust for users clearing their very first month
+//           // Assuming join date month needs to be cleared
+//           lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
+//         }
+
+//         for (let i = 0; i < monthsCleared; i++) {
+//           const paymentMonthDate = new Date(lastClearedDate);
+//           paymentMonthDate.setMonth(paymentMonthDate.getMonth() + i + 1);
+//           paymentForMonths.push(
+//             paymentMonthDate.toLocaleString("default", {
+//               month: "long",
+//               year: "numeric",
+//             }),
+//           );
+//         }
+
+//         const finalClearedDate = new Date(lastClearedDate);
+//         finalClearedDate.setMonth(finalClearedDate.getMonth() + monthsCleared);
+
+//         user.financialDetails.clearedTillMonth = `${finalClearedDate.getFullYear()}-${String(
+//           finalClearedDate.getMonth() + 1,
+//         ).padStart(2, "0")}`;
+
+//         const joinDay = new Date(user.stayDetails.joinDate).getDate();
+
+//         user.financialDetails.nextDueDate = new Date(
+//           finalClearedDate.getFullYear(),
+//           finalClearedDate.getMonth() + 1,
+//           joinDay,
+//         );
+
+//         if (newAccountBalance > 0) {
+//           const lastPaidMonth = user.financialDetails.clearedTillMonth
+//             ? moment(user.financialDetails.clearedTillMonth, "YYYY-MM")
+//             : moment(user.stayDetails.joinDate).subtract(1, "month");
+//           const advanceMonth = lastPaidMonth.clone().add(1, "months");
+//           advanceForMonths.push(advanceMonth.format("MMMM YYYY"));
+//         }
+//       } else {
+//         // ... (Advance logic for non-cleared months)
+//         const lastPaidMonth = user.financialDetails.clearedTillMonth
+//           ? moment(user.financialDetails.clearedTillMonth, "YYYY-MM")
+//           : moment(user.stayDetails.joinDate).subtract(1, "month");
+//         // Only show advance if we actually have balance
+//         if (newAccountBalance > 0) {
+//           const advanceMonth = lastPaidMonth.clone().add(1, "months");
+//           advanceForMonths.push(advanceMonth.format("MMMM YYYY"));
+//         }
+//       }
+//     }
+
+//     const dueAmount =
+//       user.financialDetails?.pendingRent ??
+//       user.financialDetails?.pendingAmount ??
+//       0;
+
+//     // ... (Rest of the function: Receipt Gen, Payment Model, RPC, Emails remains the same)
+
+//     const receiptNumber = await generateReceiptNumber(
+//       user.stayDetails,
+//       session,
+//     );
+
+//     const newPayment = new Payments({
+//       name: user.name,
+//       rentType: user.rentType,
+//       userType: user.userType,
+//       contact: user.contact,
+//       room: user.stayDetails?.roomNumber || "N/A",
+//       rent:
+//         user.financialDetails?.monthlyRent || user.stayDetails?.dailyRent || 0,
+//       amount: amount,
+//       waveOffAmount: waveOffAmount,
+//       waveOffReason: waveOffReason,
+//       accountBalance: user.financialDetails?.accountBalance || 0,
+//       dueAmount,
+//       paymentMethod,
+//       paymentDate,
+//       transactionId,
+//       referralAmountUsed,
+//       paymentForMonths,
+//       advanceForMonths,
+//       status: "Paid",
+//       property: {
+//         id: user.stayDetails?.propertyId,
+//         name: user.stayDetails?.propertyName,
+//       },
+//       receiptNumber,
+//       userId: user._id,
+//       collectedBy,
+//       remarks,
+//       ...razorpayDetails,
+//     });
+
+//     await newPayment.save({session});
+
+//     const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
+//     userIdsToNotify.push(user._id);
+
+//     const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+//       userIds: userIdsToNotify,
+//       event: "next-due-date",
+//       data: user,
+//     });
+
+//     await createAccountLog({
+//       logType: "Fee Payment",
+//       action: "Payment",
+//       description: `Fee payment of ₹${amount} received from ${user.name}.`,
+//       amount: amount,
+//       propertyId: user.stayDetails?.propertyId,
+//       performedBy: collectedBy || "System",
+//       referenceId: newPayment._id,
+//     });
+
+//     const paymentSystemName =
+//       paymentMethod === "Cash"
+//         ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+//         : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+//     let incomeSystemName;
+//     if (user.rentType === "monthly") {
+//       incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_RENT_MONTHLY;
+//     } else if (user.rentType === "daily") {
+//       incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_RENT_DAILY;
+//     } else if (user.rentType === "mess") {
+//       incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_RENT_MESS;
+//     } else {
+//       incomeSystemName = ACCOUNT_SYSTEM_NAMES.INCOME_MISCELLANEOUS;
+//     }
+
+//     await createJournalEntry(
+//       {
+//         date: newPayment.paymentDate,
+//         description: `Rent received from ${
+//           user.name
+//         } for ${paymentForMonths.join(", ")}`,
+//         propertyId: newPayment.property.id,
+//         transactions: [
+//           {systemName: paymentSystemName, debit: amount},
+//           {systemName: incomeSystemName, credit: amount},
+//         ],
+//         referenceId: newPayment._id,
+//         referenceType: "Payments",
+//       },
+//       {session},
+//     );
+
+//     const updateUserResponse = await sendRPCRequest(
+//       USER_PATTERN.USER.UPDATE_USER,
+//       {
+//         userId,
+//         userData: {
+//           financialDetails: user.financialDetails,
+//           paymentStatus: user.paymentStatus,
+//           referralInfo: user.referralInfo,
+//           isBlocked: user.isBlocked,
+//         },
+//       },
+//     );
+//     const userEmail = updateUserResponse?.body?.data?.email;
+//     if (!updateUserResponse.body.success) {
+//       throw new Error("Failed to update user financial details.");
+//     }
+
+//     setImmediate(async () => {
+//       try {
+//         await Promise.all([
+//           emailService.sendFeeReceiptEmail(userEmail, newPayment),
+//         ]);
+//       } catch (err) {
+//         console.error("Post-approval async error:", err);
+//       }
+//     });
+
+//     await session.commitTransaction();
+//     return {
+//       success: true,
+//       status: 201,
+//       message: "Payment recorded successfully.",
+//       data: newPayment,
+//     };
+//   } catch (error) {
+//     await session.abortTransaction();
+//     console.error("Error during payment processing:", error);
+//     return {success: false, status: 400, message: error.message};
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
 const processAndRecordPayment = async ({
   userId,
   amount,
@@ -649,15 +985,19 @@ const processAndRecordPayment = async ({
   referralAmountUsed = 0,
   paymentDate,
   collectedBy = "",
+  collectedById = null,
   remarks = "",
+  createdBy,
 }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
+  console.log("collectedBy, collectedById");
+  console.log({collectedBy, collectedById});
 
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId },
+      {userId},
     );
     if (!userResponse.body.success) {
       throw new Error(userResponse.message || "User not found.");
@@ -675,105 +1015,65 @@ const processAndRecordPayment = async ({
     if (user.rentType === "daily" || user.rentType === "mess") {
       // ... (Daily/Mess logic remains unchanged) ...
       const totalCredit = amount + waveOffAmount + referralAmountUsed;
-      user.financialDetails.pendingAmount -= totalCredit;
+
+      // 1️⃣ Increase paid amount
+      user.financialDetails.paidAmount =
+        (user.financialDetails.paidAmount || 0) + totalCredit;
+
+      // 2️⃣ Recalculate pending
+      const totalAmount = user.financialDetails.totalAmount;
+
+      user.financialDetails.pendingAmount =
+        totalAmount - user.financialDetails.paidAmount;
+
+      // 3️⃣ Prevent negative pending
+      if (user.financialDetails.pendingAmount < 0) {
+        user.financialDetails.pendingAmount = 0;
+      }
       if (user.financialDetails.pendingAmount <= 0) {
         user.paymentStatus = "paid";
         user.isBlocked = false;
       } else {
         user.paymentStatus = "pending";
-        user.isBlocked = true;
       }
     } else if (user.rentType === "monthly") {
       const monthlyRent = user.financialDetails.monthlyRent || 0;
       if (monthlyRent <= 0) throw new Error("Monthly rent is not set.");
 
-      // --- 🔴 CHANGE 1: REMOVED AUTO-RESET LOGIC ---
-      // The block below was recalculating full rent based on dates, ignoring previous partial payments.
-      // If the user paid 6000/6500, pendingRent is 500.
-      // This block was seeing "1 month passed" and resetting pendingRent back to 6500.
-      /*
-      const { clearedTillMonth } = user.financialDetails;
-      if (clearedTillMonth) {
-        const today = moment();
-        const nextDueMonth = moment(clearedTillMonth, "YYYY-MM").add(
-          1,
-          "months"
-        );
-        if (today.isAfter(nextDueMonth)) {
-          const monthsDue = today.diff(nextDueMonth, "months") + 1;
-          user.financialDetails.pendingRent = monthsDue * monthlyRent;
-        }
-      }
-      */
-      // ---------------------------------------------
+      let currentPending = user.financialDetails.pendingRent || 0;
+      let partialPaid = user.financialDetails.accountBalance || 0;
 
-      const currentBalance = user.financialDetails.accountBalance || 0;
-      const currentPendingRent = user.financialDetails.pendingRent || 0;
-
-      const totalAvailableAmount =
-        amount + currentBalance + waveOffAmount + referralAmountUsed;
-
-      // --- 🟢 CHANGE 2: INTELLIGENT MONTHS CLEARED CALCULATION ---
-      // Old Logic: Math.floor(totalAvailableAmount / monthlyRent) -> 500/6500 = 0 (WRONG)
-      // New Logic: Check if we clear the specific pending amount first.
+      const incomingAmount = amount + waveOffAmount + referralAmountUsed;
 
       let monthsCleared = 0;
-      let effectiveRemainingAmount = totalAvailableAmount;
 
-      // If we have a pending rent (e.g., 500) and we are paying enough to cover it (500)
-      if (currentPendingRent > 0) {
-        if (effectiveRemainingAmount >= currentPendingRent) {
-          // We successfully cleared the partial balance for the pending month
-          monthsCleared += 1;
-          effectiveRemainingAmount -= currentPendingRent;
+      // STEP 1️⃣ Reduce pending immediately
+      currentPending = Math.max(0, currentPending - incomingAmount);
 
-          // Now calculate any ADDITIONAL full months cleared with surplus money
-          monthsCleared += Math.floor(effectiveRemainingAmount / monthlyRent);
-        } else {
-          // We paid some (e.g., 6000 out of 6500), but not enough to clear the full month
-          monthsCleared = 0;
-        }
-      } else {
-        // No pending rent, simple division for advance payments
-        monthsCleared = Math.floor(effectiveRemainingAmount / monthlyRent);
+      // STEP 2️⃣ Add to partial tracker
+      partialPaid += incomingAmount;
+
+      // STEP 3️⃣ Convert partial → full months
+      if (partialPaid >= monthlyRent) {
+        const fullMonths = Math.floor(partialPaid / monthlyRent);
+        monthsCleared = fullMonths;
+        partialPaid = partialPaid % monthlyRent;
       }
 
-      // Calculate new balance (Advance)
-      let newAccountBalance = 0;
-      if (
-        currentPendingRent > 0 &&
-        totalAvailableAmount >= currentPendingRent
-      ) {
-        // Balance is whatever is left after clearing pending + full months
-        newAccountBalance =
-          (totalAvailableAmount - currentPendingRent) % monthlyRent;
-      } else if (currentPendingRent <= 0) {
-        newAccountBalance = totalAvailableAmount % monthlyRent;
-      }
-      // If we didn't cover pending rent, balance is effectively 0 (it's all absorbed)
+      user.financialDetails.pendingRent = currentPending;
+      user.financialDetails.pendingAmount = currentPending;
+      user.financialDetails.accountBalance = partialPaid;
 
-      // -----------------------------------------------------------
-
-      user.financialDetails.accountBalance = newAccountBalance;
-
-      // Update Pending Rent
-      // If 500 pending, and we paid 500: Result 0.
-      // If 6500 pending, and we paid 6000: Result 500.
-      user.financialDetails.pendingRent = Math.max(
-        0,
-        currentPendingRent - totalAvailableAmount,
-      );
-      user.financialDetails.pendingAmount = user.financialDetails.pendingRent; // Sync fields
-
-      // --- 🟢 CHANGE 3: STATUS UPDATE ---
-      if (user.financialDetails.pendingRent <= 0) {
-        user.financialDetails.pendingRent = 0;
+      if (currentPending === 0) {
         user.paymentStatus = "paid";
         user.isBlocked = false;
       } else {
         user.paymentStatus = "pending";
-        user.isBlocked = true;
       }
+
+      /* ===============================
+     MONTH UPDATE LOGIC
+  ================================ */
 
       if (monthsCleared > 0) {
         const lastClearedDate = user.financialDetails.clearedTillMonth
@@ -781,14 +1081,13 @@ const processAndRecordPayment = async ({
           : new Date(user.stayDetails.joinDate);
 
         if (!user.financialDetails.clearedTillMonth) {
-          // Adjust for users clearing their very first month
-          // Assuming join date month needs to be cleared
           lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
         }
 
         for (let i = 0; i < monthsCleared; i++) {
           const paymentMonthDate = new Date(lastClearedDate);
           paymentMonthDate.setMonth(paymentMonthDate.getMonth() + i + 1);
+
           paymentForMonths.push(
             paymentMonthDate.toLocaleString("default", {
               month: "long",
@@ -811,24 +1110,6 @@ const processAndRecordPayment = async ({
           finalClearedDate.getMonth() + 1,
           joinDay,
         );
-
-        if (newAccountBalance > 0) {
-          const lastPaidMonth = user.financialDetails.clearedTillMonth
-            ? moment(user.financialDetails.clearedTillMonth, "YYYY-MM")
-            : moment(user.stayDetails.joinDate).subtract(1, "month");
-          const advanceMonth = lastPaidMonth.clone().add(1, "months");
-          advanceForMonths.push(advanceMonth.format("MMMM YYYY"));
-        }
-      } else {
-        // ... (Advance logic for non-cleared months)
-        const lastPaidMonth = user.financialDetails.clearedTillMonth
-          ? moment(user.financialDetails.clearedTillMonth, "YYYY-MM")
-          : moment(user.stayDetails.joinDate).subtract(1, "month");
-        // Only show advance if we actually have balance
-        if (newAccountBalance > 0) {
-          const advanceMonth = lastPaidMonth.clone().add(1, "months");
-          advanceForMonths.push(advanceMonth.format("MMMM YYYY"));
-        }
       }
     }
 
@@ -868,6 +1149,10 @@ const processAndRecordPayment = async ({
         id: user.stayDetails?.propertyId,
         name: user.stayDetails?.propertyName,
       },
+      kitchen: {
+        id: user.messDetails?.kitchenId,
+        name: user.messDetails?.kitchenName,
+      },
       receiptNumber,
       userId: user._id,
       collectedBy,
@@ -875,7 +1160,7 @@ const processAndRecordPayment = async ({
       ...razorpayDetails,
     });
 
-    await newPayment.save({ session });
+    await newPayment.save({session});
 
     const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
     userIdsToNotify.push(user._id);
@@ -920,13 +1205,13 @@ const processAndRecordPayment = async ({
         } for ${paymentForMonths.join(", ")}`,
         propertyId: newPayment.property.id,
         transactions: [
-          { systemName: paymentSystemName, debit: amount },
-          { systemName: incomeSystemName, credit: amount },
+          {systemName: paymentSystemName, debit: amount},
+          {systemName: incomeSystemName, credit: amount},
         ],
         referenceId: newPayment._id,
         referenceType: "Payments",
       },
-      { session },
+      {session},
     );
 
     const updateUserResponse = await sendRPCRequest(
@@ -957,6 +1242,26 @@ const processAndRecordPayment = async ({
     });
 
     await session.commitTransaction();
+
+    if (paymentMethod === "Cash" && collectedById) {
+      setImmediate(async () => {
+        try {
+          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+            inHandAmount: amount,
+            inAccountAmount: 0,
+            manager: collectedById,
+            managerName: collectedBy,
+            date: paymentDate,
+            notes: `Rent received from ${user.name}`,
+            createdBy,
+            paymentMode: "cash",
+          });
+        } catch (err) {
+          console.error("Petty cash async error:", err.message);
+        }
+      });
+    }
+
     return {
       success: true,
       status: 201,
@@ -964,9 +1269,10 @@ const processAndRecordPayment = async ({
       data: newPayment,
     };
   } catch (error) {
+    console.log(error);
     await session.abortTransaction();
     console.error("Error during payment processing:", error);
-    return { success: false, status: 400, message: error.message };
+    return {success: false, status: 400, message: error.message};
   } finally {
     session.endSession();
   }
@@ -974,7 +1280,7 @@ const processAndRecordPayment = async ({
 
 export const initiateOnlinePayment = async (data) => {
   try {
-    const { userId, amount, useReferralBalance } = data;
+    const {userId, amount, useReferralBalance} = data;
     let paymentAmount = Number(amount);
     let referralAmountUsed = Number(useReferralBalance) || 0;
 
@@ -988,10 +1294,10 @@ export const initiateOnlinePayment = async (data) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId },
+      {userId},
     );
     if (!userResponse.body.success) {
-      return { success: false, status: 404, message: "User not found." };
+      return {success: false, status: 404, message: "User not found."};
     }
     const user = userResponse.body.data;
 
@@ -1002,7 +1308,7 @@ export const initiateOnlinePayment = async (data) => {
     if (propertyId) {
       const propertyResponse = await sendRPCRequest(
         PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-        { id: propertyId },
+        {id: propertyId},
       );
       if (
         propertyResponse.success &&
@@ -1046,8 +1352,8 @@ export const initiateOnlinePayment = async (data) => {
     }
 
     // ✅ NEW: Validate payment amount before creating Razorpay order
-    const { rentType, financialDetails } = user;
-    const { pendingAmount, monthlyRent, accountBalance, pendingRent } =
+    const {rentType, financialDetails} = user;
+    const {pendingAmount, monthlyRent, accountBalance, pendingRent} =
       financialDetails;
 
     if (rentType === "daily" || rentType === "mess") {
@@ -1123,7 +1429,7 @@ export const initiateOnlinePayment = async (data) => {
     }
   } catch (error) {
     console.error("Error during payment initiation:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
@@ -1141,7 +1447,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId },
+      {userId},
     );
     if (userResponse.body.success) {
       const user = userResponse.body.data;
@@ -1149,7 +1455,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       if (propertyId) {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: propertyId },
+          {id: propertyId},
         );
         if (
           propertyResponse.success &&
@@ -1204,7 +1510,9 @@ export const recordManualPayment = async (data) => {
     waveOffReason,
     paymentDate,
     collectedBy,
+    collectedById,
     remarks,
+    clientId,
   } = data;
 
   if (!["Cash", "UPI", "Bank Transfer", "Card"].includes(paymentMethod)) {
@@ -1223,7 +1531,7 @@ export const recordManualPayment = async (data) => {
   }
 
   if (transactionId) {
-    const existingTxn = await Payments.findOne({ transactionId });
+    const existingTxn = await Payments.findOne({transactionId});
 
     if (existingTxn) {
       return {
@@ -1252,7 +1560,9 @@ export const recordManualPayment = async (data) => {
     waveOffReason,
     paymentDate,
     collectedBy,
+    collectedById,
     remarks,
+    clientId,
   });
 };
 
@@ -1295,7 +1605,7 @@ export const getAllFeePayments = async (data) => {
     if (paymentMonth && paymentYear) {
       const startDate = new Date(paymentYear, paymentMonth - 1, 1); // first day of month
       const endDate = new Date(paymentYear, paymentMonth, 0, 23, 59, 59, 999); // last day of month
-      filter.paymentDate = { $gte: startDate, $lte: endDate };
+      filter.paymentDate = {$gte: startDate, $lte: endDate};
     }
 
     if (paymentDate) {
@@ -1312,16 +1622,16 @@ export const getAllFeePayments = async (data) => {
     // 🔹 Search by name or transactionId (case-insensitive)
     if (search) {
       const regex = new RegExp(search.trim(), "i");
-      filter.$or = [{ name: regex }, { transactionId: regex }];
+      filter.$or = [{name: regex}, {transactionId: regex}];
     }
 
     const skip = (page - 1) * limit;
 
     const aggregationPipeline = [
-      { $match: filter },
-      { $sort: { paymentDate: -1, createdAt: -1 } },
-      { $skip: Number(skip) },
-      { $limit: Number(limit) },
+      {$match: filter},
+      {$sort: {paymentDate: -1, createdAt: -1}},
+      {$skip: Number(skip)},
+      {$limit: Number(limit)},
       // Join with journalentries collection
       {
         $lookup: {
@@ -1426,8 +1736,8 @@ export const getAllFeePayments = async (data) => {
     // const total = await Payments.countDocuments(filter);
 
     const totalAgg = await Payments.aggregate([
-      { $match: filter },
-      { $group: { _id: null, totalReceived: { $sum: "$amount" } } },
+      {$match: filter},
+      {$group: {_id: null, totalReceived: {$sum: "$amount"}}},
     ]);
 
     const totalReceived = totalAgg.length > 0 ? totalAgg[0].totalReceived : 0;
@@ -1438,13 +1748,13 @@ export const getAllFeePayments = async (data) => {
     }
 
     const availableYears = await Payments.aggregate([
-      { $match: yearQuery },
+      {$match: yearQuery},
       {
         $group: {
-          _id: { $year: "$paymentDate" },
+          _id: {$year: "$paymentDate"},
         },
       },
-      { $sort: { _id: 1 } },
+      {$sort: {_id: 1}},
       {
         $project: {
           year: "$_id",
@@ -1488,7 +1798,7 @@ export const getMonthWiseRentCollection = async () => {
       .find(
         {},
         {
-          projection: { paymentDate: 1, amount: 1 },
+          projection: {paymentDate: 1, amount: 1},
         },
       )
       .toArray();
@@ -1506,7 +1816,7 @@ export const getMonthWiseRentCollection = async () => {
         const key = `${year}-${month.toString().padStart(2, "0")}`;
 
         if (!monthlyData.has(key)) {
-          monthlyData.set(key, { year, month, totalCollection: 0, count: 0 });
+          monthlyData.set(key, {year, month, totalCollection: 0, count: 0});
         }
 
         const monthData = monthlyData.get(key);
@@ -1538,20 +1848,20 @@ export const getMonthWiseRentCollection = async () => {
   }
 };
 
-export const getLatestPaymentsByUsers = async ({ userIds }) => {
+export const getLatestPaymentsByUsers = async ({userIds}) => {
   try {
     const payments = await Payments.aggregate([
       {
         $match: {
-          userId: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
+          userId: {$in: userIds.map((id) => new mongoose.Types.ObjectId(id))},
         },
       },
-      { $sort: { createdAt: -1 } }, // ensure latest first
+      {$sort: {createdAt: -1}}, // ensure latest first
       {
         $group: {
           _id: "$userId",
-          paymentDate: { $first: "$paymentDate" },
-          amount: { $first: "$amount" },
+          paymentDate: {$first: "$paymentDate"},
+          amount: {$first: "$amount"},
         },
       },
       {
@@ -1564,9 +1874,9 @@ export const getLatestPaymentsByUsers = async ({ userIds }) => {
       },
     ]);
 
-    return { success: true, status: 200, data: payments };
+    return {success: true, status: 200, data: payments};
   } catch (err) {
-    return { success: false, status: 500, message: err.message };
+    return {success: false, status: 500, message: err.message};
   }
 };
 
@@ -1583,7 +1893,7 @@ export const getFinancialSummary = async (data) => {
     }
 
     // Build match condition
-    const matchCondition = { status: "Paid" };
+    const matchCondition = {status: "Paid"};
     if (propertyId) {
       matchCondition.propertyId = new mongoose.Types.ObjectId(propertyId);
     }
@@ -1593,17 +1903,17 @@ export const getFinancialSummary = async (data) => {
 
     // Aggregate collected amounts per month (all years)
     const collected = await Payments.aggregate([
-      { $match: matchCondition },
+      {$match: matchCondition},
       {
         $group: {
           _id: {
-            year: { $year: "$paymentDate" },
-            month: { $month: "$paymentDate" },
+            year: {$year: "$paymentDate"},
+            month: {$month: "$paymentDate"},
           },
-          totalCollected: { $sum: "$amount" },
+          totalCollected: {$sum: "$amount"},
         },
       },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
+      {$sort: {"_id.year": 1, "_id.month": 1}},
     ]);
 
     const monthNames = [
@@ -1646,25 +1956,25 @@ export const getFinancialSummary = async (data) => {
 
 export const getNextDueDate = async (data) => {
   try {
-    const { userId } = data;
+    const {userId} = data;
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId },
+      {userId},
     );
 
     if (!userResponse.body.success) {
-      return { success: false, status: 404, message: "User not found." };
+      return {success: false, status: 404, message: "User not found."};
     }
     const user = userResponse.body.data;
 
     console.log("user", user.financialDetails);
 
-    const { nextDueDate, pendingRent } = user.financialDetails;
+    const {nextDueDate, pendingRent} = user.financialDetails;
 
     // Get last payment details
-    const lastPayment = await Payments.findOne({ userId })
-      .sort({ paymentDate: -1 })
+    const lastPayment = await Payments.findOne({userId})
+      .sort({paymentDate: -1})
       .limit(1);
 
     const today = new Date();
@@ -1695,13 +2005,13 @@ export const getNextDueDate = async (data) => {
 
 export const getAllAccountsPayments = async (data) => {
   try {
-    const { propertyId } = data || {}; // get propertyId from data
-    const filter = propertyId ? { "property.id": propertyId } : {};
+    const {propertyId} = data || {}; // get propertyId from data
+    const filter = propertyId ? {"property.id": propertyId} : {};
 
-    const payments = await Payments.find(filter).sort({ createdAt: -1 }).lean();
-    const expenses = await Expense.find(filter).sort({ createdAt: -1 }).lean();
+    const payments = await Payments.find(filter).sort({createdAt: -1}).lean();
+    const expenses = await Expense.find(filter).sort({createdAt: -1}).lean();
     const commissions = await Commission.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({createdAt: -1})
       .lean();
 
     return {
@@ -1727,7 +2037,7 @@ export const getAllAccountsPayments = async (data) => {
 
 export const getFeePaymentsByUserId = async (data) => {
   try {
-    const { userId } = data;
+    const {userId} = data;
 
     if (!userId) {
       return {
@@ -1738,7 +2048,7 @@ export const getFeePaymentsByUserId = async (data) => {
       };
     }
 
-    const payments = await Payments.find({ userId }).lean();
+    const payments = await Payments.find({userId}).lean();
 
     if (!payments || payments.length === 0) {
       return {
@@ -1768,12 +2078,12 @@ export const getFeePaymentsByUserId = async (data) => {
 
 export const getWaveOffedPayments = async (filters) => {
   try {
-    const { propertyId, userType, paymentMethod, month, year, search } =
+    const {propertyId, userType, paymentMethod, month, year, search} =
       filters || {};
     console.log("filters");
     console.log(filters);
 
-    const query = { waveOffAmount: { $gt: 0 } };
+    const query = {waveOffAmount: {$gt: 0}};
 
     // Property filter (nested field)
     if (propertyId) query["property.id"] = propertyId;
@@ -1787,8 +2097,8 @@ export const getWaveOffedPayments = async (filters) => {
     // Search filter for name or transactionId
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { transactionId: { $regex: search, $options: "i" } },
+        {name: {$regex: search, $options: "i"}},
+        {transactionId: {$regex: search, $options: "i"}},
       ];
     }
 
@@ -1803,12 +2113,12 @@ export const getWaveOffedPayments = async (filters) => {
         ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
         : new Date(filterYear, 11, 31, 23, 59, 59, 999);
 
-      query.paymentDate = { $gte: start, $lte: end };
+      query.paymentDate = {$gte: start, $lte: end};
     }
 
     // Fetch data
     const waveOffedPayments = await Payments.find(query)
-      .sort({ paymentDate: -1, createdAt: -1 })
+      .sort({paymentDate: -1, createdAt: -1})
       .lean();
 
     // Total wave-off amount
@@ -1844,32 +2154,32 @@ export const getAllCashPayments = async ({}) => {
     // Fetch all cash payments
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
-      paymentDate: { $gte: startDate },
-    }).sort({ paymentDate: -1 });
+      paymentDate: {$gte: startDate},
+    }).sort({paymentDate: -1});
 
     // Fetch all deposit cash payments
     const DepositPayments = await Deposits.find({
       paymentMethod: "Cash",
-      paymentDate: { $gte: startDate },
-    }).sort({ paymentDate: -1 });
+      paymentDate: {$gte: startDate},
+    }).sort({paymentDate: -1});
 
     // Fetch all cash expenses from Expense collection
     const Expenses = await Expense.find({
       paymentMethod: "Cash",
-      date: { $gte: startDate },
-    }).sort({ date: -1 });
+      date: {$gte: startDate},
+    }).sort({date: -1});
 
     // Fetch all cash commissions
     const Commissions = await Commission.find({
       paymentType: "Cash",
-      paymentDate: { $gte: startDate },
-    }).sort({ paymentDate: -1 });
+      paymentDate: {$gte: startDate},
+    }).sort({paymentDate: -1});
 
     // Fetch all cash staff salary payments
     const StaffSalaries = await StaffSalaryHistory.find({
       paymentMethod: "Cash",
-      date: { $gte: startDate },
-    }).sort({ date: -1 });
+      date: {$gte: startDate},
+    }).sort({date: -1});
 
     const PendingVouchers = await Voucher.find({
       status: "Pending",
@@ -1941,7 +2251,7 @@ export const getAllCashPayments = async ({}) => {
 
 export const getLatestFeePaymentByUserId = async (data) => {
   try {
-    const { userId } = data;
+    const {userId} = data;
 
     if (!userId) {
       return {
@@ -1952,8 +2262,8 @@ export const getLatestFeePaymentByUserId = async (data) => {
       };
     }
 
-    const latestPayment = await Payments.findOne({ userId })
-      .sort({ createdAt: -1 })
+    const latestPayment = await Payments.findOne({userId})
+      .sort({createdAt: -1})
       .lean();
 
     if (!latestPayment) {
@@ -1984,7 +2294,7 @@ export const getLatestFeePaymentByUserId = async (data) => {
 
 export const getFeePaymentsAnalytics = async (data) => {
   try {
-    const { propertyId, rentType, year } = data;
+    const {propertyId, rentType, year} = data;
 
     // Default to current year if not provided
     const targetYear = year || new Date().getFullYear();
@@ -2007,14 +2317,14 @@ export const getFeePaymentsAnalytics = async (data) => {
 
     // Aggregate payments by month
     const analytics = await Payments.aggregate([
-      { $match: match },
+      {$match: match},
       {
         $group: {
-          _id: { month: { $month: "$paymentDate" } },
-          totalReceived: { $sum: "$amount" },
+          _id: {month: {$month: "$paymentDate"}},
+          totalReceived: {$sum: "$amount"},
         },
       },
-      { $sort: { "_id.month": 1 } },
+      {$sort: {"_id.month": 1}},
     ]);
 
     // Format output: ["January 2025", "February 2025", ...]
@@ -2049,7 +2359,7 @@ export const getFeePaymentsAnalytics = async (data) => {
 
 export const getTransactionHistoryByUserId = async (data) => {
   try {
-    const { userId } = data;
+    const {userId} = data;
 
     if (!userId) {
       return {
@@ -2060,8 +2370,8 @@ export const getTransactionHistoryByUserId = async (data) => {
       };
     }
 
-    const payments = await Payments.find({ userId })
-      .sort({ paymentDate: -1 }) // latest first
+    const payments = await Payments.find({userId})
+      .sort({paymentDate: -1}) // latest first
       .lean();
 
     if (!payments || payments.length === 0) {

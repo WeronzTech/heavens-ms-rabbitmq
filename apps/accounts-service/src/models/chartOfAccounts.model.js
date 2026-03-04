@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 const accountSchema = new mongoose.Schema(
   {
@@ -74,7 +74,7 @@ const accountSchema = new mongoose.Schema(
     // or keep it general if the Chart of Accounts is global.
     // propertyId: { type: Schema.Types.ObjectId, ref: 'Property', index: true }
   },
-  { timestamps: true }
+  {timestamps: true},
 );
 
 // Optional: Add pre-save hook for validation if needed

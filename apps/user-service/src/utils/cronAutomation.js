@@ -190,8 +190,8 @@
 //   }
 // };
 import User from "../models/user.model.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { NOTIFICATION_PATTERN } from "../../../../libs/patterns/notification/notification.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {NOTIFICATION_PATTERN} from "../../../../libs/patterns/notification/notification.pattern.js";
 import moment from "moment";
 
 export const sendRentReminders = async () => {
@@ -208,8 +208,7 @@ export const sendRentReminders = async () => {
     const usersToCheck = await User.find({
       rentType: "monthly",
       isVacated: false,
-      // isBlocked: false,
-      "financialDetails.clearedTillMonth": { $exists: true, $ne: null },
+      "financialDetails.clearedTillMonth": {$exists: true, $ne: null},
     });
 
     for (const user of usersToCheck) {
@@ -260,16 +259,6 @@ export const sendRentReminders = async () => {
         if (today.isSameOrAfter(specificDueDate, "day")) {
           validDueMonthsCount++; // We found a valid overdue month
 
-          // console.log(
-          //   "monthsCoveredByPending",
-          //   monthsCoveredByPending,
-          //   validDueMonthsCount,
-          //   correctlyCalculatedPendingRent
-          // );
-          // Check: Is this valid month "extra" beyond what pendingAmount covers?
-          // Example: 9000 covers 1 month.
-          // - Dec 1st passed: validDueMonthsCount = 1. (1 > 1 is False). Don't add rent.
-          // - Jan 1st passed: validDueMonthsCount = 2. (2 > 1 is True). Add 6500.
           if (validDueMonthsCount > monthsCoveredByPending) {
             correctlyCalculatedPendingRent += monthlyRent;
             monthAddedLog.push(iterationMonth.format("YYYY-MM"));

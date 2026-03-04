@@ -1,6 +1,5 @@
-import { param } from "express-validator";
-import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
-import { ACCOUNTS_PATTERN } from "../../../../../libs/patterns/accounts/accounts.pattern.js";
+import {sendRPCRequest} from "../../../../../libs/common/rabbitMq.js";
+import {ACCOUNTS_PATTERN} from "../../../../../libs/patterns/accounts/accounts.pattern.js";
 
 export const addFeePaymentController = async (req, res) => {
   try {
@@ -8,24 +7,24 @@ export const addFeePaymentController = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_FEE_PAYMENTS,
-      paymentData // Send the data directly, not wrapped in {data: {}}
+      paymentData, // Send the data directly, not wrapped in {data: {}}
     );
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error("RPC Add FEE PAYMENT Controller Error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({message: "Internal server error"});
   }
 };
 
 export const updateFeePaymentController = async (req, res) => {
   try {
-    const { paymentId } = req.params;
+    const {paymentId} = req.params;
     const updateData = req.body;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.UPDATE_FEE_PAYMENT,
-      { paymentId, updateData }
+      {paymentId, updateData},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -41,11 +40,11 @@ export const updateFeePaymentController = async (req, res) => {
 
 export const getFeePaymentController = async (req, res) => {
   try {
-    const { paymentId } = req.params;
+    const {paymentId} = req.params;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENT,
-      { paymentId }
+      {paymentId},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -76,7 +75,7 @@ export const initiateOnlinePayment = (req, res) => {
   return handleRPCAndRespond(
     res,
     ACCOUNTS_PATTERN.FEE_PAYMENTS.INITIATE_ONLINE,
-    req.body
+    req.body,
   );
 };
 
@@ -84,7 +83,7 @@ export const verifyAndRecordOnlinePayment = (req, res) => {
   return handleRPCAndRespond(
     res,
     ACCOUNTS_PATTERN.FEE_PAYMENTS.VERIFY_ONLINE,
-    req.body
+    req.body,
   );
 };
 
@@ -92,7 +91,7 @@ export const recordManualPayment = (req, res) => {
   return handleRPCAndRespond(
     res,
     ACCOUNTS_PATTERN.FEE_PAYMENTS.RECORD_MANUAL,
-    req.body
+    req.body,
   );
 };
 
@@ -123,7 +122,7 @@ export const getAllFeePaymentsController = async (req, res) => {
         paymentYear,
         search,
         paymentDate,
-      }
+      },
     );
 
     return res.status(response?.status || 500).json(response);
@@ -141,14 +140,14 @@ export const getMonthWiseRentCollectionController = async (req, res) => {
   try {
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_MONTHWISE_TOTAL_COLLECTION,
-      {}
+      {},
     );
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error(
       "RPC Get Month Wise Rent Collection Controller Error:",
-      error
+      error,
     );
     return res.status(500).json({
       success: false,
@@ -160,17 +159,17 @@ export const getMonthWiseRentCollectionController = async (req, res) => {
 
 export const getFinancialSummary = async (req, res) => {
   try {
-    const { propertyId, rentType } = req.query;
+    const {propertyId, rentType} = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FINANCIAL_SUMMARY,
-      { propertyId, rentType }
+      {propertyId, rentType},
     );
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error(
       "RPC Get Month Wise Rent Collection Controller Error:",
-      error
+      error,
     );
     return res.status(500).json({
       success: false,
@@ -186,7 +185,7 @@ export const getNextDueDate = async (req, res) => {
     console.log("UserId", userId);
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_NEXT_DUE_DATE,
-      { userId }
+      {userId},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -202,11 +201,11 @@ export const getNextDueDate = async (req, res) => {
 
 export const getAllAccountsPaymentController = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const {propertyId} = req.query;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENT_SUMMARY,
-      { propertyId } // pass propertyId to RPC request
+      {propertyId}, // pass propertyId to RPC request
     );
 
     if (response.success) {
@@ -217,7 +216,7 @@ export const getAllAccountsPaymentController = async (req, res) => {
   } catch (error) {
     console.error(
       "[ACCOUNTS] Error in getAllAccountsPaymentController:",
-      error
+      error,
     );
     return res.status(500).json({
       success: false,
@@ -243,7 +242,7 @@ export const getUserPaymentsController = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_USERID,
-      { userId }
+      {userId},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -264,7 +263,7 @@ export const getWaveOffedPaymentsController = async (req, res) => {
     // Get propertyId from query params
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_WAVEOFF_PAYMENTS,
-      req.query
+      req.query,
     );
 
     return res.status(response?.status || 500).json(response);
@@ -280,10 +279,10 @@ export const getWaveOffedPaymentsController = async (req, res) => {
 
 export const getAllCashPaymentsController = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const {propertyId} = req.query;
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
-      { propertyId }
+      {propertyId},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -299,7 +298,7 @@ export const getAllCashPaymentsController = async (req, res) => {
 
 export const getLatestFeePaymentByUserId = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const {userId} = req.params;
 
     if (!userId) {
       return res.status(401).json({
@@ -311,7 +310,7 @@ export const getLatestFeePaymentByUserId = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_PAYMENT_BY_USERID,
-      { userId }
+      {userId},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -329,11 +328,11 @@ export const getLatestFeePaymentByUserId = async (req, res) => {
 
 export const getFeePaymentsAnalytics = async (req, res) => {
   try {
-    const { propertyId, rentType, year } = req.query;
+    const {propertyId, rentType, year} = req.query;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_FEE_PAYMENTS_ANALYTICS,
-      { propertyId, rentType, year }
+      {propertyId, rentType, year},
     );
 
     res.status(200).json(response);
@@ -351,7 +350,7 @@ export const getFeePaymentsAnalytics = async (req, res) => {
 
 export const getTransactionHistoryByUserId = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const {userId} = req.params;
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -362,7 +361,7 @@ export const getTransactionHistoryByUserId = async (req, res) => {
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_TRANSACTIONS_BY_USERID,
-      { userId }
+      {userId},
     );
 
     return res.status(response?.status || 500).json(response);

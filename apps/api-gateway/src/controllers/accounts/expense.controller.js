@@ -1,5 +1,5 @@
-import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
-import { ACCOUNTS_PATTERN } from "../../../../../libs/patterns/accounts/accounts.pattern.js";
+import {sendRPCRequest} from "../../../../../libs/common/rabbitMq.js";
+import {ACCOUNTS_PATTERN} from "../../../../../libs/patterns/accounts/accounts.pattern.js";
 
 export const addExpenseController = async (req, res) => {
   try {
@@ -58,6 +58,8 @@ export const getAllExpensesController = async (req, res) => {
       type,
       category,
       paymentMethod,
+      pettyCashType,
+      manager,
       month,
       year,
       search,
@@ -72,12 +74,14 @@ export const getAllExpensesController = async (req, res) => {
         type,
         category,
         paymentMethod,
+        pettyCashType,
+        manager,
         month,
         year,
         search,
         page,
         limit,
-      }
+      },
     );
     res.status(expenses.status || 500).json(expenses);
   } catch (error) {
@@ -93,7 +97,7 @@ export const getAllExpensesController = async (req, res) => {
 // Get Expense By ID
 export const getExpenseByIdController = async (req, res) => {
   try {
-    const { expenseId } = req.params;
+    const {expenseId} = req.params;
 
     if (!expenseId) {
       return res.status(400).json({
@@ -105,7 +109,7 @@ export const getExpenseByIdController = async (req, res) => {
 
     const expense = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_BY_ID,
-      { expenseId }
+      {expenseId},
     );
     res.status(expense.status || 500).json(expense);
   } catch (error) {
@@ -121,7 +125,7 @@ export const getExpenseByIdController = async (req, res) => {
 // Delete Expense
 export const deleteExpenseController = async (req, res) => {
   try {
-    const { expenseId } = req.params;
+    const {expenseId} = req.params;
 
     if (!expenseId) {
       return res.status(400).json({
@@ -133,7 +137,7 @@ export const deleteExpenseController = async (req, res) => {
 
     const expense = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.DELETE_EXPENSE,
-      { expenseId, deletedBy: req.userAuth }
+      {expenseId, deletedBy: req.userAuth},
     );
     res.status(expense.status || 500).json(expense);
   } catch (error) {
@@ -148,14 +152,14 @@ export const deleteExpenseController = async (req, res) => {
 
 export const addExpenseCategoryController = async (req, res) => {
   try {
-    const { mainCategory, subCategory } = req.body;
+    const {mainCategory, subCategory} = req.body;
 
     const expenseCategory = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.ADD_EXPENSE_CATEGORY,
       {
         mainCategory,
         subCategory,
-      }
+      },
     );
 
     if (expenseCategory.status === 200) {
@@ -176,13 +180,13 @@ export const addExpenseCategoryController = async (req, res) => {
 
 export const getCategoryByMainCategoryController = async (req, res) => {
   try {
-    const { mainCategory } = req.query;
+    const {mainCategory} = req.query;
     console.log("hererererere");
 
     console.log(mainCategory);
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_CATEGORY_BY_MAINCATEROGY,
-      { mainCategory }
+      {mainCategory},
     );
 
     return res.status(response.status || 500).json(response);
@@ -201,7 +205,7 @@ export const getAllCategoriesController = async (req, res) => {
   try {
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_ALL_CATEGORIES,
-      {}
+      {},
     );
     return res.status(response.status || 500).json(response);
   } catch (error) {
@@ -217,11 +221,11 @@ export const getAllCategoriesController = async (req, res) => {
 
 export const deleteCategoryController = async (req, res) => {
   try {
-    const { categoryId } = req.params;
+    const {categoryId} = req.params;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.DELETE_CATEGORY,
-      { categoryId }
+      {categoryId},
     );
 
     return res.status(response.status || 500).json(response);
@@ -237,11 +241,11 @@ export const deleteCategoryController = async (req, res) => {
 
 export const getExpenseAnalytics = async (req, res) => {
   try {
-    const { propertyId, year } = req.query;
+    const {propertyId, year} = req.query;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_EXPENSE_ANALYTICS,
-      { propertyId, year }
+      {propertyId, year},
     );
 
     res.status(200).json(response);
@@ -260,18 +264,18 @@ export const getExpenseAnalytics = async (req, res) => {
 export const getPettyCashPaymentByManager = async (req, res) => {
   try {
     // Get propertyId from query params
-    const { managerId } = req.query;
+    const {managerId} = req.query;
 
     const response = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_PETTYCASH_PAYMENTS_BY_MANAGER,
-      { managerId }
+      {managerId},
     );
 
     return res.status(response?.status || 500).json(response);
   } catch (error) {
     console.error(
       "RPC Get WaveOffed Payments by manager Controller Error:",
-      error
+      error,
     );
     return res.status(500).json({
       success: false,
@@ -283,7 +287,7 @@ export const getPettyCashPaymentByManager = async (req, res) => {
 
 export const updateExpenseController = async (req, res) => {
   try {
-    const { expenseId } = req.params;
+    const {expenseId} = req.params;
     const {
       transactionId,
       property,
@@ -315,7 +319,7 @@ export const updateExpenseController = async (req, res) => {
         pettyCashType,
         billImage,
         ...expenseData,
-      }
+      },
     );
 
     res.status(response?.status || 500).json(response);

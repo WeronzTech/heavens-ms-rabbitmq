@@ -1,16 +1,15 @@
-import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
-import { PROPERTY_PATTERN } from "../../../../../libs/patterns/property/property.pattern.js";
+import {sendRPCRequest} from "../../../../../libs/common/rabbitMq.js";
+import {PROPERTY_PATTERN} from "../../../../../libs/patterns/property/property.pattern.js";
 
 // 🎯 Controller for fetching all staff via RPC
 export const getAllStaff = async (req, res) => {
   try {
-    const { kitchenId, propertyId, name, manager, joinDate, status } =
-      req.query;
+    const {kitchenId, propertyId, name, manager, joinDate, status} = req.query;
 
     // Send request to staff service using RPC
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.STAFF.GET_ALL_STAFF,
-      { kitchenId, propertyId, name, manager, joinDate, status }
+      {kitchenId, propertyId, name, manager, joinDate, status},
     );
 
     console.log("👥 Staff RPC Response:", response);
@@ -38,12 +37,12 @@ export const getAllStaff = async (req, res) => {
 
 export const getStaffById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const {id} = req.params;
 
     // Send request to staff service using RPC
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.STAFF.GET_STAFF_BY_ID,
-      { id }
+      {id},
     );
 
     console.log("👤 Staff By ID RPC Response:", response);
@@ -70,7 +69,7 @@ export const getStaffById = async (req, res) => {
 
 export const deleteStaff = async (req, res) => {
   try {
-    const { id } = req.params;
+    const {id} = req.params;
     const adminName = req.headers["x-user-username"];
 
     const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.DELETE_STAFF, {
@@ -93,12 +92,12 @@ export const deleteStaff = async (req, res) => {
 // 🎯 Controller for changing staff status via RPC
 export const staffStatusChange = async (req, res) => {
   try {
-    const { id } = req.params;
+    const {id} = req.params;
     const adminName = req.headers["x-user-username"];
 
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.STAFF.STAFF_STATUS_CHANGE,
-      { id, adminName }
+      {id, adminName},
     );
 
     console.log(" Staff Status Change RPC Response:", response);
@@ -116,11 +115,11 @@ export const staffStatusChange = async (req, res) => {
 // 🎯 Controller for fetching staff by Property ID via RPC
 export const getStaffByPropertyId = async (req, res) => {
   try {
-    const { propertyId } = req.params;
+    const {propertyId} = req.params;
 
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.STAFF.GET_STAFF_BY_PROPERTYID,
-      { propertyId }
+      {propertyId},
     );
 
     console.log("🏠 Staff By Property RPC Response:", response);
@@ -147,19 +146,16 @@ export const addStaff = async (req, res) => {
     const {
       name,
       jobTitle,
+      employeeType,
       gender,
-      dob,
       contactNumber,
       address,
-      email,
-      role,
       salary,
       joinDate,
       status,
       propertyId,
       createdBy,
       kitchenId,
-      panNumber,
     } = req.body;
 
     // ✅ Pass file buffers directly to RPC
@@ -170,17 +166,15 @@ export const addStaff = async (req, res) => {
       panCardImage: req.files?.panCardImage?.[0] || null,
     };
 
-    const adminName = req.headers["x-user-username"];
+    const adminName = req.userName;
 
     const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.ADD_STAFF, {
       name,
       jobTitle,
+      employeeType,
       gender,
-      dob,
       contactNumber,
       address,
-      email,
-      role,
       salary,
       joinDate,
       status,
@@ -188,8 +182,8 @@ export const addStaff = async (req, res) => {
       createdBy,
       kitchenId,
       adminName,
-      panNumber,
-      files, // send files as-is
+      files,
+      clientId: req.clientId,
     });
 
     console.log("📨 Staff Add RPC Response:", response);
@@ -206,10 +200,10 @@ export const addStaff = async (req, res) => {
 // 🎯 Update staff via RPC
 export const updateStaff = async (req, res) => {
   try {
-    const { id } = req.params;
+    const {id} = req.params;
 
     // ✅ Attach update body
-    const updateData = { ...req.body };
+    const updateData = {...req.body};
 
     // ✅ Pass file buffers directly to RPC
     const files = {
@@ -218,7 +212,7 @@ export const updateStaff = async (req, res) => {
       aadharBackImage: req.files?.aadharBackImage?.[0] || null,
     };
 
-    const adminName = req.headers["x-user-username"];
+    const adminName = req.userName;
 
     const response = await sendRPCRequest(PROPERTY_PATTERN.STAFF.UPDATE_STAFF, {
       staffId: id,
@@ -240,13 +234,12 @@ export const updateStaff = async (req, res) => {
 
 export const getAllStaffForAttendance = async (req, res) => {
   try {
-    const { kitchenId, propertyId, name, manager, joinDate, status } =
-      req.query;
+    const {kitchenId, propertyId, name, manager, joinDate, status} = req.query;
 
     // Send request to staff service using RPC
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.STAFF.GET_ALL_STAFF_FOR_ATTENDANCE,
-      { kitchenId, propertyId, name, manager, joinDate, status }
+      {kitchenId, propertyId, name, manager, joinDate, status},
     );
 
     console.log("👥 Staff RPC Response:", response);

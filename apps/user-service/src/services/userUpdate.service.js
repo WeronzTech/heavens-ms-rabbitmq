@@ -1,85 +1,10 @@
 import User from "../models/user.model.js";
-import { calculateProfileCompletion } from "../utils/profileCompletion.js";
-import { validateContact, validateEmail } from "../utils/validators.js";
-import { assignRoomToUser, updatePropertyCounts } from "./internal.service.js";
-
-//For student update the profile
-// export const validateUserUpdate = async (user, updateData) => {
-//   const { userType, contact: currentContact, email: currentEmail } = user;
-
-//   // Define required sections for each user type
-//   const REQUIRED_SECTIONS = {
-//     Student: ["personalDetails", "parentsDetails", "studyDetails"],
-//     Worker: ["personalDetails", "workingDetails"],
-//     DailyRent: ["personalDetails"],
-//     MessOnly: ["personalDetails"],
-//   };
-
-//   // Check for missing required sections
-//   const requiredSections = REQUIRED_SECTIONS[userType] || [];
-//   const missingSections = requiredSections.filter(
-//     (section) => !updateData[section]
-//   );
-
-//   if (missingSections.length > 0) {
-//     throw new Error(
-//       `Missing required sections for ${userType}: ${missingSections.join(", ")}`
-//     );
-//   }
-
-//   // Student-specific validations
-//   if (userType === "student" && updateData.parentsDetails) {
-//     const { email, contact } = updateData.parentsDetails;
-
-//     if (email && !validateEmail(email)) {
-//       throw new Error("Invalid parent email format");
-//     }
-
-//     if (contact) {
-//       if (!validateContact(contact)) {
-//         throw new Error("Parent contact must be 10 digits starting with 6-9");
-//       }
-
-//       if (contact === (updateData.contact || currentContact)) {
-//         throw new Error("Parent's contact cannot match student contact");
-//       }
-
-//       const existingUser = await User.findOne({
-//         contact,
-//         _id: { $ne: user._id },
-//       });
-
-//       if (existingUser) {
-//         throw new Error("Parent's contact is already registered");
-//       }
-//     }
-//   }
-
-//   // Email uniqueness check for all users
-//   if (updateData.email && updateData.email !== currentEmail) {
-//     const existingUser = await User.findOne({
-//       email: updateData.email,
-//       _id: { $ne: user._id },
-//     });
-//     if (existingUser) {
-//       throw new Error("Email is already registered");
-//     }
-//   }
-
-//   // Contact uniqueness check for all users
-//   if (updateData.contact && updateData.contact !== currentContact) {
-//     const existingUser = await User.findOne({
-//       contact: updateData.contact,
-//       _id: { $ne: user._id },
-//     });
-//     if (existingUser) {
-//       throw new Error("Contact number is already registered");
-//     }
-//   }
-// };
+import {calculateProfileCompletion} from "../utils/profileCompletion.js";
+import {validateContact, validateEmail} from "../utils/validators.js";
+import {assignRoomToUser, updatePropertyCounts} from "./internal.service.js";
 
 export const validateUserUpdate = async (user, updateData) => {
-  const { userType, contact: currentContact, email: currentEmail } = user;
+  const {userType, contact: currentContact, email: currentEmail} = user;
 
   const REQUIRED_SECTIONS = {
     Student: ["personalDetails", "parentsDetails", "studyDetails"],
@@ -90,18 +15,18 @@ export const validateUserUpdate = async (user, updateData) => {
 
   const requiredSections = REQUIRED_SECTIONS[userType] || [];
   const missingSections = requiredSections.filter(
-    (section) => !updateData[section]
+    (section) => !updateData[section],
   );
 
   if (missingSections.length > 0) {
     throw new Error(
-      `Missing required sections for ${userType}: ${missingSections.join(", ")}`
+      `Missing required sections for ${userType}: ${missingSections.join(", ")}`,
     );
   }
 
   // Student-specific validations
   if (userType === "student" && updateData.parentsDetails) {
-    const { email, contact } = updateData.parentsDetails;
+    const {email, contact} = updateData.parentsDetails;
 
     if (email && !validateEmail(email)) {
       throw new Error("Invalid parent email format");
@@ -118,7 +43,7 @@ export const validateUserUpdate = async (user, updateData) => {
 
       const existingUser = await User.findOne({
         contact,
-        _id: { $ne: user._id },
+        _id: {$ne: user._id},
       });
 
       if (existingUser) {
@@ -131,7 +56,7 @@ export const validateUserUpdate = async (user, updateData) => {
   if (updateData.email && updateData.email !== currentEmail) {
     const existingUser = await User.findOne({
       email: updateData.email,
-      _id: { $ne: user._id },
+      _id: {$ne: user._id},
     });
     if (existingUser) {
       throw new Error("Email is already registered");
@@ -142,7 +67,7 @@ export const validateUserUpdate = async (user, updateData) => {
   if (updateData.contact && updateData.contact !== currentContact) {
     const existingUser = await User.findOne({
       contact: updateData.contact,
-      _id: { $ne: user._id },
+      _id: {$ne: user._id},
     });
     if (existingUser) {
       throw new Error("Contact number is already registered");
@@ -156,7 +81,7 @@ export const validateUserUpdate = async (user, updateData) => {
     if (partner.email) {
       const existingPartnerEmail = await User.findOne({
         email: partner.email,
-        _id: { $ne: user._id },
+        _id: {$ne: user._id},
       });
       if (existingPartnerEmail) {
         throw new Error("Coliving partner's email is already registered");
@@ -166,7 +91,7 @@ export const validateUserUpdate = async (user, updateData) => {
     if (partner.contact) {
       const existingPartnerContact = await User.findOne({
         contact: partner.contact,
-        _id: { $ne: user._id },
+        _id: {$ne: user._id},
       });
       if (existingPartnerContact) {
         throw new Error("Coliving partner's contact is already registered");
@@ -174,45 +99,6 @@ export const validateUserUpdate = async (user, updateData) => {
     }
   }
 };
-
-// export const updateUserFields = (user, updateData) => {
-//   const CORE_FIELDS = ["name", "email", "contact"];
-//   const PROFILE_SECTIONS = [
-//     "personalDetails",
-//     "parentsDetails",
-//     "studyDetails",
-//     "workingDetails",
-//   ];
-
-//   // Update core fields with validation
-//   CORE_FIELDS.forEach((field) => {
-//     if (updateData[field] !== undefined && updateData[field] !== user[field]) {
-//       if (field === "email" && !validateEmail(updateData[field])) {
-//         throw new Error("Invalid email format");
-//       }
-
-//       if (field === "contact" && !validateContact(updateData[field])) {
-//         throw new Error("Contact must be 10 digits starting with 6-9");
-//       }
-
-//       user[field] = updateData[field];
-//     }
-//   });
-
-//   // Update profile sections
-//   PROFILE_SECTIONS.forEach((section) => {
-//     if (updateData[section]) {
-//       user[section] = {
-//         ...user[section],
-//         ...updateData[section],
-//       };
-//     }
-//   });
-
-//   // Recalculate profile completion
-//   user.profileCompletion = calculateProfileCompletion(user);
-//   user.updatedAt = new Date();
-// };
 
 export const updateUserFields = (user, updateData) => {
   const CORE_FIELDS = ["name", "email", "contact"];
@@ -262,7 +148,7 @@ export const updateUserFields = (user, updateData) => {
 
     if (partnerData.contact && !validateContact(partnerData.contact)) {
       throw new Error(
-        "Coliving partner contact must be 10 digits starting with 6-9"
+        "Coliving partner contact must be 10 digits starting with 6-9",
       );
     }
   }
@@ -271,66 +157,6 @@ export const updateUserFields = (user, updateData) => {
   user.profileCompletion = calculateProfileCompletion(user);
   user.updatedAt = new Date();
 };
-
-// Helper function to show completed fields
-// export const getCompletedFields = (user) => {
-//   const fields = {
-//     core: ["name", "email", "contact"],
-//     personalDetails: [
-//       "address",
-//       "dob",
-//       "gender",
-//       "profileImg",
-//       "aadharFront",
-//       "aadharBack",
-//     ],
-//     parentsDetails:
-//       user.userType === "student"
-//         ? ["name", "email", "contact", "occupation"]
-//         : [],
-//     studyDetails:
-//       user.userType === "student"
-//         ? ["course", "yearOfStudy", "institution"]
-//         : [],
-//     workingDetails:
-//       user.userType === "worker"
-//         ? ["jobTitle", "companyName", "location", "emergencyContact"]
-//         : [],
-//   };
-
-//   const completed = {};
-
-//   // Check core fields
-//   completed.core = fields.core.filter((f) => user[f]).length;
-
-//   // Check personal details
-//   completed.personalDetails = fields.personalDetails.filter(
-//     (f) => user.personalDetails?.[f]
-//   ).length;
-
-//   // Check parents details (students only)
-//   if (user.userType === "student") {
-//     completed.parentsDetails = fields.parentsDetails.filter(
-//       (f) => user.parentsDetails?.[f]
-//     ).length;
-//   }
-
-//   // Check study details (students only)
-//   if (user.userType === "student") {
-//     completed.studyDetails = fields.studyDetails.filter(
-//       (f) => user.studyDetails?.[f]
-//     ).length;
-//   }
-
-//   // Check working details (workers only)
-//   if (user.userType === "worker") {
-//     completed.workingDetails = fields.workingDetails.filter(
-//       (f) => user.workingDetails?.[f]
-//     ).length;
-//   }
-
-//   return completed;
-// };
 
 export const getCompletedFields = (user) => {
   const fields = {
@@ -366,34 +192,34 @@ export const getCompletedFields = (user) => {
 
   // ✅ Personal details
   completed.personalDetails = fields.personalDetails.filter(
-    (f) => !!user.personalDetails?.[f]
+    (f) => !!user.personalDetails?.[f],
   ).length;
 
   // ✅ Parents details (students only)
   if (user.userType === "student") {
     completed.parentsDetails = fields.parentsDetails.filter(
-      (f) => !!user.parentsDetails?.[f]
+      (f) => !!user.parentsDetails?.[f],
     ).length;
   }
 
   // ✅ Study details (students only)
   if (user.userType === "student") {
     completed.studyDetails = fields.studyDetails.filter(
-      (f) => !!user.studyDetails?.[f]
+      (f) => !!user.studyDetails?.[f],
     ).length;
   }
 
   // ✅ Working details (workers only)
   if (user.userType === "worker") {
     completed.workingDetails = fields.workingDetails.filter(
-      (f) => !!user.workingDetails?.[f]
+      (f) => !!user.workingDetails?.[f],
     ).length;
   }
 
   // ✅ Coliving partner (only if applicable)
   if (user.isColiving && user.colivingPartner) {
     completed.colivingPartner = fields.colivingPartner.filter(
-      (f) => !!user.colivingPartner?.[f]
+      (f) => !!user.colivingPartner?.[f],
     ).length;
   }
 
@@ -407,7 +233,7 @@ export const cleanUpdateData = (data) => {
   return Object.fromEntries(
     Object.entries(data)
       .filter(([_, v]) => v !== null && v !== undefined && v !== "")
-      .map(([k, v]) => [k, typeof v === "object" ? cleanUpdateData(v) : v])
+      .map(([k, v]) => [k, typeof v === "object" ? cleanUpdateData(v) : v]),
   );
 };
 
@@ -416,7 +242,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
   if (cleanedData.contact && cleanedData.contact !== user.contact) {
     const existingUser = await User.findOne({
       contact: cleanedData.contact,
-      _id: { $ne: user._id },
+      _id: {$ne: user._id},
     });
     if (existingUser) {
       throw new Error("Contact number already in use by another user");
@@ -427,7 +253,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
   if (cleanedData.email && cleanedData.email !== user.email) {
     const existingUser = await User.findOne({
       email: cleanedData.email,
-      _id: { $ne: user._id },
+      _id: {$ne: user._id},
     });
     if (existingUser) {
       throw new Error("Email already in use by another user");
@@ -445,43 +271,12 @@ export const validateAdminUpdates = async (user, cleanedData) => {
 
     const existingUser = await User.findOne({
       contact: parentContact,
-      _id: { $ne: user._id },
+      _id: {$ne: user._id},
     });
     if (existingUser) {
       throw new Error(
-        "Parent's contact is already registered as a user contact"
+        "Parent's contact is already registered as a user contact",
       );
-    }
-  }
-
-  // Validate financial updates
-  if (cleanedData.financialDetails) {
-    if (user.userType === "messOnly" || user.rentType === "daily") {
-      if (
-        cleanedData.financialDetails.totalAmount !== undefined &&
-        cleanedData.financialDetails.totalAmount < 0
-      ) {
-        throw new Error("Total amount cannot be negative");
-      }
-      if (
-        cleanedData.financialDetails.pendingAmount !== undefined &&
-        cleanedData.financialDetails.pendingAmount < 0
-      ) {
-        throw new Error("Pending amount cannot be negative");
-      }
-    } else if (user.rentType === "monthly") {
-      if (
-        cleanedData.financialDetails.monthlyRent !== undefined &&
-        cleanedData.financialDetails.monthlyRent < 0
-      ) {
-        throw new Error("Monthly rent cannot be negative");
-      }
-      if (
-        cleanedData.financialDetails.pendingRent !== undefined &&
-        cleanedData.financialDetails.pendingRent < 0
-      ) {
-        throw new Error("Pending rent cannot be negative");
-      }
     }
   }
 };
@@ -511,13 +306,13 @@ export const rebuildNestedFields = async (flatObject) => {
 // Resolve the promise if updateData is async
 export const processAdminUpdates = async (user, updateData) => {
   const resolvedUpdateData = await updateData;
-
+  console.log(resolvedUpdateData);
   // Handle room reassignment for non-mess-only users
   if (user.userType !== "messOnly" && resolvedUpdateData.stayDetails?.roomId) {
     await handleRoomChange(
       user,
       resolvedUpdateData.stayDetails.roomId,
-      resolvedUpdateData.stayDetails.propertyId
+      resolvedUpdateData.stayDetails.propertyId,
     );
   }
 
@@ -526,7 +321,11 @@ export const processAdminUpdates = async (user, updateData) => {
     user.userType === "messOnly" &&
     resolvedUpdateData.messDetails?.kitchenId
   ) {
-    await handleKitchenChange(user, resolvedUpdateData.messDetails.kitchenId);
+    await handleKitchenChange(
+      user,
+      resolvedUpdateData.messDetails.kitchenId,
+      resolvedUpdateData.messDetails.kitchenName,
+    );
   }
 
   // CORE fields directly update
@@ -573,6 +372,15 @@ export const processAdminUpdates = async (user, updateData) => {
     }
   } else {
     if (resolvedUpdateData.messDetails) {
+      // 🔥 FIX mealType casting issue
+      if (resolvedUpdateData.messDetails.mealType) {
+        const mealType = resolvedUpdateData.messDetails.mealType;
+
+        if (!Array.isArray(mealType) && typeof mealType === "object") {
+          resolvedUpdateData.messDetails.mealType = Object.values(mealType);
+        }
+      }
+
       user.messDetails = {
         ...user.messDetails,
         ...resolvedUpdateData.messDetails,
@@ -584,17 +392,6 @@ export const processAdminUpdates = async (user, updateData) => {
         }),
       };
     }
-  }
-
-  // FINANCIAL DETAILS
-  if (resolvedUpdateData.financialDetails) {
-    user.financialDetails = {
-      ...user.financialDetails,
-      ...resolvedUpdateData.financialDetails,
-      ...(resolvedUpdateData.financialDetails.totalAmount && {
-        pendingAmount: resolvedUpdateData.financialDetails.totalAmount,
-      }),
-    };
   }
 
   // NESTED SECTIONS INCLUDING PARTNER
@@ -622,14 +419,9 @@ export const processAdminUpdates = async (user, updateData) => {
 };
 
 // Helper function to handle kitchen changes for MessOnly users
-async function handleKitchenChange(user, newKitchenId) {
-  const kitchen = await Kitchen.findById(newKitchenId);
-  if (!kitchen) {
-    throw new Error("Kitchen not found");
-  }
-
+async function handleKitchenChange(user, newKitchenId, newKitchenName) {
   user.messDetails.kitchenId = newKitchenId;
-  user.messDetails.kitchenName = kitchen.name;
+  user.messDetails.kitchenName = newKitchenName;
 }
 
 export const handleRoomChange = async (user, newRoomId, newPropertyId) => {
@@ -644,17 +436,13 @@ export const handleRoomChange = async (user, newRoomId, newPropertyId) => {
       const userType =
         user.rentType === "monthly" ? "longTermResident" : "dailyRenter";
 
-      console.log("Akllll");
-      console.log(userId, roomId, userType);
-      console.log("Nikhillllllll");
-
       // Add to new room
-      await assignRoomToUser({ userId, roomId, userType });
+      await assignRoomToUser({userId, roomId, userType});
     }
 
     // If property is being changed (without room change)
     if (newPropertyId && currentPropertyId !== newPropertyId && !newRoomId) {
-      console.log("hererere reachedddd"); // Update property counts through API
+      // console.log("hererere reachedddd"); // Update property counts through API
       await updatePropertyCounts(currentPropertyId, newPropertyId);
     }
   } catch (error) {

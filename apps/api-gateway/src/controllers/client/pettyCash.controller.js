@@ -1,5 +1,5 @@
-import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../../libs/patterns/client/client.pattern.js";
+import {sendRPCRequest} from "../../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../../libs/patterns/client/client.pattern.js";
 
 export const addPettyCashController = async (req, res) => {
   try {
@@ -49,11 +49,21 @@ export const addPettyCashController = async (req, res) => {
 
 export const getPettyCashController = async (req, res) => {
   try {
-    const { propertyId, managerId } = req.query;
+    const {propertyId, userType} = req.query;
 
+    const payload = {
+      propertyId,
+      userType,
+    };
+
+    // Only send managerId if userType is MANAGER
+    if (userType === "MANAGER") {
+      payload.managerId = req.userAuth;
+    }
+    console.log(payload);
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH,
-      { propertyId, managerId },
+      payload,
     );
 
     res.status(response?.status || 500).json(response);
@@ -74,7 +84,7 @@ export const getPettyCashByManagerController = async (req, res) => {
 
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-      { managerId }
+      {managerId},
     );
 
     res.status(response?.status || 500).json(response);
@@ -93,13 +103,13 @@ export const getPettyCashTransactionsByManagerController = async (req, res) => {
   try {
     const managerId = req.params.id;
 
-    console.log("Manager",managerId)
+    console.log("Manager", managerId);
 
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_TRANSACTIONS_BY_MANAGER,
-      { managerId }
+      {managerId},
     );
-    console.log("Response",response)
+    console.log("Response", response);
 
     res.status(response?.status || 500).json(response);
   } catch (error) {

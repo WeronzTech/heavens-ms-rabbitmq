@@ -1,12 +1,10 @@
 import PettyCash from "../models/pettyCash.model.js";
 import Manager from "../models/manager.model.js";
 import mongoose from "mongoose";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
-import { ACCOUNT_SYSTEM_NAMES } from "../../../accounts-service/src/config/accountMapping.config.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {ACCOUNTS_PATTERN} from "../../../../libs/patterns/accounts/accounts.pattern.js";
+import {ACCOUNT_SYSTEM_NAMES} from "../../../accounts-service/src/config/accountMapping.config.js";
 import PettyCashTransaction from "../models/pettyCashTransaction.model.js";
-
-
 
 // const ACCOUNT_NAMES_CONST = {
 //   PETTY_CASH: "Petty Cash",
@@ -27,6 +25,8 @@ export const addPettyCash = async (data) => {
       createdByName,
       paymentMode,
     } = data;
+    console.log("HAHAHAHAHAHAHAHAHHA");
+    console.log(data);
 
     const client = await Manager.findById(manager);
     if (!client) {
@@ -37,7 +37,20 @@ export const addPettyCash = async (data) => {
       };
     }
 
-    let pettyCash = await PettyCash.findOne({ manager });
+    if (transactionId) {
+      const existingExpense = await PettyCashTransaction.findOne({
+        transactionId,
+      });
+      if (existingExpense) {
+        return {
+          success: false,
+          status: 400,
+          message: `Transaction ID "${transactionId}" already exists`,
+        };
+      }
+    }
+
+    let pettyCash = await PettyCash.findOne({manager});
 
     if (!pettyCash) {
       pettyCash = await PettyCash.create({
@@ -134,6 +147,7 @@ export const addPettyCash = async (data) => {
       },
     };
   } catch (error) {
+    console.log(error);
     console.error("Petty cash service error:", error);
 
     return {
@@ -148,15 +162,21 @@ export const addPettyCash = async (data) => {
 
 export const getPettyCash = async (data = {}) => {
   try {
-    const { propertyId, managerId } = data;
+    const {propertyId, managerId} = data;
     let filter = {};
-
-    if (propertyId && managerId) {
-      // both property + manager
-      const manager = await Manager.findOne({
+    console.log(data);
+    // 🔹 CASE 1: If managerId is provided
+    if (managerId) {
+      const managerQuery = {
         _id: new mongoose.Types.ObjectId(managerId),
-        propertyId: new mongoose.Types.ObjectId(propertyId),
-      }).select("_id");
+      };
+
+      // If propertyId is also provided, validate manager belongs to property
+      if (propertyId) {
+        managerQuery.propertyId = new mongoose.Types.ObjectId(propertyId);
+      }
+
+      const manager = await Manager.findOne(managerQuery).select("_id");
 
       if (!manager) {
         return {
@@ -166,20 +186,33 @@ export const getPettyCash = async (data = {}) => {
           data: [],
         };
       }
+
       filter.manager = manager._id;
-    } else if (managerId) {
-      // only managerId
-      filter.manager = new mongoose.Types.ObjectId(managerId);
-    } else if (propertyId) {
-      // only propertyId → get all managers of this property
+    }
+
+    // 🔹 CASE 2: If NO managerId but propertyId exists
+    else if (propertyId) {
       const managers = await Manager.find({
-        propertyId: { $in: [new mongoose.Types.ObjectId(propertyId)] },
+        propertyId: new mongoose.Types.ObjectId(propertyId),
       }).select("_id");
 
-      filter.manager = { $in: managers.map((m) => m._id) };
-    }
-    // else: no propertyId & no managerId → return all
+      const managerIds = managers.map((m) => m._id);
 
+      if (managerIds.length === 0) {
+        return {
+          success: true,
+          status: 200,
+          message: "No managers found for this property",
+          data: [],
+        };
+      }
+
+      filter.manager = {$in: managerIds};
+    }
+    console.log("cxxxxxcxcxxxxxxx");
+
+    console.log(filter);
+    // 🔹 CASE 3: If neither propertyId nor managerId → return all
     const pettyCashRecords = await PettyCash.find(filter).lean();
 
     return {
@@ -201,7 +234,7 @@ export const getPettyCash = async (data = {}) => {
 
 export const getPettyCashByManager = async (data) => {
   try {
-    const { managerId } = data;
+    const {managerId} = data;
 
     if (!managerId) {
       return {
@@ -212,7 +245,7 @@ export const getPettyCashByManager = async (data) => {
       };
     }
 
-    const pettyCash = await PettyCash.findOne({ manager: managerId }).lean();
+    const pettyCash = await PettyCash.findOne({manager: managerId}).lean();
 
     if (!pettyCash) {
       return {
@@ -228,7 +261,7 @@ export const getPettyCashByManager = async (data) => {
       };
     }
 
-    const { inHandAmount = 0, inAccountAmount = 0, manager } = pettyCash;
+    const {inHandAmount = 0, inAccountAmount = 0, manager} = pettyCash;
     const total = inHandAmount + inAccountAmount;
 
     return {
@@ -256,7 +289,7 @@ export const getPettyCashByManager = async (data) => {
 
 export const getPettyCashByIdService = async (data) => {
   try {
-    const { pettyCashId } = data;
+    const {pettyCashId} = data;
     const pettyCash = await PettyCash.findById(pettyCashId).select(
       "managerName inHandAmount inAccountAmount",
     );
@@ -281,12 +314,9 @@ export const getPettyCashByIdService = async (data) => {
   }
 };
 
-
-
-
 export const getPettyCashTransactionsByManager = async (data) => {
   try {
-    const { managerId } = data;
+    const {managerId} = data;
 
     if (!managerId) {
       return {
@@ -309,8 +339,8 @@ export const getPettyCashTransactionsByManager = async (data) => {
     }
 
     // Get petty cash record for this manager
-    const pettyCash = await PettyCash.findOne({ manager: managerId });
-    
+    const pettyCash = await PettyCash.findOne({manager: managerId});
+
     if (!pettyCash) {
       return {
         success: true,
@@ -321,12 +351,12 @@ export const getPettyCashTransactionsByManager = async (data) => {
     }
 
     // Fetch all transactions for this manager, sorted by date (newest first)
-    const transactions = await PettyCashTransaction.find({ manager: managerId })
-      .sort({ date: -1, createdAt: -1 })
+    const transactions = await PettyCashTransaction.find({manager: managerId})
+      .sort({date: -1, createdAt: -1})
       .lean();
 
     // Format the response
-    const formattedTransactions = transactions.map(transaction => ({
+    const formattedTransactions = transactions.map((transaction) => ({
       id: transaction._id,
       pettyCashId: transaction.pettyCash,
       managerId: transaction.manager,
@@ -343,7 +373,7 @@ export const getPettyCashTransactionsByManager = async (data) => {
       createdBy: transaction.createdBy,
       createdByName: transaction.createdbyName, // Note: field name mismatch - createdbyName in schema
       createdAt: transaction.createdAt,
-      updatedAt: transaction.updatedAt
+      updatedAt: transaction.updatedAt,
     }));
 
     return {
@@ -357,10 +387,10 @@ export const getPettyCashTransactionsByManager = async (data) => {
         currentBalance: {
           inHandAmount: pettyCash.inHandAmount,
           inAccountAmount: pettyCash.inAccountAmount,
-          total: pettyCash.inHandAmount + pettyCash.inAccountAmount
+          total: pettyCash.inHandAmount + pettyCash.inAccountAmount,
         },
         transactions: formattedTransactions,
-        count: transactions.length
+        count: transactions.length,
       },
     };
   } catch (error) {

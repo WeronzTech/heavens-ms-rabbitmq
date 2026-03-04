@@ -31,6 +31,7 @@ export const USER_PATTERN = {
     SET_RESET_TOKEN: "set_reset_token",
     REGISTER_USER_FROM_PANEL: "register_user_from_panel",
     GET_BULK_USER_BY_ID: "get_bulk_user_by_id",
+    UPDATE_RENT_AND_DATE: "update_rent_and_date",
   },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",

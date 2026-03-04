@@ -184,7 +184,7 @@
 
 // export { connect, createResponder, sendRPCRequest, publishToQueue };
 import amqp from "amqplib";
-import { v4 as uuidv4 } from "uuid";
+import {v4 as uuidv4} from "uuid";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -237,7 +237,7 @@ async function connect() {
     publisherChannel = await connection.createChannel();
 
     // Create one exclusive queue for this service to receive replies
-    const q = await publisherChannel.assertQueue("", { exclusive: true });
+    const q = await publisherChannel.assertQueue("", {exclusive: true});
     replyQueue = q.queue;
 
     // Start consuming from this reply queue immediately
@@ -257,7 +257,7 @@ async function connect() {
           pendingRequests.delete(correlationId);
         }
       },
-      { noAck: true },
+      {noAck: true},
     );
 
     publisherChannel.on("error", (err) => {
@@ -278,7 +278,7 @@ async function connect() {
 
 async function createResponder(queueName, handler) {
   if (!listenerChannel) await connect();
-  await listenerChannel.assertQueue(queueName, { durable: false });
+  await listenerChannel.assertQueue(queueName, {durable: false});
 
   console.log(`[Responder] Listening for requests on '${queueName}'`);
 
@@ -302,7 +302,7 @@ async function createResponder(queueName, handler) {
       listenerChannel.sendToQueue(
         replyTo,
         Buffer.from(JSON.stringify(response)),
-        { correlationId },
+        {correlationId},
       );
 
       listenerChannel.ack(msg);
@@ -318,7 +318,7 @@ async function createResponder(queueName, handler) {
       listenerChannel.sendToQueue(
         replyTo,
         Buffer.from(JSON.stringify(errorResponse)),
-        { correlationId },
+        {correlationId},
       );
 
       listenerChannel.ack(msg); // Ack even on error so message doesn't get stuck
@@ -343,7 +343,7 @@ async function sendRPCRequest(queueName, data) {
     }, 20000); // Increased timeout to 20s for safety
 
     // 2. Store the resolve/reject functions in the Map
-    pendingRequests.set(correlationId, { resolve, reject, timeout });
+    pendingRequests.set(correlationId, {resolve, reject, timeout});
 
     // 3. Send the message using the shared channel
     try {
@@ -376,4 +376,4 @@ async function publishToQueue(queueName, data) {
   }
 }
 
-export { connect, createResponder, sendRPCRequest, publishToQueue };
+export {connect, createResponder, sendRPCRequest, publishToQueue};

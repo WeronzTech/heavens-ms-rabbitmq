@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 const voucherSchema = new mongoose.Schema(
   {
-    recipientName: { type: String, required: true },
-    purpose: { type: String, required: true },
-    amount: { type: Number, required: true },
-    date: { type: Date, default: Date.now },
-    createdBy: { type: String },
+    recipientName: {type: String, required: true},
+    purpose: {type: String, required: true},
+    amount: {type: Number, required: true},
+    date: {type: Date, default: Date.now},
+    createdBy: {type: String},
 
     //expenses recorded against this voucher
-    totalExpenseAmount: { type: Number, default: 0 },
+    totalExpenseAmount: {type: Number, default: 0},
     remainingAmount: {
       type: Number,
       default: function () {
@@ -21,8 +21,14 @@ const voucherSchema = new mongoose.Schema(
       enum: ["Pending", "Fully Utilized"],
       default: "Pending",
     },
+    property: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    pettyCashHolder: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
   },
-  { timestamps: true }
+  {timestamps: true},
 );
 
 const Voucher = mongoose.model("Voucher", voucherSchema);

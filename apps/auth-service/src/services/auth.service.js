@@ -1,11 +1,11 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
-import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
-import { Role } from "../models/role.model.js";
-import { Token } from "../models/token.model.js";
-import { generateTokens } from "../utils/jwt.utils.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
+import {Role} from "../models/role.model.js";
+import {Token} from "../models/token.model.js";
+import {generateTokens} from "../utils/jwt.utils.js";
 import emailService from "../../../../libs/email/email.service.js";
 import crypto from "crypto";
 
@@ -100,7 +100,7 @@ import crypto from "crypto";
 //   }
 // };
 export const tenantLogin = async (data) => {
-  const { email, password } = data;
+  const {email, password} = data;
 
   try {
     let userResponse;
@@ -109,7 +109,7 @@ export const tenantLogin = async (data) => {
     // 1️⃣ Try Client login first
     userResponse = await sendRPCRequest(
       CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_EMAIL,
-      { email },
+      {email},
     );
 
     let user = userResponse?.data;
@@ -120,7 +120,7 @@ export const tenantLogin = async (data) => {
 
       userResponse = await sendRPCRequest(
         CLIENT_PATTERN.MANAGER.GET_MANAGER_BY_EMAIL,
-        { email },
+        {email},
       );
 
       user = userResponse?.data;
@@ -177,7 +177,7 @@ export const tenantLogin = async (data) => {
         userType, // 👈 CLIENT or MANAGER
       },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: "1d" },
+      {expiresIn: "7d"},
     );
 
     // 8️⃣ Unified response
@@ -213,13 +213,13 @@ export const tenantLogin = async (data) => {
 };
 
 export const userLogin = async (loginData) => {
-  const { email, password, deviceId, deviceInfo } = loginData;
+  const {email, password, deviceId, deviceInfo} = loginData;
 
   try {
     // 1. Fetch user data from User Service
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_EMAIL,
-      { email },
+      {email},
     );
 
     if (!userResponse.success) {
@@ -272,7 +272,7 @@ export const userLogin = async (loginData) => {
     if (!existingDevice) {
       const distinctDeviceCount = await Token.countDocuments({
         userId: user._id,
-        deviceId: { $ne: deviceId },
+        deviceId: {$ne: deviceId},
       });
       if (distinctDeviceCount >= 10) {
         return {
@@ -285,11 +285,11 @@ export const userLogin = async (loginData) => {
     }
 
     // 5. Generate tokens
-    const { accessToken, refreshToken } = await generateTokens(user, deviceId);
+    const {accessToken, refreshToken} = await generateTokens(user, deviceId);
 
     // 6. Update or create token document in the database
     await Token.findOneAndUpdate(
-      { userId: user._id, deviceId },
+      {userId: user._id, deviceId},
       {
         $set: {
           currentRefreshToken: refreshToken,
@@ -298,13 +298,13 @@ export const userLogin = async (loginData) => {
         },
         $push: {
           previousRefreshTokens: {
-            $each: [{ token: refreshToken, createdAt: new Date() }],
+            $each: [{token: refreshToken, createdAt: new Date()}],
             $slice: -5, // Keep last 5 refresh tokens
           },
         },
-        $setOnInsert: { createdAt: new Date() },
+        $setOnInsert: {createdAt: new Date()},
       },
-      { upsert: true, new: true },
+      {upsert: true, new: true},
     );
 
     // 7. Return success response
@@ -337,14 +337,14 @@ const RESET_TOKEN_EXPIRY_HOURS = 1;
 const FRONTEND_URL = "https://hpanel.heavensliving.in";
 
 export const forgotPasswordUser = async (data) => {
-  const { email } = data;
+  const {email} = data;
   if (!email) {
-    return { success: false, status: 400, message: "Email is required" };
+    return {success: false, status: 400, message: "Email is required"};
   }
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_EMAIL,
-      { email },
+      {email},
     );
     if (!userResponse.success) {
       return {
@@ -355,7 +355,7 @@ export const forgotPasswordUser = async (data) => {
     }
     const user = userResponse.data;
     if (!user) {
-      return { success: false, status: 404, message: "User not found" };
+      return {success: false, status: 404, message: "User not found"};
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -383,16 +383,16 @@ export const forgotPasswordUser = async (data) => {
       success: true,
       status: 200,
       message: "Password reset link sent to your email",
-      data: { resetUrl }, // optionally return reset URL (remove if sensitive)
+      data: {resetUrl}, // optionally return reset URL (remove if sensitive)
     };
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    return { success: false, status: 500, message: "Internal server error" };
+    return {success: false, status: 500, message: "Internal server error"};
   }
 };
 
 export const resetPassword = async (data) => {
-  const { token, password } = data;
+  const {token, password} = data;
 
   if (!token || !password) {
     return {
@@ -408,7 +408,7 @@ export const resetPassword = async (data) => {
     // ✅ Ask user-service to validate token + get user
     const userResponse = await sendRPCRequest(
       USER_PATTERN.PASSWORD.GET_USER_BY_RESET_TOKEN,
-      { token: hashedToken },
+      {token: hashedToken},
     );
 
     if (!userResponse.success) {
@@ -443,7 +443,7 @@ export const resetPassword = async (data) => {
 };
 
 export const refreshAccessToken = async (data) => {
-  const { refreshToken, deviceId } = data;
+  const {refreshToken, deviceId} = data;
   console.log("herere the refreshhhxxx");
   console.log(refreshToken, deviceId);
 
@@ -485,25 +485,25 @@ export const refreshAccessToken = async (data) => {
     }
 
     if (!isValidToken) {
-      return { status: 403, error: "Invalid refresh token" };
+      return {status: 403, error: "Invalid refresh token"};
     }
 
     // Get fresh student data
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userId },
+      {userId},
     );
     const user = userResponse.body.data;
 
     // Generate new tokens
-    const { accessToken, refreshToken: newRefreshToken } = await generateTokens(
+    const {accessToken, refreshToken: newRefreshToken} = await generateTokens(
       user,
       deviceId,
     );
 
     // Update the token document with the new refresh token
     await Token.updateOne(
-      { userId, deviceId },
+      {userId, deviceId},
       {
         $set: {
           currentRefreshToken: newRefreshToken,
@@ -511,7 +511,7 @@ export const refreshAccessToken = async (data) => {
         },
         $push: {
           previousRefreshTokens: {
-            $each: [{ token: refreshToken, createdAt: new Date() }],
+            $each: [{token: refreshToken, createdAt: new Date()}],
             $slice: -5, // Keep last 5 refresh tokens
           },
         },
@@ -527,12 +527,12 @@ export const refreshAccessToken = async (data) => {
     console.error("Refresh token error:", error);
 
     if (error.name === "TokenExpiredError") {
-      return { status: 403, error: "Refresh token expired" };
+      return {status: 403, error: "Refresh token expired"};
     }
     if (error.name === "JsonWebTokenError") {
-      return { status: 403, error: "Invalid refresh token" };
+      return {status: 403, error: "Invalid refresh token"};
     }
 
-    return { status: 500, error: "Internal server error" };
+    return {status: 500, error: "Internal server error"};
   }
 };

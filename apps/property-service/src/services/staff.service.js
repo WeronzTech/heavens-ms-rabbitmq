@@ -1,13 +1,13 @@
 import Staff from "../models/staff.model.js";
 import Property from "../models/property.model.js";
-import { getAccessibleKitchens, getRoleName } from "./internal.service.js";
+import {getAccessibleKitchens, getRoleName} from "./internal.service.js";
 import {
   deleteFromFirebase,
   uploadToFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import mongoose from "mongoose";
 import Attendance from "../models/attendance.model.js";
@@ -15,7 +15,7 @@ import Attendance from "../models/attendance.model.js";
 // 🛠️ Service logic
 export const getAllStaff = async (data) => {
   try {
-    const { kitchenId, propertyId, name, manager, joinDate, status } = data;
+    const {kitchenId, propertyId, name, manager, joinDate, status} = data;
     const filter = {};
 
     if (kitchenId) filter.kitchenId = kitchenId;
@@ -30,11 +30,11 @@ export const getAllStaff = async (data) => {
       const endDate = new Date(date.getTime() - 5.5 * 60 * 60 * 1000);
       endDate.setUTCHours(23, 59, 59, 999);
 
-      filter.joinDate = { $gte: startDate, $lte: endDate };
+      filter.joinDate = {$gte: startDate, $lte: endDate};
     }
 
     if (status) filter.status = status;
-    if (name) filter.name = { $regex: name, $options: "i" };
+    if (name) filter.name = {$regex: name, $options: "i"};
 
     const staffMembers = await Staff.find(filter);
 
@@ -49,10 +49,10 @@ export const getAllStaff = async (data) => {
 
         if (accessibleKitchenIds.length > 0) {
           kitchenStaff = await Staff.find({
-            kitchenId: { $in: accessibleKitchenIds },
-            ...(status && { status }),
-            ...(name && { name: { $regex: name, $options: "i" } }),
-            ...(joinDate && { joinDate: filter.joinDate }),
+            kitchenId: {$in: accessibleKitchenIds},
+            ...(status && {status}),
+            ...(name && {name: {$regex: name, $options: "i"}}),
+            ...(joinDate && {joinDate: filter.joinDate}),
           });
         }
       } catch (err) {
@@ -85,7 +85,7 @@ export const getAllStaff = async (data) => {
       try {
         const managerResponse = await sendRPCRequest(
           CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
-          { propertyId, joinDate, status, name },
+          {propertyId, joinDate, status, name},
         );
 
         const managerData = managerResponse?.data || managerResponse;
@@ -94,10 +94,10 @@ export const getAllStaff = async (data) => {
           const enrichedManagers = await Promise.all(
             managerData.map(async (m) => {
               if (m && m._id) {
-                const enrichedManager = { ...m };
+                const enrichedManager = {...m};
                 if (m.role) {
                   const roleName = await getRoleName(m.role);
-                  enrichedManager.role = { _id: m.role, name: roleName };
+                  enrichedManager.role = {_id: m.role, name: roleName};
                 }
                 return enrichedManager;
               }
@@ -133,7 +133,7 @@ export const getAllStaff = async (data) => {
 
 export const getStaffById = async (data) => {
   try {
-    const { id } = data;
+    const {id} = data;
 
     if (!id) {
       return {
@@ -159,7 +159,7 @@ export const getStaffById = async (data) => {
       try {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: propertyId },
+          {id: propertyId},
         );
 
         if (propertyResponse?.data) {
@@ -169,14 +169,14 @@ export const getStaffById = async (data) => {
             name: propertyData.propertyName,
           };
         } else {
-          staffObject.Property = { name: "Property details not found" };
+          staffObject.Property = {name: "Property details not found"};
         }
       } catch (error) {
         console.error(
           `❌ Failed to fetch property details for ID ${propertyId}:`,
           error.message,
         );
-        staffObject.Property = { name: "Could not fetch property" };
+        staffObject.Property = {name: "Could not fetch property"};
       }
     }
 
@@ -195,13 +195,24 @@ export const getStaffById = async (data) => {
 
 export const deleteStaff = async (data) => {
   try {
-    const { id, adminName } = data;
+    const {id, adminName} = data;
 
     const staff = await Staff.findById(id);
-    if (!staff) return { status: 404, message: "Staff not found" };
+    if (!staff) {
+      return {status: 404, message: "Staff not found"};
+    }
 
-    await Staff.findByIdAndDelete(id);
+    if (staff.deleted) {
+      return {status: 400, message: "Staff already deleted"};
+    }
 
+    // Soft delete
+    staff.deleted = true;
+    staff.status = "Inactive";
+
+    await staff.save();
+
+    // Get property name for message
     let propertyName = "Unknown Property";
     if (staff.propertyId) {
       const property = await Property.findById(staff.propertyId);
@@ -210,7 +221,7 @@ export const deleteStaff = async (data) => {
 
     return {
       status: 200,
-      message: `Employee "${staff.name}" was deleted from property "${propertyName}" by ${adminName}`,
+      message: `Employee "${staff.name}" was removed from property "${propertyName}" by ${adminName}`,
     };
   } catch (error) {
     console.error("Error in deleteStaff service:", error);
@@ -226,10 +237,10 @@ export const deleteStaff = async (data) => {
  */
 export const staffStatusChange = async (data) => {
   try {
-    const { id, adminName } = data;
+    const {id, adminName} = data;
 
     const staff = await Staff.findById(id);
-    if (!staff) return { status: 404, message: "Staff not found" };
+    if (!staff) return {status: 404, message: "Staff not found"};
 
     const oldStatus = staff.status;
     staff.status = oldStatus === "Active" ? "Inactive" : "Active";
@@ -259,16 +270,16 @@ export const staffStatusChange = async (data) => {
  */
 export const getStaffByPropertyId = async (data) => {
   try {
-    const { propertyId } = data;
+    const {propertyId} = data;
 
-    const staffMembers = await Staff.find({ propertyId, deleted: false });
+    const staffMembers = await Staff.find({propertyId, deleted: false});
 
     const enrichedStaff = await Promise.all(
       staffMembers.map(async (staff) => {
         const staffObject = staff.toObject();
         if (staff.role) {
           const roleName = await getRoleName(staff.role);
-          staffObject.role = { _id: staff.role, name: roleName };
+          staffObject.role = {_id: staff.role, name: roleName};
         }
         return staffObject;
       }),
@@ -293,41 +304,20 @@ export const addStaff = async (data) => {
     const {
       name,
       jobTitle,
+      employeeType,
       gender,
-      dob,
       contactNumber,
       address,
-      email,
-      // role,
       salary,
       joinDate,
-      panNumber,
       status,
       propertyId,
       createdBy,
       kitchenId,
-      adminName, // pass from controller
-      files, // files passed via RPC
+      adminName,
+      files,
+      clientId,
     } = data;
-    console.log(data);
-    // if (
-    //   !files ||
-    //   !files.photo ||
-    //   !files.aadharFrontImage ||
-    //   !files.aadharBackImage ||
-    //   !files.panCardImage
-    // ) {
-    //   return {
-    //     status: 400,
-    //     message: "Missing required documents.",
-    //   };
-    // }
-
-    // ✅ Validate property
-    const existingProperty = await Property.findById(propertyId);
-    if (!existingProperty) {
-      return { status: 404, message: "Property not found" };
-    }
 
     // ✅ Handle file uploads
     let photoUrl = null;
@@ -363,12 +353,10 @@ export const addStaff = async (data) => {
     const newStaff = new Staff({
       name,
       jobTitle,
+      employeeType,
       gender,
-      dob,
       contactNumber,
       address,
-      email,
-      // role,
       salary,
       pendingSalary: salary,
       joinDate,
@@ -380,7 +368,7 @@ export const addStaff = async (data) => {
       aadharFrontImage: aadharFrontUrl,
       aadharBackImage: aadharBackUrl,
       panCardImage: panCardUrl,
-      panCardNumber: panNumber,
+      clientId,
     });
 
     const savedStaff = await newStaff.save();
@@ -405,26 +393,90 @@ export const addStaff = async (data) => {
     };
   } catch (error) {
     console.error("❌ Error in addStaff:", error);
-    return { status: 500, message: error.message };
+    return {status: 500, message: error.message};
   }
 };
 
 export const updateStaff = async (data) => {
   try {
-    const {
-      staffId,
-      updateData,
-      adminName,
-      files, // files from RPC
-    } = data;
+    const {staffId, updateData = {}, adminName, files} = data;
 
-    // ✅ Check if staff exists
+    // ============================================================
+    // 1️⃣ Check if staff exists
+    // ============================================================
     const existingStaff = await Staff.findById(staffId);
     if (!existingStaff) {
-      return { status: 404, message: "Staff not found" };
+      return {status: 404, message: "Staff not found"};
     }
 
-    // ✅ Handle file replacements
+    // ============================================================
+    // 2️⃣ Normalize propertyId & kitchenId (string → array)
+    // ============================================================
+    if (updateData.propertyId) {
+      if (!Array.isArray(updateData.propertyId)) {
+        updateData.propertyId = [updateData.propertyId];
+      }
+    }
+
+    if (updateData.kitchenId) {
+      if (!Array.isArray(updateData.kitchenId)) {
+        updateData.kitchenId = [updateData.kitchenId];
+      }
+    }
+
+    // ============================================================
+    // 3️⃣ Handle employeeType switching
+    // ============================================================
+    if (updateData.employeeType) {
+      switch (updateData.employeeType) {
+        case "Property":
+          updateData.kitchenId = [];
+          break;
+
+        case "Kitchen":
+          updateData.propertyId = [];
+          break;
+
+        case "Property & Kitchen":
+          // allow both
+          break;
+
+        default:
+          return {status: 400, message: "Invalid employeeType"};
+      }
+    }
+
+    // ============================================================
+    // 4️⃣ Validate propertyIds (if provided)
+    // ============================================================
+    if (updateData.propertyId && updateData.propertyId.length > 0) {
+      const validProperties = await Property.find({
+        _id: {$in: updateData.propertyId},
+      });
+
+      if (validProperties.length !== updateData.propertyId.length) {
+        return {status: 404, message: "One or more properties not found"};
+      }
+    }
+
+    // ============================================================
+    // 5️⃣ (Optional) Validate kitchenIds if you have Kitchen model
+    // ============================================================
+    /*
+    // if (updateData.kitchenId && updateData.kitchenId.length > 0) {
+    //   const validKitchens = await Kitchen.find({
+    //     _id: { $in: updateData.kitchenId },
+    //   });
+
+    //   if (validKitchens.length !== updateData.kitchenId.length) {
+    //     return { status: 404, message: "One or more kitchens not found" };
+    //   }
+    // }
+    */
+
+    // ============================================================
+    // 6️⃣ Handle File Replacements (only if file exists)
+    // ============================================================
     if (files) {
       if (files.photo) {
         if (existingStaff.photo) {
@@ -452,6 +504,7 @@ export const updateStaff = async (data) => {
           "staff-documents",
         );
       }
+
       if (files.panCardImage) {
         if (existingStaff.panCardImage) {
           await deleteFromFirebase(existingStaff.panCardImage);
@@ -463,28 +516,43 @@ export const updateStaff = async (data) => {
       }
     }
 
-    // ✅ Validate property if changed
-    if (updateData.propertyId) {
-      const propertyExists = await Property.findById(updateData.propertyId);
-      if (!propertyExists) {
-        return { status: 404, message: "Property not found" };
-      }
+    // ============================================================
+    // 7️⃣ Ensure numeric fields are proper numbers
+    // ============================================================
+    if (updateData.salary) {
+      updateData.salary = Number(updateData.salary);
     }
 
-    // ✅ Update staff
-    const updatedStaff = await Staff.findByIdAndUpdate(staffId, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    // ============================================================
+    // 8️⃣ Set updatedBy
+    // ============================================================
+    updateData.updatedBy = adminName;
 
-    // ✅ Log update
+    // ============================================================
+    // 9️⃣ Update Staff
+    // ============================================================
+    const updatedStaff = await Staff.findByIdAndUpdate(
+      staffId,
+      {$set: updateData},
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    // ============================================================
+    // 🔟 Logging
+    // ============================================================
     try {
-      const propertyName =
-        (await Property.findById(updatedStaff.propertyId))?.propertyName ||
-        "Unknown Property";
+      let propertyName = "N/A";
+
+      if (updatedStaff.propertyId?.length > 0) {
+        const property = await Property.findById(updatedStaff.propertyId[0]);
+        propertyName = property?.propertyName || "Unknown Property";
+      }
 
       await PropertyLog.create({
-        propertyId: updatedStaff.propertyId,
+        propertyId: updatedStaff.propertyId?.[0] || null,
         action: "update",
         category: "staff",
         changedByName: adminName,
@@ -501,13 +569,13 @@ export const updateStaff = async (data) => {
     };
   } catch (error) {
     console.error("❌ Error in updateStaff:", error);
-    return { status: 500, message: error.message };
+    return {status: 500, message: error.message};
   }
 };
 
 export const getEmployeeCount = async (data) => {
-  const { propertyId } = data;
-  const filter = { status: "Active" };
+  const {propertyId} = data;
+  const filter = {status: "Active"};
 
   if (propertyId) {
     filter.propertyId = new mongoose.Types.ObjectId(propertyId);
@@ -518,7 +586,7 @@ export const getEmployeeCount = async (data) => {
 
 export const getAllStaffsForAttendance = async (data) => {
   try {
-    const { kitchenId, propertyId, name, manager, joinDate, status } = data;
+    const {kitchenId, propertyId, name, manager, joinDate, status} = data;
     const filter = {};
 
     if (kitchenId) filter.kitchenId = kitchenId;
@@ -530,11 +598,11 @@ export const getAllStaffsForAttendance = async (data) => {
       startDate.setUTCHours(0, 0, 0, 0);
       const endDate = new Date(date.getTime() - 5.5 * 60 * 60 * 1000);
       endDate.setUTCHours(23, 59, 59, 999);
-      filter.joinDate = { $gte: startDate, $lte: endDate };
+      filter.joinDate = {$gte: startDate, $lte: endDate};
     }
 
     if (status) filter.status = status;
-    if (name) filter.name = { $regex: name, $options: "i" };
+    if (name) filter.name = {$regex: name, $options: "i"};
 
     const staffMembers = await Staff.find(filter);
 
@@ -549,10 +617,10 @@ export const getAllStaffsForAttendance = async (data) => {
 
         if (accessibleKitchenIds.length > 0) {
           kitchenStaff = await Staff.find({
-            kitchenId: { $in: accessibleKitchenIds },
-            ...(status && { status }),
-            ...(name && { name: { $regex: name, $options: "i" } }),
-            ...(joinDate && { joinDate: filter.joinDate }),
+            kitchenId: {$in: accessibleKitchenIds},
+            ...(status && {status}),
+            ...(name && {name: {$regex: name, $options: "i"}}),
+            ...(joinDate && {joinDate: filter.joinDate}),
           });
         }
       } catch (err) {
@@ -596,7 +664,7 @@ export const getAllStaffsForAttendance = async (data) => {
         const todayAttendance = await Attendance.findOne({
           employeeId: staff._id,
         })
-          .sort({ date: -1 })
+          .sort({date: -1})
           .lean();
 
         if (todayAttendance) {
@@ -611,7 +679,7 @@ export const getAllStaffsForAttendance = async (data) => {
         const previousAttendance = await Attendance.findOne({
           employeeId: staff._id,
         })
-          .sort({ date: -1 })
+          .sort({date: -1})
           .skip(1)
           .lean();
 
@@ -627,7 +695,7 @@ export const getAllStaffsForAttendance = async (data) => {
         const monthlyPresentCount = await Attendance.countDocuments({
           employeeId: staff._id,
           status: "Present",
-          date: { $gte: startOfMonth, $lte: endOfMonth },
+          date: {$gte: startOfMonth, $lte: endOfMonth},
         });
 
         staffObject.monthlyPresentDays = monthlyPresentCount;
@@ -641,7 +709,7 @@ export const getAllStaffsForAttendance = async (data) => {
       try {
         const managerResponse = await sendRPCRequest(
           CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
-          { propertyId, joinDate, status, name },
+          {propertyId, joinDate, status, name},
         );
 
         const managerData = managerResponse?.data || managerResponse;
@@ -649,18 +717,18 @@ export const getAllStaffsForAttendance = async (data) => {
           const enrichedManagers = await Promise.all(
             managerData.map(async (m) => {
               if (m && m._id) {
-                const enrichedManager = { ...m };
+                const enrichedManager = {...m};
 
                 if (m.role) {
                   const roleName = await getRoleName(m.role);
-                  enrichedManager.role = { _id: m.role, name: roleName };
+                  enrichedManager.role = {_id: m.role, name: roleName};
                 }
 
                 // --- Today's (latest) attendance ---
                 const todayAttendance = await Attendance.findOne({
                   employeeId: m._id,
                 })
-                  .sort({ date: -1 })
+                  .sort({date: -1})
                   .lean();
 
                 if (todayAttendance) {
@@ -675,7 +743,7 @@ export const getAllStaffsForAttendance = async (data) => {
                 const previousAttendance = await Attendance.findOne({
                   employeeId: m._id,
                 })
-                  .sort({ date: -1 })
+                  .sort({date: -1})
                   .skip(1)
                   .lean();
 
@@ -691,7 +759,7 @@ export const getAllStaffsForAttendance = async (data) => {
                 const monthlyPresentCount = await Attendance.countDocuments({
                   employeeId: m._id,
                   status: "Present",
-                  date: { $gte: startOfMonth, $lte: endOfMonth },
+                  date: {$gte: startOfMonth, $lte: endOfMonth},
                 });
 
                 enrichedManager.monthlyPresentDays = monthlyPresentCount;

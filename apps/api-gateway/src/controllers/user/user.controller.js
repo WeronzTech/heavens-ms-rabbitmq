@@ -1,5 +1,5 @@
-import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
-import { USER_PATTERN } from "../../../../../libs/patterns/user/user.pattern.js";
+import {sendRPCRequest} from "../../../../../libs/common/rabbitMq.js";
+import {USER_PATTERN} from "../../../../../libs/patterns/user/user.pattern.js";
 
 export const registerUser = async (req, res) => {
   const {
@@ -33,7 +33,7 @@ export const registerUser = async (req, res) => {
 };
 
 export const getUnapprovedUsers = async (req, res) => {
-  const { propertyId } = req.query;
+  const {propertyId} = req.query;
   approveUser;
   const response = await sendRPCRequest(USER_PATTERN.USER.UNAPPROVED_USER, {
     propertyId,
@@ -43,7 +43,7 @@ export const getUnapprovedUsers = async (req, res) => {
 };
 
 export const approveUser = async (req, res) => {
-  const { id } = req.params;
+  const {id} = req.params;
   const {
     name,
     email,
@@ -90,8 +90,8 @@ export const approveUser = async (req, res) => {
 };
 
 export const rejectUser = async (req, res) => {
-  const { id } = req.params;
-  const { updatedBy } = req.query;
+  const {id} = req.params;
+  const {updatedBy} = req.query;
 
   const response = await sendRPCRequest(USER_PATTERN.USER.REJECT_USER, {
     id,
@@ -105,7 +105,7 @@ export const rejectUser = async (req, res) => {
 };
 
 export const verifyEmail = async (req, res) => {
-  const { token, email } = req.query;
+  const {token, email} = req.query;
 
   const response = await sendRPCRequest(USER_PATTERN.USER.VERIFY_EMAIL, {
     token,
@@ -120,7 +120,7 @@ export const verifyEmail = async (req, res) => {
 };
 
 export const updateProfileCompletion = async (req, res) => {
-  const { id } = req.params;
+  const {id} = req.params;
   const updateData = req.body;
   const files = req.files;
 
@@ -134,7 +134,7 @@ export const updateProfileCompletion = async (req, res) => {
 
 export const adminUpdateUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const {id} = req.params;
 
     const files = req.files;
     const flat = req.body;
@@ -150,9 +150,7 @@ export const adminUpdateUser = async (req, res) => {
 
     return res
       .status(response?.status || 500)
-      .json(
-        response?.body || { success: false, error: "Invalid RPC response" },
-      );
+      .json(response?.body || {success: false, error: "Invalid RPC response"});
   } catch (error) {
     console.error("[API-GATEWAY] adminUpdateUserController error:", error);
     return res.status(500).json({
@@ -173,7 +171,7 @@ export const getHeavensUserById = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] getHeavensUserById error:", error);
@@ -186,7 +184,7 @@ export const getHeavensUserById = async (req, res) => {
 
 export const getUsersByRentType = async (req, res) => {
   try {
-    const { rentType, propertyId, all, page, limit, search, status, joinDate } =
+    const {rentType, propertyId, all, page, limit, search, status, joinDate} =
       req.query;
 
     const userPropertyIds = req.properties;
@@ -211,7 +209,7 @@ export const getUsersByRentType = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] getUsersByRentTypeHandler error:", error);
@@ -224,7 +222,7 @@ export const getUsersByRentType = async (req, res) => {
 
 export const getCheckOutedUsersByRentType = async (req, res) => {
   try {
-    const { rentType, propertyId, page = 1, limit = 10, search } = req.query;
+    const {rentType, propertyId, page = 1, limit = 10, search} = req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_CHECKOUTED_USERS_BY_RENT_TYPE,
@@ -240,7 +238,7 @@ export const getCheckOutedUsersByRentType = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error(
@@ -256,8 +254,8 @@ export const getCheckOutedUsersByRentType = async (req, res) => {
 
 export const vacateUser = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { adminName } = req.body;
+    const {id} = req.params;
+    const {adminName} = req.body;
 
     const response = await sendRPCRequest(USER_PATTERN.USER.VACATE_USER, {
       id,
@@ -267,7 +265,7 @@ export const vacateUser = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] vacateUserHandler error:", error);
@@ -280,7 +278,7 @@ export const vacateUser = async (req, res) => {
 
 export const rejoinUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const {id} = req.params;
     const {
       userType,
       rentType,
@@ -332,7 +330,7 @@ export const rejoinUser = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] rejoinUserHandler error:", error);
@@ -345,7 +343,7 @@ export const rejoinUser = async (req, res) => {
 
 export const getUserIds = async (req, res) => {
   try {
-    const { messOnly, studentOnly, dailyRentOnly, workerOnly } = req.query;
+    const {messOnly, studentOnly, dailyRentOnly, workerOnly} = req.query;
     const response = await sendRPCRequest(USER_PATTERN.USER.GET_USER_IDS, {
       messOnly,
       studentOnly,
@@ -356,7 +354,7 @@ export const getUserIds = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] getUserIdsHandler error:", error);
@@ -369,16 +367,16 @@ export const getUserIds = async (req, res) => {
 
 export const getUsersForNotification = async (req, res) => {
   try {
-    const { propertyId } = req.params;
+    const {propertyId} = req.params;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_USERS_FOR_NOTIFICATION,
-      { propertyId },
+      {propertyId},
     );
 
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error(
@@ -394,16 +392,16 @@ export const getUsersForNotification = async (req, res) => {
 
 export const getTodayCheckouts = async (req, res) => {
   try {
-    const { type, propertyId } = req.query;
+    const {type, propertyId} = req.query;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_TODAY_CHECKOUTS,
-      { type, propertyId },
+      {type, propertyId},
     );
 
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] getTodayCheckoutsHandler error:", error);
@@ -416,8 +414,8 @@ export const getTodayCheckouts = async (req, res) => {
 
 export const extendUserDays = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { extendDate, additionalDays, newRentAmount, adminName } = req.body;
+    const {id} = req.params;
+    const {extendDate, additionalDays, newRentAmount, adminName} = req.body;
     const response = await sendRPCRequest(USER_PATTERN.USER.EXTEND_USER_DAYS, {
       id,
       extendDate,
@@ -429,7 +427,7 @@ export const extendUserDays = async (req, res) => {
     return res
       .status(response?.status || 500)
       .json(
-        response?.body || { success: false, message: "Invalid RPC response" },
+        response?.body || {success: false, message: "Invalid RPC response"},
       );
   } catch (error) {
     console.error("[API-GATEWAY] extendUserDaysHandler error:", error);
@@ -442,19 +440,19 @@ export const extendUserDays = async (req, res) => {
 
 export const createStatusRequest = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { type, reason, isInstantCheckout } = req.body;
+    const {id} = req.params;
+    const {type, reason, isInstantCheckout} = req.body;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.CREATE_STATUS_REQUEST,
-      { id, type, reason, isInstantCheckout },
+      {id, type, reason, isInstantCheckout},
     );
 
     return res
       .status(response?.status || 500)
-      .json(response?.body || { error: "Invalid RPC response" });
+      .json(response?.body || {error: "Invalid RPC response"});
   } catch (error) {
     console.error("[API-GATEWAY] createStatusRequestHandler error:", error);
-    return res.status(500).json({ error: "Failed to submit status request" });
+    return res.status(500).json({error: "Failed to submit status request"});
   }
 };
 
@@ -480,66 +478,66 @@ export const getPendingStatusRequests = async (req, res) => {
 
     return res
       .status(response?.status || 500)
-      .json(response?.body || { error: "Invalid RPC response" });
+      .json(response?.body || {error: "Invalid RPC response"});
   } catch (error) {
     console.error(
       "[API-GATEWAY] getPendingStatusRequestsHandler error:",
       error,
     );
-    return res.status(500).json({ error: "Failed to fetch pending requests" });
+    return res.status(500).json({error: "Failed to fetch pending requests"});
   }
 };
 export const respondToStatusRequest = async (req, res) => {
   try {
-    const { id, requestId } = req.params;
-    const { status, comment, adminName } = req.body;
+    const {id, requestId} = req.params;
+    const {status, comment, adminName} = req.body;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.RESPOND_TO_STATUS_REQUEST,
-      { id, requestId, status, comment, adminName },
+      {id, requestId, status, comment, adminName},
     );
 
     return res
       .status(response?.status || 500)
-      .json(response?.body || { error: "Invalid RPC response" });
+      .json(response?.body || {error: "Invalid RPC response"});
   } catch (error) {
     console.error("[API-GATEWAY] respondToStatusRequestHandler error:", error);
-    return res.status(500).json({ error: "Failed to process request" });
+    return res.status(500).json({error: "Failed to process request"});
   }
 };
 
 export const getUserStatusRequests = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { type, status } = req.query;
+    const {id} = req.params;
+    const {type, status} = req.query;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_STATUS_REQUESTS,
-      { id, type, status },
+      {id, type, status},
     );
 
     return res
       .status(response?.status || 500)
-      .json(response?.body || { error: "Invalid RPC response" });
+      .json(response?.body || {error: "Invalid RPC response"});
   } catch (error) {
     console.error("[API-GATEWAY] getUserStatusRequestsHandler error:", error);
-    return res.status(500).json({ error: "Failed to fetch status requests" });
+    return res.status(500).json({error: "Failed to fetch status requests"});
   }
 };
 
 export const handleBlockStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { action, extendDate, adminName } = req.body;
+    const {id} = req.params;
+    const {action, extendDate, adminName} = req.body;
     const response = await sendRPCRequest(
       USER_PATTERN.USER.HANDLE_BLOCK_STATUS,
-      { id, action, extendDate, adminName },
+      {id, action, extendDate, adminName},
     );
 
     return res
       .status(response?.status || 500)
-      .json(response?.body || { error: "Invalid RPC response" });
+      .json(response?.body || {error: "Invalid RPC response"});
   } catch (error) {
     console.error("[API-GATEWAY] handleBlockStatusHandler error:", error);
-    return res.status(500).json({ error: "Failed to update block status" });
+    return res.status(500).json({error: "Failed to update block status"});
   }
 };
 
@@ -556,7 +554,7 @@ export const getAllPendingPayments = async (req, res) => {
 
     const response = await sendRPCRequest(
       USER_PATTERN.PAYMENT.GET_ALL_PAYMENT_PENDING_USERS,
-      { propertyId, rentType, userType, search, page, limit },
+      {propertyId, rentType, userType, search, page, limit},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -572,11 +570,11 @@ export const getAllPendingPayments = async (req, res) => {
 
 export const getUsersByAgencyController = async (req, res) => {
   try {
-    const { agent } = req.query;
+    const {agent} = req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_AGENCY,
-      { agent },
+      {agent},
     );
 
     return res.status(response.status).json(response);
@@ -591,11 +589,11 @@ export const getUsersByAgencyController = async (req, res) => {
 
 export const getAllPendingDeposits = async (req, res) => {
   try {
-    const { propertyId, search, userType, page = 1, limit = 10 } = req.query;
+    const {propertyId, search, userType, page = 1, limit = 10} = req.query;
 
     const response = await sendRPCRequest(
       USER_PATTERN.PAYMENT.GET_ALL_DEPOSIT_PENDING_USERS,
-      { propertyId, search, userType, page, limit },
+      {propertyId, search, userType, page, limit},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -617,7 +615,7 @@ const handleRPCAndRespond = async (res, pattern, data) => {
     console.error(`API Gateway Error in ${pattern}:`, error);
     return res
       .status(500)
-      .json({ message: "Internal Server Error in API Gateway." });
+      .json({message: "Internal Server Error in API Gateway."});
   }
 };
 
@@ -626,7 +624,7 @@ export const getUsersWithBirthdayToday = (req, res) =>
 
 export const allocateUsersToAgent = async (req, res) => {
   try {
-    const { agentId, userIds } = req.body;
+    const {agentId, userIds} = req.body;
 
     if (!agentId || !Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({
@@ -637,7 +635,7 @@ export const allocateUsersToAgent = async (req, res) => {
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.ALLOCATE_AGENT_TO_USERS,
-      { agentId, userIds },
+      {agentId, userIds},
     );
 
     return res.status(response?.status || 500).json(response);
@@ -677,4 +675,42 @@ export const registerUserFromPanel = async (req, res) => {
   );
 
   return res.status(response.statusCode).json(response.body);
+};
+
+export const updateRentAndDates = async (req, res) => {
+  try {
+    const {
+      userId,
+      dailyRent,
+      rent,
+      checkInDate,
+      checkOutDate,
+      messStartDate,
+      messEndDate,
+      noOfDays,
+    } = req.body;
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.USER.UPDATE_RENT_AND_DATE,
+      {
+        userId,
+        dailyRent,
+        rent,
+        checkInDate,
+        checkOutDate,
+        messStartDate,
+        messEndDate,
+        noOfDays,
+      },
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("RPC updateRentAndDates Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
 };

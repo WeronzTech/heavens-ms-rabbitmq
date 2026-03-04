@@ -11,7 +11,6 @@ import {
 } from "../../controllers/client/client.controller.js";
 
 const clientRoutes = express.Router();
-
 clientRoutes.post("/register-admin", registerAdmin);
 clientRoutes.post("/register-client", registerClient);
 clientRoutes.post("/getClientByEmail", getClientByEmail);

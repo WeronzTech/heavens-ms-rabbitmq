@@ -1,5 +1,5 @@
-import { createResponder } from "../../../../libs/common/rabbitMq.js";
-import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+import {createResponder} from "../../../../libs/common/rabbitMq.js";
+import {ACCOUNTS_PATTERN} from "../../../../libs/patterns/accounts/accounts.pattern.js";
 import {
   createJournalEntry,
   createManualJournalEntry,
@@ -19,15 +19,15 @@ createResponder(
       // This is an RPC call, so it won't have a session from another service.
       // We create a new session here to ensure the journal entry itself is atomic.
       await createJournalEntry(data);
-      return { success: true, status: 201, message: "Journal entry created." };
+      return {success: true, status: 201, message: "Journal entry created."};
     } catch (error) {
       console.error(
         "[Accounting Controller] Error creating journal entry via RPC:",
-        error
+        error,
       );
-      return { success: false, status: 500, message: error.message };
+      return {success: false, status: 500, message: error.message};
     }
-  }
+  },
 );
 
 createResponder(
@@ -35,7 +35,7 @@ createResponder(
   async (data) => {
     // We expect 'performedBy' (admin name/ID) to be in the data
     return await createManualJournalEntry(data);
-  }
+  },
 );
 
 createResponder(ACCOUNTS_PATTERN.ACCOUNTING.VOUCHER_PAYMENT, async (data) => {
@@ -56,12 +56,12 @@ createResponder(
   ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRIES,
   async (data) => {
     return await getAllJournalEntries(data);
-  }
+  },
 );
 
 createResponder(
   ACCOUNTS_PATTERN.ACCOUNTING.GET_JOURNAL_ENTRY_ID,
   async (data) => {
     return await getJournalEntryById(data);
-  }
+  },
 );

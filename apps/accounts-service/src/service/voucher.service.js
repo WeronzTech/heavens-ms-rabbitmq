@@ -1,27 +1,20 @@
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
 import Voucher from "../models/voucher.model.js";
-import { createAccountLog } from "./accountsLog.service.js";
+import {createAccountLog} from "./accountsLog.service.js";
 
 export const addVoucher = async (data) => {
   try {
-    const { recipientName, purpose, amount, date, createdBy } = data;
-    const response = await sendRPCRequest(
-      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_CASH_PAYMENTS,
-      {}
-    );
-    console.log(response);
-    const netCash = response?.netCash ?? 0;
-
-    // 🔹 Check if enough cash is available
-    if (amount > netCash) {
-      return {
-        success: false,
-        status: 400,
-        message: `Insufficient cash balance. Available: ₹${netCash}, Requested: ₹${amount}`,
-      };
-    }
-
+    const {
+      recipientName,
+      purpose,
+      amount,
+      date,
+      createdBy,
+      property,
+      pettyCashHolder,
+    } = data;
+    console.log(data);
     // Create new voucher
     const newVoucher = await Voucher.create({
       recipientName,
@@ -29,6 +22,8 @@ export const addVoucher = async (data) => {
       amount,
       date,
       createdBy,
+      property,
+      pettyCashHolder: pettyCashHolder.manager,
     });
 
     await createAccountLog({
@@ -36,11 +31,15 @@ export const addVoucher = async (data) => {
       action: "Create",
       description: `Voucher of ₹${newVoucher.amount} created for ${newVoucher.recipientName}.`,
       amount: -newVoucher.amount, // Negative as it's a liability/expense
-      // propertyId: newVoucher.propertyId,
+      propertyId: newVoucher.property,
       performedBy: data.date,
       referenceId: newVoucher._id,
     });
-
+    await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+      manager: pettyCashHolder.manager,
+      pettyCashType: "inHand",
+      inHandAmount: -amount,
+    });
     return {
       success: true,
       status: 201,
@@ -139,7 +138,7 @@ export const deleteVoucher = async (data) => {
 
 export const getVoucherByProperty = async (data) => {
   try {
-    const { status, search, month, year } = data || {};
+    const {status, search, month, year} = data || {};
     const query = {};
 
     if (status && status !== "All") {
@@ -171,16 +170,8 @@ export const getVoucherByProperty = async (data) => {
 
     // 🔹 Fetch filtered vouchers
     const vouchers = await Voucher.find(query)
-      .sort({ date: -1, createdAt: -1 })
+      .sort({date: -1, createdAt: -1})
       .lean();
-
-    if (!vouchers || vouchers.length === 0) {
-      return {
-        success: false,
-        status: 404,
-        message: "No vouchers found.",
-      };
-    }
 
     return {
       success: true,

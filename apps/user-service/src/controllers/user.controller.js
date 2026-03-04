@@ -37,9 +37,10 @@ import {
   registerUserFromPanel,
   updatePassword,
   getBulkHeavensUserById,
+  updateRentAndDates,
 } from "../services/user.service.js";
-import { createResponder } from "../../../../libs/common/rabbitMq.js";
-import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import {createResponder} from "../../../../libs/common/rabbitMq.js";
+import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
 
 createResponder(USER_PATTERN.USER.FETCH_USER_DATA, async (data) => {
   return await fetchUserData(data);
@@ -89,7 +90,7 @@ createResponder(
   USER_PATTERN.USER.GET_CHECKOUTED_USERS_BY_RENT_TYPE,
   async (data) => {
     return await getCheckOutedUsersByRentType(data);
-  }
+  },
 );
 
 createResponder(USER_PATTERN.USER.VACATE_USER, async (data) => {
@@ -146,9 +147,9 @@ createResponder(USER_PATTERN.PASSWORD.GET_USER_BY_RESET_TOKEN, async (data) => {
 
 createResponder(
   USER_PATTERN.PASSWORD.UPDATE_PASSWORD,
-  async ({ userId, password }) => {
-    return await updatePassword({ userId, password });
-  }
+  async ({userId, password}) => {
+    return await updatePassword({userId, password});
+  },
 );
 
 createResponder(USER_PATTERN.USER.UPDATE_USER, async (data) => {
@@ -159,7 +160,7 @@ createResponder(
   USER_PATTERN.PAYMENT.GET_ALL_PAYMENT_PENDING_USERS,
   async (data) => {
     return await getAllPaymentPendingUsers(data);
-  }
+  },
 );
 
 createResponder(USER_PATTERN.DASHBOARD.GET_USERS_COUNTS, async (data) => {
@@ -174,7 +175,7 @@ createResponder(
   USER_PATTERN.DASHBOARD.GET_USER_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
   async (data) => {
     return await getUserStatisticsForAccountDashboard(data);
-  }
+  },
 );
 
 createResponder(USER_PATTERN.USER.GET_USER_BY_AGENCY, async (data) => {
@@ -185,14 +186,14 @@ createResponder(
   USER_PATTERN.PAYMENT.GET_ALL_DEPOSIT_PENDING_USERS,
   async (data) => {
     return await getPendingDepositPayments(data);
-  }
+  },
 );
 
 createResponder(
   USER_PATTERN.DASHBOARD.GET_USER_DEPOSIT_STATISTICS_FOR_ACCOUNTS_DASHBOARD,
   async (data) => {
     return await getUserDepositStatisticsForAccountDashboard(data);
-  }
+  },
 );
 
 createResponder(USER_PATTERN.USER.ALLOCATE_AGENT_TO_USERS, async (data) => {
@@ -203,7 +204,7 @@ createResponder(
   USER_PATTERN.USER.ALLOCATE_COMMISSION_AMOUNT_TO_USERS,
   async (data) => {
     return await allocateCommissionToUsers(data);
-  }
+  },
 );
 
 createResponder(USER_PATTERN.USER.REGISTER_USER_FROM_PANEL, async (data) => {
@@ -212,4 +213,8 @@ createResponder(USER_PATTERN.USER.REGISTER_USER_FROM_PANEL, async (data) => {
 
 createResponder(USER_PATTERN.USER.GET_BULK_USER_BY_ID, async (data) => {
   return await getBulkHeavensUserById(data);
+});
+
+createResponder(USER_PATTERN.USER.UPDATE_RENT_AND_DATE, async (data) => {
+  return await updateRentAndDates(data);
 });

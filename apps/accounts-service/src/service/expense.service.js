@@ -3,14 +3,14 @@ import {
   deleteFromFirebase,
   uploadToFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
 import ExpenseCategory from "../models/expenseCategory.model.js";
-import { createAccountLog } from "./accountsLog.service.js";
+import {createAccountLog} from "./accountsLog.service.js";
 import Voucher from "../models/voucher.model.js";
-import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import {createJournalEntry} from "./accounting.service.js";
+import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
 
 export const addExpense = async (data) => {
   const session = await mongoose.startSession();
@@ -28,7 +28,7 @@ export const addExpense = async (data) => {
       voucherId,
       ...expenseData
     } = data;
-
+    console.log(data);
     property = JSON.parse(property);
 
     amount = Number(amount);
@@ -52,7 +52,7 @@ export const addExpense = async (data) => {
     }
 
     if (transactionId) {
-      const existingExpense = await Expense.findOne({ transactionId });
+      const existingExpense = await Expense.findOne({transactionId});
       if (existingExpense) {
         return {
           success: false,
@@ -96,7 +96,7 @@ export const addExpense = async (data) => {
     if (paymentMethod === "Petty Cash") {
       const pettyCashResponse = await sendRPCRequest(
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-        { managerId: handledBy },
+        {managerId: handledBy},
       );
       // console.log(pettyCashResponse);
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
@@ -139,7 +139,7 @@ export const addExpense = async (data) => {
       ...expenseData,
     });
 
-    await expense.save({ session });
+    await expense.save({session});
     await createAccountLog({
       logType: "Expense",
       action: "Create",
@@ -174,13 +174,13 @@ export const addExpense = async (data) => {
         description: `Expense: ${expense.title} - ${expense.category}`,
         propertyId: expense.property.id,
         transactions: [
-          { systemName: debitAccount, debit: amount },
-          { systemName: creditAccount, credit: amount },
+          {systemName: debitAccount, debit: amount},
+          {systemName: creditAccount, credit: amount},
         ],
         referenceId: expense._id,
         referenceType: "Expense",
       },
-      { session },
+      {session},
     );
 
     if (fromVoucher && voucher) {
@@ -200,18 +200,22 @@ export const addExpense = async (data) => {
     if (billImage) {
       uploadToFirebase(billImage, "expense-images", false)
         .then(async (url) => {
-          await Expense.findByIdAndUpdate(expense._id, { imageUrl: url });
+          await Expense.findByIdAndUpdate(expense._id, {imageUrl: url});
         })
         .catch((err) => {
           console.error("Image upload failed:", err);
         });
     }
 
-    if (pettyCashType === "inHand") {
+    if (
+      paymentMethod === "Petty Cash" &&
+      pettyCashType === "inHand" &&
+      !fromVoucher
+    ) {
       await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
         manager: handledBy,
         pettyCashType,
-        inHandAmount: -amount, // 👈 deduct instead of add
+        inHandAmount: -amount,
       });
     }
 
@@ -244,6 +248,147 @@ export const addExpense = async (data) => {
   }
 };
 
+// export const addExpense = async (data) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const {
+//       allocations,
+//       amount,
+//       paymentMethod,
+//       pettyCashType,
+//       property,
+//       kitchenId,
+//       type,
+//       date,
+//     } = data;
+
+//     const isSharedExpense =
+//       Array.isArray(allocations) && allocations.length > 1;
+
+//     // 1️⃣ Validate allocation total (if shared)
+//     if (isSharedExpense) {
+//       const allocationTotal = allocations.reduce(
+//         (sum, a) => sum + Number(a.amount),
+//         0,
+//       );
+
+//       if (allocationTotal !== Number(amount)) {
+//         throw new Error("Allocation total does not match expense amount");
+//       }
+//     }
+
+//     // 2️⃣ Create parent Expense (ALWAYS)
+//     const expense = await Expense.create(
+//       [
+//         {
+//           ...data,
+//           totalAmount: amount,
+//           property: !isSharedExpense ? property : undefined,
+//           kitchenId: !isSharedExpense ? kitchenId : undefined,
+//         },
+//       ],
+//       { session },
+//     );
+
+//     const expenseId = expense[0]._id;
+
+//     // 3️⃣ Deduct cash / bank / petty cash ONCE
+//     if (paymentMethod === "Petty Cash") {
+//       await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+//         manager: data.handledBy,
+//         pettyCashType,
+//         [pettyCashType === "inHand" ? "inHandAmount" : "inAccountAmount"]:
+//           -amount,
+//       });
+//     }
+
+//     const creditAccount =
+//       paymentMethod === "Petty Cash"
+//         ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+//         : paymentMethod === "Cash"
+//           ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+//           : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+//     const debitAccount =
+//       type === "PG"
+//         ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+//         : type === "Mess"
+//           ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+//           : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+
+//     // 4️⃣ CASE A: SHARED EXPENSE → create allocations
+//     if (isSharedExpense) {
+//       for (const alloc of allocations) {
+//         const allocation = await ExpenseAllocation.create(
+//           [
+//             {
+//               expenseId,
+//               property: alloc.property,
+//               kitchenId: alloc.kitchenId,
+//               amount: alloc.amount,
+//               allocationBasis: alloc.basis || "manual",
+//             },
+//           ],
+//           { session },
+//         );
+
+//         await createJournalEntry(
+//           {
+//             date,
+//             description: `Expense: ${data.title}`,
+//             propertyId: alloc.property?.id,
+//             transactions: [
+//               { systemName: debitAccount, debit: alloc.amount },
+//               { systemName: creditAccount, credit: alloc.amount },
+//             ],
+//             referenceId: allocation[0]._id,
+//             referenceType: "ExpenseAllocation",
+//           },
+//           { session },
+//         );
+//       }
+//     }
+
+//     // 5️⃣ CASE B: SINGLE PROPERTY / SINGLE KITCHEN
+//     else {
+//       await createJournalEntry(
+//         {
+//           date,
+//           description: `Expense: ${data.title}`,
+//           propertyId: property?.id,
+//           transactions: [
+//             { systemName: debitAccount, debit: amount },
+//             { systemName: creditAccount, credit: amount },
+//           ],
+//           referenceId: expenseId,
+//           referenceType: "Expense",
+//         },
+//         { session },
+//       );
+//     }
+
+//     await session.commitTransaction();
+
+//     return {
+//       success: true,
+//       status: 201,
+//       message: "Expense created successfully",
+//       data: expense[0],
+//     };
+//   } catch (error) {
+//     await session.abortTransaction();
+//     return {
+//       success: false,
+//       status: 500,
+//       message: error.message,
+//     };
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
 export const getAllExpenses = async (data) => {
   try {
     const {
@@ -251,13 +396,14 @@ export const getAllExpenses = async (data) => {
       type,
       category,
       paymentMethod,
+      pettyCashType,
+      manager,
       month,
       year,
       search,
       page,
       limit,
     } = data;
-    console.log("Filters:", data);
 
     const query = {};
 
@@ -281,10 +427,18 @@ export const getAllExpenses = async (data) => {
       query.paymentMethod = paymentMethod;
     }
 
+    if (manager) {
+      query.handledBy = new mongoose.Types.ObjectId(manager);
+    }
+
+    if (pettyCashType) {
+      query.pettyCashType = pettyCashType;
+    }
+
     if (search) {
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { transactionId: { $regex: search, $options: "i" } },
+        {title: {$regex: search, $options: "i"}},
+        {transactionId: {$regex: search, $options: "i"}},
       ];
     }
 
@@ -312,7 +466,7 @@ export const getAllExpenses = async (data) => {
 
     // fetch data
     const expenses = await Expense.find(query)
-      .sort({ date: -1, createdAt: -1 })
+      .sort({date: -1, createdAt: -1})
       .skip(skip)
       .limit(limit);
 
@@ -320,8 +474,8 @@ export const getAllExpenses = async (data) => {
     const total = await Expense.countDocuments(query);
 
     const totalAmountResult = await Expense.aggregate([
-      { $match: query },
-      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+      {$match: query},
+      {$group: {_id: null, totalAmount: {$sum: "$amount"}}},
     ]);
 
     const totalAmount = totalAmountResult[0]?.totalAmount || 0;
@@ -332,13 +486,13 @@ export const getAllExpenses = async (data) => {
     }
 
     const availableYears = await Expense.aggregate([
-      { $match: yearQuery },
+      {$match: yearQuery},
       {
         $group: {
-          _id: { $year: "$date" },
+          _id: {$year: "$date"},
         },
       },
-      { $sort: { _id: 1 } },
+      {$sort: {_id: 1}},
       {
         $project: {
           year: "$_id",
@@ -374,18 +528,18 @@ export const getAllExpenses = async (data) => {
 // Get Expense by ID
 export const getExpenseById = async (data) => {
   try {
-    const { expenseId } = data;
+    const {expenseId} = data;
 
     if (!expenseId) {
-      return { success: false, status: 400, message: "Expense ID is required" };
+      return {success: false, status: 400, message: "Expense ID is required"};
     }
 
     const expense = await Expense.findById(expenseId);
     if (!expense) {
-      return { success: false, status: 404, message: "Expense not found" };
+      return {success: false, status: 404, message: "Expense not found"};
     }
 
-    return { success: true, status: 200, data: expense };
+    return {success: true, status: 200, data: expense};
   } catch (error) {
     console.error("[ACCOUNTS] Error in getExpenseById:", error);
     return {
@@ -400,17 +554,17 @@ export const getExpenseById = async (data) => {
 // Delete Expense
 export const deleteExpense = async (data) => {
   try {
-    const { expenseId } = data;
+    const {expenseId} = data;
 
     if (!expenseId) {
-      return { success: false, status: 400, message: "Expense ID is required" };
+      return {success: false, status: 400, message: "Expense ID is required"};
     }
 
     // 1️⃣ Fetch existing expense FIRST
     const existingExpense = await Expense.findById(expenseId);
 
     if (!existingExpense) {
-      return { success: false, status: 404, message: "Expense not found" };
+      return {success: false, status: 404, message: "Expense not found"};
     }
 
     // ✅ Delete bill image from Firebase if exists
@@ -450,7 +604,7 @@ export const deleteExpense = async (data) => {
 
     const expense = await Expense.findByIdAndDelete(expenseId);
     if (!expense) {
-      return { success: false, status: 404, message: "Expense not found" };
+      return {success: false, status: 404, message: "Expense not found"};
     }
 
     await createAccountLog({
@@ -482,10 +636,10 @@ export const deleteExpense = async (data) => {
 
 export const addExpenseCategory = async (data) => {
   try {
-    const { mainCategory, subCategory } = data;
+    const {mainCategory, subCategory} = data;
 
     const existing = await ExpenseCategory.findOne({
-      subCategory: { $regex: new RegExp(`^${subCategory}$`, "i") },
+      subCategory: {$regex: new RegExp(`^${subCategory}$`, "i")},
     });
 
     if (existing) {
@@ -520,7 +674,7 @@ export const addExpenseCategory = async (data) => {
 
 export const getCategoryByMainCategory = async (data) => {
   try {
-    const { mainCategory } = data;
+    const {mainCategory} = data;
 
     let query = {};
 
@@ -569,7 +723,7 @@ export const getAllCategories = async () => {
 
 export const deleteCategory = async (data) => {
   try {
-    const { categoryId } = data;
+    const {categoryId} = data;
 
     await ExpenseCategory.findByIdAndDelete(categoryId);
 
@@ -591,7 +745,7 @@ export const deleteCategory = async (data) => {
 
 export const getExpenseAnalytics = async (data) => {
   try {
-    const { propertyId, year } = data;
+    const {propertyId, year} = data;
 
     const targetYear = year || new Date().getFullYear();
 
@@ -607,21 +761,21 @@ export const getExpenseAnalytics = async (data) => {
     }
 
     const analytics = await Expense.aggregate([
-      { $match: match },
+      {$match: match},
       {
         $group: {
-          _id: { month: { $month: "$date" }, type: "$type" },
-          totalAmount: { $sum: "$amount" },
+          _id: {month: {$month: "$date"}, type: "$type"},
+          totalAmount: {$sum: "$amount"},
         },
       },
       {
         $group: {
           _id: "$_id.month",
-          totalExpense: { $sum: "$totalAmount" },
-          types: { $push: { type: "$_id.type", totalAmount: "$totalAmount" } },
+          totalExpense: {$sum: "$totalAmount"},
+          types: {$push: {type: "$_id.type", totalAmount: "$totalAmount"}},
         },
       },
-      { $sort: { _id: 1 } },
+      {$sort: {_id: 1}},
     ]);
 
     const formatted = analytics.map((monthData) => {
@@ -630,7 +784,7 @@ export const getExpenseAnalytics = async (data) => {
           acc[t.type] = t.totalAmount;
           return acc;
         },
-        { PG: 0, Mess: 0, Others: 0 },
+        {PG: 0, Mess: 0, Others: 0},
       );
 
       const monthName = new Date(0, monthData._id - 1).toLocaleString("en", {
@@ -661,14 +815,14 @@ export const getExpenseAnalytics = async (data) => {
   }
 };
 
-export const getPettyCashPaymentsByManager = async ({ managerId }) => {
+export const getPettyCashPaymentsByManager = async ({managerId}) => {
   try {
     console.log("managerId received in service:", managerId);
 
     const pettyCashPayments = await Expense.find({
       handledBy: new mongoose.Types.ObjectId(managerId), // cast properly
       paymentMethod: "Petty Cash",
-    }).sort({ createdAt: -1 });
+    }).sort({createdAt: -1});
 
     // console.log("Fetched pettyCashPayments:", pettyCashPayments);
 
