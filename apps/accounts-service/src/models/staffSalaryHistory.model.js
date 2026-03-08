@@ -6,10 +6,15 @@ const staffSalaryHistorySchema = new mongoose.Schema({
     required: true,
   },
   employeeName: {type: String, required: true},
+  // employeeType: {
+  //   type: String,
+  //   required: true,
+  //   enum: ["Staff", "Manager"],
+  // },
   employeeType: {
     type: String,
     required: true,
-    enum: ["Staff", "Manager"],
+    enum: ["Property", "Kitchen", "Property & Kitchen", "Staff", "Manager"],
   },
   salary: {type: Number, required: true}, // The gross salary calculated for the month
   date: {type: Date, required: true}, // The month this salary is for
