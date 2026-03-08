@@ -1,10 +1,10 @@
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
-import { createAccountLog } from "./accountsLog.service.js";
-import { createJournalEntry } from "./accounting.service.js";
-import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import {createAccountLog} from "./accountsLog.service.js";
+import {createJournalEntry} from "./accounting.service.js";
+import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
 import mongoose from "mongoose";
 
 export const manualAddSalary = async (data) => {
@@ -24,7 +24,7 @@ export const manualAddSalary = async (data) => {
       advanceSalary,
       remarkType,
     } = data;
-
+    console.log(data);
     if (remarkType === "ADVANCE_PAYMENT" && advanceSalary > 0) {
       const newSalaryRecord = (
         await StaffSalaryHistory.create(
@@ -45,7 +45,7 @@ export const manualAddSalary = async (data) => {
               transactionId,
             },
           ],
-          { session }
+          {session},
         )
       )[0];
 
@@ -61,17 +61,17 @@ export const manualAddSalary = async (data) => {
 
       const updatePayload = {
         id: employeeId,
-        updates: { $inc: { advanceSalary } },
+        updates: {$inc: {advanceSalary}},
       };
       if (employeeType === "Staff") {
         await sendRPCRequest(PROPERTY_PATTERN.STAFF.UPDATE_STAFF, {
           staffId: employeeId,
-          updateData: { $inc: { advanceSalary } },
+          updateData: {$inc: {advanceSalary}},
         });
       } else if (employeeType === "Manager") {
         await sendRPCRequest(
           CLIENT_PATTERN.MANAGER.EDIT_MANAGER,
-          updatePayload
+          updatePayload,
         );
       }
 
@@ -94,41 +94,41 @@ export const manualAddSalary = async (data) => {
               remarkType: "MANUAL_ADDITION",
             },
           ],
-          { session }
+          {session},
         )
       )[0];
 
-      await createAccountLog({
-        logType: "Salary",
-        action: "Create",
-        description: `Manually added salary record of ₹${salary} for ${employeeName}`,
-        amount: -salary,
-        propertyId: data.propertyId,
-        performedBy: data.paidBy,
-        referenceId: newSalaryRecord._id,
-      });
+      // await createAccountLog({
+      //   logType: "Salary",
+      //   action: "Create",
+      //   description: `Manually added salary record of ₹${salary} for ${employeeName}`,
+      //   amount: -salary,
+      //   propertyId: data.propertyId,
+      //   performedBy: data.paidBy,
+      //   referenceId: newSalaryRecord._id,
+      // });
 
-      const paymentAccount =
-        paymentMethod === "Cash"
-          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
-          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
-      await createJournalEntry(
-        {
-          date: newSalaryRecord.date,
-          description: `Salary of ₹${salary} paid to ${employeeName}`,
-          propertyId: newSalaryRecord.propertyId,
-          transactions: [
-            {
-              accountName: ACCOUNT_SYSTEM_NAMES.EXPENSE_SALARIES,
-              debit: salary,
-            },
-            { accountName: paymentAccount, credit: salary },
-          ],
-          referenceId: newSalaryRecord._id,
-          referenceType: "StaffSalaryHistory",
-        },
-        { session }
-      );
+      // const paymentAccount =
+      //   paymentMethod === "Cash"
+      //     ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+      //     : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+      // await createJournalEntry(
+      //   {
+      //     date: newSalaryRecord.date,
+      //     description: `Salary of ₹${salary} paid to ${employeeName}`,
+      //     propertyId: newSalaryRecord.propertyId,
+      //     transactions: [
+      //       {
+      //         accountName: ACCOUNT_SYSTEM_NAMES.EXPENSE_SALARIES,
+      //         debit: salary,
+      //       },
+      //       {accountName: paymentAccount, credit: salary},
+      //     ],
+      //     referenceId: newSalaryRecord._id,
+      //     referenceType: "StaffSalaryHistory",
+      //   },
+      //   {session},
+      // );
 
       await session.commitTransaction();
 
@@ -140,6 +140,7 @@ export const manualAddSalary = async (data) => {
       };
     }
   } catch (error) {
+    console.log(error);
     await session.abortTransaction();
     console.error("Manual Add Salary Service Error:", error);
     return {
@@ -171,7 +172,7 @@ export const getAllSalaryRecords = async (filters) => {
     if (propertyId) query.propertyId = propertyId;
     if (type) query.employeeType = type;
     if (paymentMethod) query.paymentMethod = paymentMethod;
-    if (search) query.employeeName = { $regex: search, $options: "i" };
+    if (search) query.employeeName = {$regex: search, $options: "i"};
 
     // Month & year filter using date range
     if (month || year) {
@@ -184,14 +185,14 @@ export const getAllSalaryRecords = async (filters) => {
         ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
         : new Date(filterYear, 11, 31, 23, 59, 59, 999);
 
-      query.date = { $gte: start, $lte: end };
+      query.date = {$gte: start, $lte: end};
     }
 
     const skip = (page - 1) * limit;
 
     // Fetch paginated records
     const records = await StaffSalaryHistory.find(query)
-      .sort({ date: -1, createdAt: -1 })
+      .sort({date: -1, createdAt: -1})
       .skip(skip)
       .limit(limit);
 
@@ -199,11 +200,11 @@ export const getAllSalaryRecords = async (filters) => {
 
     // Aggregate total paidAmount
     const totalPaidResult = await StaffSalaryHistory.aggregate([
-      { $match: query },
+      {$match: query},
       {
         $group: {
           _id: null,
-          totalPaidAmount: { $sum: { $ifNull: ["$paidAmount", 0] } },
+          totalPaidAmount: {$sum: {$ifNull: ["$paidAmount", 0]}},
         },
       },
     ]);
@@ -238,15 +239,15 @@ export const updateSalaryStatus = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { 
-      salaryId, 
-      status, 
+    const {
+      salaryId,
+      status,
       updatedBy,
       // New optional fields for payment details
       paymentMethod,
       transactionId,
       giverName,
-      paymentDate
+      paymentDate,
     } = data;
 
     // Validate status
@@ -259,8 +260,9 @@ export const updateSalaryStatus = async (data) => {
     }
 
     // Find the salary record
-    const salaryRecord = await StaffSalaryHistory.findById(salaryId).session(session);
-    
+    const salaryRecord =
+      await StaffSalaryHistory.findById(salaryId).session(session);
+
     if (!salaryRecord) {
       return {
         success: false,
@@ -287,25 +289,25 @@ export const updateSalaryStatus = async (data) => {
       // If changing to paid
       updateData.paidAmount = salaryRecord.salary;
       updateData.salaryPending = 0;
-      
+
       // Add payment details if provided
       if (paymentMethod) {
         updateData.paymentMethod = paymentMethod;
       }
-      
+
       // Only set transactionId if provided (optional)
       if (transactionId) {
         updateData.transactionId = transactionId;
       }
-      
+
       // Only set giverName if provided (optional)
       if (giverName) {
         updateData.giverName = giverName;
       }
-      
+
       // Set payment date - use provided date or current date
       updateData.paymentDate = paymentDate ? new Date(paymentDate) : new Date();
-      
+
       // Set paidBy if not already set
       if (!salaryRecord.paidBy && updatedBy) {
         updateData.paidBy = updatedBy;
@@ -314,7 +316,7 @@ export const updateSalaryStatus = async (data) => {
       // If changing to pending, reset payment details
       updateData.paidAmount = 0;
       updateData.salaryPending = salaryRecord.salary;
-      
+
       // Clear payment details when reverting to pending
       updateData.paymentMethod = undefined;
       updateData.transactionId = undefined;
@@ -325,29 +327,29 @@ export const updateSalaryStatus = async (data) => {
     const updatedRecord = await StaffSalaryHistory.findByIdAndUpdate(
       salaryId,
       updateData,
-      { new: true, session }
+      {new: true, session},
     );
 
     // Create account log for status change with payment details
     let logDescription = `Salary status changed to ${status} for ${salaryRecord.employeeName}`;
-    
+
     if (status === "paid") {
       const paymentDetails = [];
-      
+
       if (paymentMethod) {
         paymentDetails.push(`via ${paymentMethod}`);
       }
-      
+
       if (transactionId) {
         paymentDetails.push(`(Transaction ID: ${transactionId})`);
       }
-      
+
       if (giverName) {
         paymentDetails.push(`(Received from: ${giverName})`);
       }
-      
+
       if (paymentDetails.length > 0) {
-        logDescription += ` ${paymentDetails.join(' ')}`;
+        logDescription += ` ${paymentDetails.join(" ")}`;
       }
     }
 
@@ -368,7 +370,6 @@ export const updateSalaryStatus = async (data) => {
       message: `Salary status updated to ${status} successfully.`,
       data: updatedRecord,
     };
-
   } catch (error) {
     await session.abortTransaction();
     console.error("Update Salary Status Service Error:", error);
