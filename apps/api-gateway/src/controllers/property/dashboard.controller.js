@@ -1,13 +1,13 @@
-import { sendRPCRequest } from "../../../../../libs/common/rabbitMq.js";
-import { PROPERTY_PATTERN } from "../../../../../libs/patterns/property/property.pattern.js";
+import {sendRPCRequest} from "../../../../../libs/common/rabbitMq.js";
+import {PROPERTY_PATTERN} from "../../../../../libs/patterns/property/property.pattern.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const {propertyId} = req.query;
 
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.DASHBOARD.GET_DASHBOARD_DATA,
-      { propertyId }
+      {propertyId},
     );
 
     if (response.success) {

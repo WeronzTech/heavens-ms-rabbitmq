@@ -20,13 +20,15 @@ export const CLIENT_PATTERN = {
     EDIT_MANAGER: "client_edit_manager",
     DELETE_MANAGER: "client_delete_manager",
     CHANGE_MANAGER_STATUS: "client_change_manager_status",
+    GET_MANAGER_COUNTS: "get_manager_counts",
   },
   PETTYCASH: {
     ADD_PETTYCASH: "add_pettycash",
     GET_PETTYCASH: "get_pettycash",
     GET_PETTYCASH_BY_MANAGER: "get_pettycash_by_manager",
     GET_PETTYCASH_DATA_BY_ID: "get_pettycash_data_by_id",
-    GET_PETTYCASH_TRANSACTIONS_BY_MANAGER: "get_pettycash_transactions_by_manager",
+    GET_PETTYCASH_TRANSACTIONS_BY_MANAGER:
+      "get_pettycash_transactions_by_manager",
   },
   AGENCY: {
     GET_AGENCIES: "get_agencies",

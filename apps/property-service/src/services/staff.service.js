@@ -574,7 +574,7 @@ export const updateStaff = async (data) => {
 export const getEmployeeCount = async (data) => {
   try {
     const {propertyId, clientId} = data;
-
+    console.log(data);
     const filter = {
       status: "Active",
       deleted: false,
@@ -603,7 +603,7 @@ export const getEmployeeCount = async (data) => {
 
     return count;
   } catch (error) {
-    console.error("Error in getEmployeeCount:", error);
+    console.log("Error in getEmployeeCount:", error);
     return {
       status: 500,
       message: error.message || "Error counting employees",

@@ -1,5 +1,5 @@
-import { createResponder } from "../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import {createResponder} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
 import {
   changeManagerStatus,
   deleteManager,
@@ -8,6 +8,7 @@ import {
   getAllManagers,
   getManagerByEmail,
   getManagerById,
+  getManagerCount,
   registerManager,
   resetPasswordManager,
   validateManagerCredentials,
@@ -25,14 +26,14 @@ createResponder(
   CLIENT_PATTERN.MANAGER.VALIDATE_MANAGER_CREDENTIALS,
   async (data) => {
     return await validateManagerCredentials(data);
-  }
+  },
 );
 
 createResponder(
   CLIENT_PATTERN.MANAGER.FORGOT_PASSWORD_MANAGER,
   async (data) => {
     return await forgotPasswordManager(data);
-  }
+  },
 );
 
 createResponder(CLIENT_PATTERN.MANAGER.RESET_PASSWORD_MANAGER, async (data) => {
@@ -57,4 +58,8 @@ createResponder(CLIENT_PATTERN.MANAGER.DELETE_MANAGER, async (data) => {
 
 createResponder(CLIENT_PATTERN.MANAGER.CHANGE_MANAGER_STATUS, async (data) => {
   return await changeManagerStatus(data);
+});
+
+createResponder(CLIENT_PATTERN.MANAGER.GET_MANAGER_COUNTS, async (data) => {
+  return await getManagerCount(data);
 });

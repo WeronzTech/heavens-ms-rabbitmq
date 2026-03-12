@@ -1,6 +1,6 @@
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
-import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
+import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
 
 export const getDashboardStats = async (data) => {
   try {
@@ -11,7 +11,7 @@ export const getDashboardStats = async (data) => {
 
     const [residentCounts, employees, maintenance, occupancy, reminders] =
       await Promise.all([
-        sendRPCRequest(USER_PATTERN.DASHBOARD.GET_USERS_COUNTS, { propertyId }),
+        sendRPCRequest(USER_PATTERN.DASHBOARD.GET_USERS_COUNTS, {propertyId}),
         sendRPCRequest(PROPERTY_PATTERN.DASHBOARD.GET_STAFF_COUNTS, {
           propertyId,
         }),

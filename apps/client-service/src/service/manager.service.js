@@ -559,3 +559,35 @@ export const changeManagerStatus = async (data) => {
     return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
+
+export const getManagerCount = async (data) => {
+  try {
+    const {propertyId, clientId} = data;
+
+    const filter = {
+      status: "Active",
+      deleted: false,
+    };
+
+    if (propertyId) {
+      filter.propertyId = {
+        $in: [new mongoose.Types.ObjectId(propertyId)],
+      };
+    } else if (clientId) {
+      filter.clientId = new mongoose.Types.ObjectId(clientId);
+    }
+
+    const count = await Manager.countDocuments(filter);
+
+    return {
+      status: 200,
+      data: {count},
+    };
+  } catch (error) {
+    console.error("Error in getManagerCount:", error);
+    return {
+      status: 500,
+      message: error.message || "Error counting managers",
+    };
+  }
+};
