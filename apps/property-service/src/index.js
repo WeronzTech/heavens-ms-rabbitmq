@@ -6,7 +6,10 @@ import helmet from "helmet";
 import cron from "node-cron";
 
 import { errorHandler } from "./middleware/errorHandler.js";
-import { checkUnassignedMaintenance } from "./utils/automation.js";
+import {
+  checkPropertyRentDue,
+  checkUnassignedMaintenance,
+} from "./utils/automation.js";
 import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
 import { connect } from "../../../libs/common/rabbitMq.js";
 // ⛔️ REMOVED: Controller imports are moved into the startup function.
@@ -43,7 +46,19 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Asia/Kolkata",
-  }
+  },
+);
+
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    console.log("[CRON] Starting Daily Rent Check...");
+    checkPropertyRentDue();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  },
 );
 
 // Health check endpoint
@@ -85,7 +100,7 @@ const startServer = async () => {
     // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.PROPERTY_PORT, () => {
       console.log(
-        `[PROPERTY] Service is fully started and running on port ${process.env.PROPERTY_PORT}`
+        `[PROPERTY] Service is fully started and running on port ${process.env.PROPERTY_PORT}`,
       );
     });
 

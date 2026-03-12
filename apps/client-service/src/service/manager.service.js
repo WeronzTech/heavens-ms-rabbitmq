@@ -1,9 +1,10 @@
+import mongoose from "mongoose";
 import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
-import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import Manager from "../models/manager.model.js";
 import bcrypt from "bcrypt";
 
@@ -64,7 +65,7 @@ export const registerManager = async (data) => {
       }
     }
 
-    const existingManager = await Manager.findOne({email});
+    const existingManager = await Manager.findOne({ email });
     if (existingManager) {
       return {
         success: false,
@@ -96,7 +97,7 @@ export const registerManager = async (data) => {
     });
 
     await newManager.save();
-    const {password: _, ...managerData} = newManager.toObject();
+    const { password: _, ...managerData } = newManager.toObject();
 
     return {
       success: true,
@@ -116,11 +117,11 @@ export const registerManager = async (data) => {
 
 export const getManagerByEmail = async (data) => {
   try {
-    const {email} = data;
+    const { email } = data;
     if (!email) {
-      return {success: false, status: 400, message: "Email is required."};
+      return { success: false, status: 400, message: "Email is required." };
     }
-    const manager = await Manager.findOne({email});
+    const manager = await Manager.findOne({ email });
     if (!manager) {
       return {
         success: false,
@@ -137,12 +138,12 @@ export const getManagerByEmail = async (data) => {
     };
   } catch (error) {
     console.error("Error fetching manager by email:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const validateManagerCredentials = async (data) => {
-  const {email, password} = data;
+  const { email, password } = data;
   try {
     if (!email || !password) {
       return {
@@ -151,9 +152,9 @@ export const validateManagerCredentials = async (data) => {
         message: "Please provide both email and password.",
       };
     }
-    const manager = await Manager.findOne({email}).select("+password");
+    const manager = await Manager.findOne({ email }).select("+password");
     if (!manager) {
-      return {success: false, status: 401, message: "Invalid credentials."};
+      return { success: false, status: 401, message: "Invalid credentials." };
     }
     if (!manager.isVerified) {
       return {
@@ -164,7 +165,7 @@ export const validateManagerCredentials = async (data) => {
     }
     const isMatch = await bcrypt.compare(password, manager.password);
     if (!isMatch) {
-      return {success: false, status: 401, message: "Invalid credentials."};
+      return { success: false, status: 401, message: "Invalid credentials." };
     }
     if (!manager.loginEnabled) {
       return {
@@ -173,7 +174,7 @@ export const validateManagerCredentials = async (data) => {
         message: "Manager account has been disabled.",
       };
     }
-    const {password: _, ...managerData} = manager.toObject();
+    const { password: _, ...managerData } = manager.toObject();
     return {
       success: true,
       status: 200,
@@ -182,14 +183,14 @@ export const validateManagerCredentials = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager validation:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const forgotPasswordManager = async (data) => {
-  const {email} = data;
+  const { email } = data;
   try {
-    const manager = await Manager.findOne({email});
+    const manager = await Manager.findOne({ email });
     if (!manager) {
       return {
         success: true, // Obfuscate whether user exists
@@ -226,7 +227,7 @@ export const forgotPasswordManager = async (data) => {
           host: process.env.EMAIL_HOST,
           port: process.env.EMAIL_PORT,
           secure: false,
-          auth: {user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS},
+          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
         });
         await transporter.sendMail({
           from: `"Heavens Living" <${process.env.EMAIL_USER}>`,
@@ -251,12 +252,12 @@ export const forgotPasswordManager = async (data) => {
     };
   } catch (error) {
     console.error("Error in manager forgot password service:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const resetPasswordManager = async (data) => {
-  const {token, password} = data;
+  const { token, password } = data;
   try {
     if (!token || !password) {
       return {
@@ -268,7 +269,7 @@ export const resetPasswordManager = async (data) => {
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     const manager = await Manager.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpires: {$gt: Date.now()},
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!manager) {
@@ -291,21 +292,21 @@ export const resetPasswordManager = async (data) => {
     };
   } catch (error) {
     console.error("Error in manager reset password service:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const getAllManagers = async (data) => {
   try {
-    const {propertyId, joinDate, status, name} = data;
+    const { propertyId, joinDate, status, name } = data;
     console.log("xxxxcxxxxxwwww");
     console.log(data);
 
     const filter = {};
-    if (propertyId) filter.propertyId = {$in: [propertyId]};
+    if (propertyId) filter.propertyId = { $in: [propertyId] };
     if (joinDate) filter.joinDate = joinDate;
     if (status) filter.status = status;
-    if (name) filter.name = {$regex: name, $options: "i"};
+    if (name) filter.name = { $regex: name, $options: "i" };
 
     const managers = await Manager.find(filter);
     return {
@@ -316,17 +317,17 @@ export const getAllManagers = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager retrieval:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const getManagerById = async (data) => {
   try {
-    const {id} = data;
+    const { id } = data;
 
     const manager = await Manager.findById(id);
     if (!manager) {
-      return {success: false, status: 404, message: "Manager not found."};
+      return { success: false, status: 404, message: "Manager not found." };
     }
 
     const managerObject = manager.toObject();
@@ -334,7 +335,7 @@ export const getManagerById = async (data) => {
       try {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          {id: manager.propertyId[0]},
+          { id: manager.propertyId[0] },
         );
         if (propertyResponse.data) {
           managerObject.property = {
@@ -347,7 +348,7 @@ export const getManagerById = async (data) => {
           `Failed to fetch property details for ID ${manager.propertyId[0]}:`,
           axiosError.message,
         );
-        managerObject.property = {name: "Could not fetch property details"};
+        managerObject.property = { name: "Could not fetch property details" };
       }
     }
     return {
@@ -358,17 +359,17 @@ export const getManagerById = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager retrieval:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const editManager = async (data) => {
   try {
-    const {id, updates = {}, files} = data;
+    const { id, updates = {}, files } = data;
     console.log(data);
     const manager = await Manager.findById(id);
     if (!manager) {
-      return {success: false, status: 404, message: "Manager not found."};
+      return { success: false, status: 404, message: "Manager not found." };
     }
 
     // ============================================================
@@ -473,7 +474,7 @@ export const editManager = async (data) => {
     // ============================================================
     const updatedManager = await Manager.findByIdAndUpdate(
       id,
-      {$set: updates},
+      { $set: updates },
       {
         new: true,
         runValidators: true,
@@ -498,7 +499,7 @@ export const editManager = async (data) => {
 
 export const deleteManager = async (data) => {
   try {
-    const {id} = data;
+    const { id } = data;
 
     const manager = await Manager.findById(id);
     if (!manager) {
@@ -541,10 +542,10 @@ export const deleteManager = async (data) => {
 
 export const changeManagerStatus = async (data) => {
   try {
-    const {id} = data;
+    const { id } = data;
     const manager = await Manager.findById(id);
     if (!manager) {
-      return {success: false, status: 404, message: "Manager not found."};
+      return { success: false, status: 404, message: "Manager not found." };
     }
     manager.status = manager.status === "Active" ? "Inactive" : "Active";
     await manager.save();
@@ -556,13 +557,13 @@ export const changeManagerStatus = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager status update:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const getManagerCount = async (data) => {
   try {
-    const {propertyId, clientId} = data;
+    const { propertyId, clientId } = data;
 
     const filter = {
       status: "Active",
@@ -581,7 +582,7 @@ export const getManagerCount = async (data) => {
 
     return {
       status: 200,
-      data: {count},
+      data: { count },
     };
   } catch (error) {
     console.error("Error in getManagerCount:", error);

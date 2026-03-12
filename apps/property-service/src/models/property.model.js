@@ -54,6 +54,14 @@ const propertySchema = new mongoose.Schema({
     keyId: { type: String, required: false },
     keySecret: { type: String, required: false },
   },
+  rentDetails: {
+    isRentEnabled: { type: Boolean, default: false },
+    rentAmount: { type: Number, default: 0 },
+    dueDate: { type: Number }, // Day of the month (e.g., 5 for 5th of every month)
+    pendingBalance: { type: Number, default: 0 }, // Accumulates if not paid
+    lastPaymentDate: { type: Date, default: null },
+    lastAutoUpdateDate: { type: Date, default: null }, // To prevent double accrual on the same day
+  },
 });
 
 propertySchema.pre("save", async function (next) {
@@ -70,7 +78,7 @@ propertySchema.pre("save", async function (next) {
           month: parseInt(month, 10),
         },
         { $inc: { count: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
+        { new: true, upsert: true, setDefaultsOnInsert: true },
       );
 
       if (!counter) {
