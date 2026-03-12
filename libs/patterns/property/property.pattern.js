@@ -6,6 +6,9 @@ export const PROPERTY_PATTERN = {
     GET_PROPERTY_BY_ID: "get_property_by_id",
     GET_ALL_HEAVENS_PROPERTIES: "get_all_heavens_property",
     GET_CLIENT_PROPERTIES: "get_client_properties",
+    UPDATE_LEASE_BALANCE: "update_lease_balance",
+    ACCRUE_MONTHLY_LEASE_BALANCE: "accrue_monthly_lease_balance",
+    PAY_RENT: "pay_rent",
   },
   ROOM: {
     CREATE_ROOM: "create_room",

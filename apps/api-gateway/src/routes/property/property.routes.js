@@ -5,6 +5,7 @@ import {
   getAllHeavensProperties,
   getClientPropertiesController,
   getPropertyById,
+  payPropertyRent,
   updateProperty,
 } from "../../controllers/property/property.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
@@ -20,29 +21,35 @@ propertyRoutes.use(isAuthenticated);
 propertyRoutes.get(
   "/my-properties",
   hasPermission(PERMISSIONS.PROPERTY_VIEW),
-  getClientPropertiesController
+  getClientPropertiesController,
 );
 propertyRoutes.get(
   "/:id",
   hasPermission(PERMISSIONS.PROPERTY_VIEW),
-  getPropertyById
+  getPropertyById,
 );
 
 propertyRoutes.post(
   "/register",
   hasPermission(PERMISSIONS.PROPERTY_MANAGE),
-  createProperty
+  createProperty,
 );
 
 propertyRoutes.put(
   "/edit/:id",
   hasPermission(PERMISSIONS.PROPERTY_MANAGE),
-  updateProperty
+  updateProperty,
 );
 propertyRoutes.delete(
   "/delete/:id",
   hasPermission(PERMISSIONS.PROPERTY_MANAGE),
-  deleteProperty
+  deleteProperty,
+);
+
+propertyRoutes.post(
+  "/pay-rent",
+  hasPermission(PERMISSIONS.PROPERTY_MANAGE), // Adjust permission as needed
+  payPropertyRent,
 );
 
 export default propertyRoutes;

@@ -6,7 +6,14 @@ const propertyLogSchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      enum: ["create", "update", "delete", "active_status", "inactive_status"],
+      enum: [
+        "create",
+        "update",
+        "delete",
+        "active_status",
+        "inactive_status",
+        "rent_payment",
+      ],
     },
     category: {
       type: String,
@@ -21,7 +28,7 @@ const propertyLogSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const PropertyLog = mongoose.model("PropertyLog", propertyLogSchema);

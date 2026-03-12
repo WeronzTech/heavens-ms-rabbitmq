@@ -3,6 +3,8 @@ import { Maintenance } from "../models/maintenance.model.js";
 import Property from "../models/property.model.js";
 import Staff from "../models/staff.model.js";
 import PropertyLog from "../models/propertyLog.model.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
 
 // export const getLatestMaintenanceData = async (propertyId) => {
 //   const filter = {};
@@ -73,6 +75,7 @@ export const createProperty = async (data) => {
       totalFloors,
       clientId,
       razorpayCredentials,
+      rentDetails,
       ...rest
     } = data;
     // console.log(data);
@@ -101,6 +104,7 @@ export const createProperty = async (data) => {
       kitchenId,
       clientId,
       razorpayCredentials,
+      rentDetails,
       images,
     };
 
@@ -153,6 +157,7 @@ export const updateProperty = async (data) => {
       images,
       adminName,
       razorpayCredentials,
+      rentDetails,
       ...rest
     } = data;
     console.log(data);
@@ -180,6 +185,7 @@ export const updateProperty = async (data) => {
       deposit,
       kitchenId,
       razorpayCredentials,
+      rentDetails,
       images,
     };
 
@@ -385,7 +391,7 @@ export const calculateOccupancyRate = async (data) => {
       acc.occupiedBeds += property.occupiedBeds || 0;
       return acc;
     },
-    { totalBeds: 0, occupiedBeds: 0 }
+    { totalBeds: 0, occupiedBeds: 0 },
   );
 
   const { totalBeds, occupiedBeds } = totals;
@@ -396,4 +402,84 @@ export const calculateOccupancyRate = async (data) => {
     totalBeds,
     occupiedBeds,
   };
+};
+
+export const payPropertyRent = async (data) => {
+  try {
+    const {
+      propertyId,
+      amount,
+      paymentMethod,
+      transactionId,
+      paidByUserId,
+      paidByName,
+      imageUrl,
+    } = data;
+
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      return { success: false, status: 404, message: "Property not found" };
+    }
+
+    // 1. Update Property Balance
+    property.rentDetails.pendingBalance =
+      (property.rentDetails.pendingBalance || 0) - Number(amount);
+    property.rentDetails.lastPaymentDate = new Date();
+    await property.save();
+
+    // 2. Create Expense in Accounts Service via RPC
+    // We construct the payload to match Expense Model in Accounts Service
+    const expensePayload = {
+      title: `Rent Payment - ${property.propertyName}`,
+      type: "Property Rent",
+      category: "Rent", // Ensure this category exists in Accounts
+      description: `Rent payment for property ${property.propertyName}. Transaction ID: ${transactionId || "N/A"}`,
+      paymentMethod: paymentMethod || "Cash",
+      amount: Number(amount),
+      date: new Date(),
+      property: {
+        id: property._id,
+        name: property.propertyName,
+      },
+      clientId: property.clientId,
+      actionPerformedBy: paidByName,
+      createdBy: paidByUserId,
+      imageUrl: imageUrl || "",
+      transactionId: transactionId,
+    };
+
+    console.log("expensePayload", expensePayload);
+    // Note: You might need to adjust the pattern string based on your actual accounts.pattern.js
+    const accountResponse = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.ADD_EXPENSE,
+      expensePayload,
+    );
+
+    // 3. Log the action
+    await PropertyLog.create({
+      propertyId: property._id,
+      action: "rent_payment",
+      category: "property",
+      changedByName: paidByName,
+      message: `Rent payment of ₹${amount} made for ${property.propertyName}`,
+    });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Rent payment successful and recorded in accounts.",
+      data: {
+        updatedBalance: property.rentDetails.pendingBalance,
+        accountResponse: accountResponse,
+      },
+    };
+  } catch (error) {
+    console.error("Pay Rent Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Failed to process rent payment",
+      error: error.message,
+    };
+  }
 };
