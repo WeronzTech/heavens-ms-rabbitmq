@@ -13,6 +13,7 @@ export const registerManager = async (req, res) => {
       role,
       salary,
       propertyId,
+      kitchenId,
       gender,
       address,
       panNumber,
@@ -33,6 +34,7 @@ export const registerManager = async (req, res) => {
         role,
         salary,
         propertyId,
+        kitchenId,
         gender,
         address,
         files,
@@ -195,28 +197,62 @@ export const getManagerById = async (req, res) => {
   }
 };
 
+// export const editManager = async (req, res) => {
+//   try {
+//     const updates = req.body;
+//     const files = req.files;
+//     const id = req.params.id;
+
+//     const manager = await sendRPCRequest(CLIENT_PATTERN.MANAGER.EDIT_MANAGER, {
+//       id,
+//       updates,
+//       files,
+//     });
+
+//     if (manager.status === 200) {
+//       res.status(200).json(manager);
+//     } else {
+//       res.status(manager.status).json(manager);
+//     }
+//   } catch (error) {
+//     console.error("Error during manager update:", error);
+//     res
+//       .status(500)
+//       .json({success: false, status: 500, message: "Internal Server Error"});
+//   }
+// };
+
 export const editManager = async (req, res) => {
   try {
-    const updates = req.body;
-    const files = req.files;
-    const id = req.params.id;
+    const {id} = req.params;
+
+    // ✅ Attach update body
+    const updates = {...req.body};
+
+    // ✅ Pass file buffers directly to RPC
+    const files = {
+      photo: req.files?.photo?.[0] || null,
+      aadharFrontImage: req.files?.aadharFrontImage?.[0] || null,
+      aadharBackImage: req.files?.aadharBackImage?.[0] || null,
+      panCardImage: req.files?.panCardImage?.[0] || null,
+    };
+
+    const adminName = req.userName;
 
     const manager = await sendRPCRequest(CLIENT_PATTERN.MANAGER.EDIT_MANAGER, {
       id,
       updates,
+      adminName,
       files,
     });
-
-    if (manager.status === 200) {
-      res.status(200).json(manager);
-    } else {
-      res.status(manager.status).json(manager);
-    }
+    console.log("✏️ Staff Update RPC Response:", manager);
+    return res.status(manager.status).json(manager);
   } catch (error) {
-    console.error("Error during manager update:", error);
-    res
-      .status(500)
-      .json({success: false, status: 500, message: "Internal Server Error"});
+    console.error("❌ Error in updateStaff controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while updating staff",
+    });
   }
 };
 

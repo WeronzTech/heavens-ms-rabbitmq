@@ -210,6 +210,7 @@ export const updateStaff = async (req, res) => {
       photo: req.files?.photo?.[0] || null,
       aadharFrontImage: req.files?.aadharFrontImage?.[0] || null,
       aadharBackImage: req.files?.aadharBackImage?.[0] || null,
+      panCardImage: req.files?.panCardImage?.[0] || null,
     };
 
     const adminName = req.userName;

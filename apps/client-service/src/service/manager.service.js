@@ -7,8 +7,6 @@ import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.patt
 import Manager from "../models/manager.model.js";
 import bcrypt from "bcrypt";
 
-const INDIVIDUAL_PAN_REGEX = /^[A-Z]{3}P[A-Z]{1}[0-9]{4}[A-Z]{1}$/;
-
 export const registerManager = async (data) => {
   try {
     const {
@@ -21,9 +19,9 @@ export const registerManager = async (data) => {
       role,
       salary,
       propertyId,
+      kitchenId,
       gender,
       address,
-      panNumber,
       files,
       clientId,
     } = data;
@@ -36,64 +34,33 @@ export const registerManager = async (data) => {
       };
     }
 
-    // ✅ PAN validation only if provided
-    if (panNumber) {
-      const formattedPan = panNumber.toUpperCase();
-
-      if (!INDIVIDUAL_PAN_REGEX.test(formattedPan)) {
-        return {
-          success: false,
-          status: 400,
-          message:
-            "Invalid PAN format. Must be a 10-character individual PAN (e.g., ABCPA1234A).",
-        };
-      }
-
-      const nameParts = name.trim().split(" ");
-      const lastName =
-        nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
-
-      const firstLetterOfLastName = lastName.charAt(0).toUpperCase();
-      const fifthCharOfPan = formattedPan.charAt(4);
-
-      if (fifthCharOfPan !== firstLetterOfLastName) {
-        return {
-          success: false,
-          status: 400,
-          message: `PAN card's 5th character ('${fifthCharOfPan}') does not match the first letter of the surname ('${firstLetterOfLastName}').`,
-        };
-      }
-    }
-
+    // ✅ Handle file uploads
     let photoUrl = null;
-    let aadharUrl = null;
+    let aadharFrontUrl = null;
+    let aadharBackUrl = null;
     let panCardUrl = null;
 
-    // Directly handle file data from the payload
     if (files) {
-      if (files.photo && files.photo[0].buffer) {
-        const photoFile = {
-          buffer: Buffer.from(files.photo[0].buffer, "base64"),
-          mimetype: files.photo[0].mimetype,
-          originalname: files.photo[0].originalname,
-        };
-        photoUrl = await uploadToFirebase(photoFile, "staff-photos");
+      if (files.photo) {
+        photoUrl = await uploadToFirebase(files.photo, "staff-photos");
       }
-      if (files.aadharImage && files.aadharImage[0].buffer) {
-        const aadharFile = {
-          buffer: Buffer.from(files.aadharImage[0].buffer, "base64"),
-          mimetype: files.aadharImage[0].mimetype,
-          originalname: files.aadharImage[0].originalname,
-        };
-        aadharUrl = await uploadToFirebase(aadharFile, "staff-documents");
+      if (files.aadharFrontImage) {
+        aadharFrontUrl = await uploadToFirebase(
+          files.aadharFrontImage,
+          "staff-documents",
+        );
       }
-      if (files.panCardImage && files.panCardImage[0].buffer) {
-        const panCardFile = {
-          buffer: Buffer.from(files.panCardImage[0].buffer, "base64"),
-          mimetype: files.panCardImage[0].mimetype,
-          originalname: files.panCardImage[0].originalname,
-        };
-        panCardUrl = await uploadToFirebase(panCardFile, "staff-documents");
+      if (files.aadharBackImage) {
+        aadharBackUrl = await uploadToFirebase(
+          files.aadharBackImage,
+          "staff-documents",
+        );
+      }
+      if (files.panCardImage) {
+        panCardUrl = await uploadToFirebase(
+          files.panCardImage,
+          "staff-documents",
+        );
       }
     }
 
@@ -125,6 +92,7 @@ export const registerManager = async (data) => {
       address,
       panCardNumber: panNumber,
       clientId,
+      kitchenId,
     });
 
     await newManager.save();
@@ -397,7 +365,7 @@ export const getManagerById = async (data) => {
 export const editManager = async (data) => {
   try {
     const {id, updates = {}, files} = data;
-
+    console.log(data);
     const manager = await Manager.findById(id);
     if (!manager) {
       return {success: false, status: 404, message: "Manager not found."};
@@ -448,46 +416,39 @@ export const editManager = async (data) => {
     // 3️⃣ Handle File Updates
     // ============================================================
     if (files) {
-      if (files.photo && files.photo.buffer) {
-        if (manager.photo) await deleteFromFirebase(manager.photo);
-
-        const photoFile = {
-          buffer: Buffer.from(files.photo.buffer, "base64"),
-          mimetype: files.photo.mimetype,
-          originalname: files.photo.originalname,
-        };
-
-        updates.photo = await uploadToFirebase(photoFile, "staff-photos");
+      if (files.photo) {
+        if (manager.photo) {
+          await deleteFromFirebase(manager.photo);
+        }
+        updates.photo = await uploadToFirebase(files.photo, "staff-photos");
       }
 
-      if (files.aadharImage && files.aadharImage.buffer) {
-        if (manager.aadhaarImage)
-          await deleteFromFirebase(manager.aadhaarImage);
-
-        const aadharFile = {
-          buffer: Buffer.from(files.aadharImage.buffer, "base64"),
-          mimetype: files.aadharImage.mimetype,
-          originalname: files.aadharImage.originalname,
-        };
-
-        updates.aadhaarImage = await uploadToFirebase(
-          aadharFile,
+      if (files.aadharFrontImage) {
+        if (manager.aadharFrontImage) {
+          await deleteFromFirebase(manager.aadharFrontImage);
+        }
+        updates.aadharFrontImage = await uploadToFirebase(
+          files.aadharFrontImage,
           "staff-documents",
         );
       }
 
-      if (files.panCardImage && files.panCardImage.buffer) {
-        if (manager.panCardImage)
+      if (files.aadharBackImage) {
+        if (manager.aadharBackImage) {
+          await deleteFromFirebase(manager.aadharBackImage);
+        }
+        updates.aadharBackImage = await uploadToFirebase(
+          files.aadharBackImage,
+          "staff-documents",
+        );
+      }
+
+      if (files.panCardImage) {
+        if (manager.panCardImage) {
           await deleteFromFirebase(manager.panCardImage);
-
-        const panCardFile = {
-          buffer: Buffer.from(files.panCardImage.buffer, "base64"),
-          mimetype: files.panCardImage.mimetype,
-          originalname: files.panCardImage.originalname,
-        };
-
+        }
         updates.panCardImage = await uploadToFirebase(
-          panCardFile,
+          files.panCardImage,
           "staff-documents",
         );
       }

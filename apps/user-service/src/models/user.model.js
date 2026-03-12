@@ -265,6 +265,7 @@ const userSchema = new mongoose.Schema(
     isVacated: {type: Boolean, default: false},
     isHeavens: {type: Boolean, default: false},
     isColiving: {type: Boolean, default: false},
+    messEnabled: {type: Boolean, default: true},
     vacatedAt: Date,
 
     // Profile completion

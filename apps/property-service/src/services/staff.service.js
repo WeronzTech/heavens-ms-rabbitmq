@@ -16,7 +16,10 @@ import Attendance from "../models/attendance.model.js";
 export const getAllStaff = async (data) => {
   try {
     const {kitchenId, propertyId, name, manager, joinDate, status} = data;
-    const filter = {};
+
+    const filter = {
+      deleted: false, // ✅ Always exclude deleted staff
+    };
 
     if (kitchenId) filter.kitchenId = kitchenId;
     if (propertyId) filter.propertyId = propertyId;
@@ -36,10 +39,12 @@ export const getAllStaff = async (data) => {
     if (status) filter.status = status;
     if (name) filter.name = {$regex: name, $options: "i"};
 
+    // ✅ Main staff fetch
     const staffMembers = await Staff.find(filter);
 
     // --- If propertyId is present, also fetch staff linked via kitchenIds ---
     let kitchenStaff = [];
+
     if (propertyId) {
       try {
         const accessibleKitchens = await getAccessibleKitchens(propertyId);
@@ -50,6 +55,7 @@ export const getAllStaff = async (data) => {
         if (accessibleKitchenIds.length > 0) {
           kitchenStaff = await Staff.find({
             kitchenId: {$in: accessibleKitchenIds},
+            deleted: false, // ✅ exclude deleted
             ...(status && {status}),
             ...(name && {name: {$regex: name, $options: "i"}}),
             ...(joinDate && {joinDate: filter.joinDate}),
@@ -89,23 +95,27 @@ export const getAllStaff = async (data) => {
         );
 
         const managerData = managerResponse?.data || managerResponse;
-        console.log(managerData);
+
         if (Array.isArray(managerData) && managerData.length > 0) {
           const enrichedManagers = await Promise.all(
-            managerData.map(async (m) => {
-              if (m && m._id) {
+            managerData
+              .filter((m) => m && m.deleted !== true) // ✅ exclude deleted managers
+              .map(async (m) => {
                 const enrichedManager = {...m};
+
                 if (m.role) {
                   const roleName = await getRoleName(m.role);
-                  enrichedManager.role = {_id: m.role, name: roleName};
+                  enrichedManager.role = {
+                    _id: m.role,
+                    name: roleName,
+                  };
                 }
+
                 return enrichedManager;
-              }
-              return null;
-            }),
+              }),
           );
 
-          enrichedStaff.push(...enrichedManagers.filter(Boolean));
+          enrichedStaff.push(...enrichedManagers);
         }
       } catch (error) {
         console.error(
@@ -114,6 +124,9 @@ export const getAllStaff = async (data) => {
         );
       }
     }
+
+    // ✅ Final Safety Filter (double protection)
+    enrichedStaff = enrichedStaff.filter((item) => item.deleted !== true);
 
     return {
       status: 200,
@@ -400,7 +413,7 @@ export const addStaff = async (data) => {
 export const updateStaff = async (data) => {
   try {
     const {staffId, updateData = {}, adminName, files} = data;
-
+    console.log(data);
     // ============================================================
     // 1️⃣ Check if staff exists
     // ============================================================
@@ -458,21 +471,6 @@ export const updateStaff = async (data) => {
         return {status: 404, message: "One or more properties not found"};
       }
     }
-
-    // ============================================================
-    // 5️⃣ (Optional) Validate kitchenIds if you have Kitchen model
-    // ============================================================
-    /*
-    // if (updateData.kitchenId && updateData.kitchenId.length > 0) {
-    //   const validKitchens = await Kitchen.find({
-    //     _id: { $in: updateData.kitchenId },
-    //   });
-
-    //   if (validKitchens.length !== updateData.kitchenId.length) {
-    //     return { status: 404, message: "One or more kitchens not found" };
-    //   }
-    // }
-    */
 
     // ============================================================
     // 6️⃣ Handle File Replacements (only if file exists)
@@ -574,20 +572,51 @@ export const updateStaff = async (data) => {
 };
 
 export const getEmployeeCount = async (data) => {
-  const {propertyId} = data;
-  const filter = {status: "Active"};
+  try {
+    const {propertyId, clientId} = data;
 
-  if (propertyId) {
-    filter.propertyId = new mongoose.Types.ObjectId(propertyId);
+    const filter = {
+      status: "Active",
+      deleted: false,
+    };
+
+    if (propertyId) {
+      filter.propertyId = {
+        $in: [new mongoose.Types.ObjectId(propertyId)],
+      };
+    } else if (clientId) {
+      filter.clientId = new mongoose.Types.ObjectId(clientId);
+    }
+
+    // Run in parallel (faster)
+    const [staffCount, managerResponse] = await Promise.all([
+      Staff.countDocuments(filter),
+      sendRPCRequest(CLIENT_PATTERN.MANAGER.GET_MANAGER_COUNTS, {
+        propertyId,
+        clientId,
+      }),
+    ]);
+
+    const managerCount = managerResponse?.data?.count || 0;
+
+    const count = staffCount + managerCount;
+
+    return count;
+  } catch (error) {
+    console.error("Error in getEmployeeCount:", error);
+    return {
+      status: 500,
+      message: error.message || "Error counting employees",
+    };
   }
-
-  return Staff.countDocuments(filter);
 };
 
 export const getAllStaffsForAttendance = async (data) => {
   try {
     const {kitchenId, propertyId, name, manager, joinDate, status} = data;
-    const filter = {};
+
+    // ✅ Always exclude deleted staff
+    const filter = {deleted: false};
 
     if (kitchenId) filter.kitchenId = kitchenId;
     if (propertyId) filter.propertyId = propertyId;
@@ -596,18 +625,22 @@ export const getAllStaffsForAttendance = async (data) => {
       const date = new Date(joinDate);
       const startDate = new Date(date.getTime() - 5.5 * 60 * 60 * 1000);
       startDate.setUTCHours(0, 0, 0, 0);
+
       const endDate = new Date(date.getTime() - 5.5 * 60 * 60 * 1000);
       endDate.setUTCHours(23, 59, 59, 999);
+
       filter.joinDate = {$gte: startDate, $lte: endDate};
     }
 
     if (status) filter.status = status;
     if (name) filter.name = {$regex: name, $options: "i"};
 
+    // ✅ Main staff
     const staffMembers = await Staff.find(filter);
 
-    // --- If propertyId is present, also fetch staff linked via kitchenIds ---
+    // --- Kitchen staff ---
     let kitchenStaff = [];
+
     if (propertyId) {
       try {
         const accessibleKitchens = await getAccessibleKitchens(propertyId);
@@ -618,6 +651,7 @@ export const getAllStaffsForAttendance = async (data) => {
         if (accessibleKitchenIds.length > 0) {
           kitchenStaff = await Staff.find({
             kitchenId: {$in: accessibleKitchenIds},
+            deleted: false, // ✅ exclude deleted
             ...(status && {status}),
             ...(name && {name: {$regex: name, $options: "i"}}),
             ...(joinDate && {joinDate: filter.joinDate}),
@@ -628,12 +662,12 @@ export const getAllStaffsForAttendance = async (data) => {
       }
     }
 
-    // Merge & deduplicate staff
+    // Merge & deduplicate
     const allStaff = [...staffMembers, ...kitchenStaff];
     const uniqueStaffMap = new Map(allStaff.map((s) => [s._id.toString(), s]));
     const uniqueStaff = Array.from(uniqueStaffMap.values());
 
-    // --- Get start and end of current month ---
+    // --- Current month range ---
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(
@@ -646,36 +680,25 @@ export const getAllStaffsForAttendance = async (data) => {
       999,
     );
 
-    // Enrich staff with role names and attendance data
+    // ✅ Enrich staff
     let enrichedStaff = await Promise.all(
       uniqueStaff.map(async (staff) => {
         const staffObject = staff.toObject();
 
-        // Role
         if (staff.role) {
           const roleName = await getRoleName(staff.role);
-          staffObject.role = {
-            _id: staff.role,
-            name: roleName,
-          };
+          staffObject.role = {_id: staff.role, name: roleName};
         }
 
-        // --- Today's (latest) attendance ---
         const todayAttendance = await Attendance.findOne({
           employeeId: staff._id,
         })
           .sort({date: -1})
           .lean();
 
-        if (todayAttendance) {
-          staffObject.todayAttendanceDate = todayAttendance.date;
-          staffObject.todayStatus = todayAttendance.status;
-        } else {
-          staffObject.todayAttendanceDate = null;
-          staffObject.todayStatus = "Not Marked";
-        }
+        staffObject.todayAttendanceDate = todayAttendance?.date || null;
+        staffObject.todayStatus = todayAttendance?.status || "Not Marked";
 
-        // --- Second latest (previous) attendance ---
         const previousAttendance = await Attendance.findOne({
           employeeId: staff._id,
         })
@@ -683,15 +706,9 @@ export const getAllStaffsForAttendance = async (data) => {
           .skip(1)
           .lean();
 
-        if (previousAttendance) {
-          staffObject.lastAttendanceDate = previousAttendance.date;
-          staffObject.lastDayStatus = previousAttendance.status;
-        } else {
-          staffObject.lastAttendanceDate = null;
-          staffObject.lastDayStatus = "Not Marked";
-        }
+        staffObject.lastAttendanceDate = previousAttendance?.date || null;
+        staffObject.lastDayStatus = previousAttendance?.status || "Not Marked";
 
-        // --- Count of 'Present' attendances in the current month ---
         const monthlyPresentCount = await Attendance.countDocuments({
           employeeId: staff._id,
           status: "Present",
@@ -704,7 +721,7 @@ export const getAllStaffsForAttendance = async (data) => {
       }),
     );
 
-    // --- Include manager data if requested ---
+    // --- Include managers ---
     if (manager === "true") {
       try {
         const managerResponse = await sendRPCRequest(
@@ -713,33 +730,33 @@ export const getAllStaffsForAttendance = async (data) => {
         );
 
         const managerData = managerResponse?.data || managerResponse;
+
         if (Array.isArray(managerData) && managerData.length > 0) {
           const enrichedManagers = await Promise.all(
-            managerData.map(async (m) => {
-              if (m && m._id) {
+            managerData
+              .filter((m) => m && m.deleted !== true) // ✅ exclude deleted managers
+              .map(async (m) => {
                 const enrichedManager = {...m};
 
                 if (m.role) {
                   const roleName = await getRoleName(m.role);
-                  enrichedManager.role = {_id: m.role, name: roleName};
+                  enrichedManager.role = {
+                    _id: m.role,
+                    name: roleName,
+                  };
                 }
 
-                // --- Today's (latest) attendance ---
                 const todayAttendance = await Attendance.findOne({
                   employeeId: m._id,
                 })
                   .sort({date: -1})
                   .lean();
 
-                if (todayAttendance) {
-                  enrichedManager.todayAttendanceDate = todayAttendance.date;
-                  enrichedManager.todayStatus = todayAttendance.status;
-                } else {
-                  enrichedManager.todayAttendanceDate = null;
-                  enrichedManager.todayStatus = "Not Marked";
-                }
+                enrichedManager.todayAttendanceDate =
+                  todayAttendance?.date || null;
+                enrichedManager.todayStatus =
+                  todayAttendance?.status || "Not Marked";
 
-                // --- Second latest (previous) attendance ---
                 const previousAttendance = await Attendance.findOne({
                   employeeId: m._id,
                 })
@@ -747,30 +764,27 @@ export const getAllStaffsForAttendance = async (data) => {
                   .skip(1)
                   .lean();
 
-                if (previousAttendance) {
-                  enrichedManager.lastAttendanceDate = previousAttendance.date;
-                  enrichedManager.lastDayStatus = previousAttendance.status;
-                } else {
-                  enrichedManager.lastAttendanceDate = null;
-                  enrichedManager.lastDayStatus = "Not Marked";
-                }
+                enrichedManager.lastAttendanceDate =
+                  previousAttendance?.date || null;
+                enrichedManager.lastDayStatus =
+                  previousAttendance?.status || "Not Marked";
 
-                // --- Monthly present count for manager ---
                 const monthlyPresentCount = await Attendance.countDocuments({
                   employeeId: m._id,
                   status: "Present",
-                  date: {$gte: startOfMonth, $lte: endOfMonth},
+                  date: {
+                    $gte: startOfMonth,
+                    $lte: endOfMonth,
+                  },
                 });
 
                 enrichedManager.monthlyPresentDays = monthlyPresentCount;
 
                 return enrichedManager;
-              }
-              return null;
-            }),
+              }),
           );
 
-          enrichedStaff.push(...enrichedManagers.filter(Boolean));
+          enrichedStaff.push(...enrichedManagers);
         }
       } catch (error) {
         console.error(
@@ -779,6 +793,9 @@ export const getAllStaffsForAttendance = async (data) => {
         );
       }
     }
+
+    // ✅ Final safety filter
+    enrichedStaff = enrichedStaff.filter((emp) => emp.deleted !== true);
 
     return {
       status: 200,

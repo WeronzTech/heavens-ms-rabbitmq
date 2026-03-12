@@ -102,7 +102,11 @@ managerRoutes.post(
       maxCount: 1,
     },
     {
-      name: "aadharImage",
+      name: "aadharFrontImage",
+      maxCount: 1,
+    },
+    {
+      name: "aadharBackImage",
       maxCount: 1,
     },
     {
@@ -137,7 +141,11 @@ managerRoutes.put(
       maxCount: 1,
     },
     {
-      name: "aadharImage",
+      name: "aadharFrontImage",
+      maxCount: 1,
+    },
+    {
+      name: "aadharBackImage",
       maxCount: 1,
     },
     {
