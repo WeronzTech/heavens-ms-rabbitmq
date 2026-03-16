@@ -7,6 +7,7 @@ export const registerManager = async (req, res) => {
       name,
       managerType,
       jobTitle,
+      joinDate,
       email,
       phone,
       password,
@@ -28,6 +29,7 @@ export const registerManager = async (req, res) => {
         name,
         managerType,
         jobTitle,
+        joinDate,
         email,
         phone,
         password,
@@ -196,31 +198,6 @@ export const getManagerById = async (req, res) => {
       .json({success: false, status: 500, message: "Internal Server Error"});
   }
 };
-
-// export const editManager = async (req, res) => {
-//   try {
-//     const updates = req.body;
-//     const files = req.files;
-//     const id = req.params.id;
-
-//     const manager = await sendRPCRequest(CLIENT_PATTERN.MANAGER.EDIT_MANAGER, {
-//       id,
-//       updates,
-//       files,
-//     });
-
-//     if (manager.status === 200) {
-//       res.status(200).json(manager);
-//     } else {
-//       res.status(manager.status).json(manager);
-//     }
-//   } catch (error) {
-//     console.error("Error during manager update:", error);
-//     res
-//       .status(500)
-//       .json({success: false, status: 500, message: "Internal Server Error"});
-//   }
-// };
 
 export const editManager = async (req, res) => {
   try {

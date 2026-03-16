@@ -129,4 +129,15 @@ export const ACCOUNTS_PATTERN = {
     GET_SYSTEM_NAMES: "account_setting_get_system_names",
     CLEAR_CACHE: "account_setting_clear_cache",
   },
+  PAYROLL: {
+    MAKE_PAYMENT: "make_payment",
+    PAYROLL_LEAVE: "payroll_leave",
+    ADVANCE_SALARY: "advance_salary",
+    GENERATE_MISSING_PAYROLL: "generate_missing_payroll",
+    GET_ALL_PAYROLL: "get_all_payroll",
+    GET_ALL_TRANSACTION_BY_EMPLOYEEID: "get_all_transaction_by_employeeId",
+    GET_ALL_ADVANCE_TRANSACTION_BY_EMPLOYEEID:
+      "get_all_advance_transaction_by_employeeId",
+    UPDATE_PAYROLL: "update_payroll",
+  },
 };

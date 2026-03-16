@@ -103,6 +103,10 @@ export const PERMISSIONS = {
   // PROPERTY_DASHBOARD_VIEW: "PROPERTY_DASHBOARD_VIEW",
   DASHBOARD: "/",
 
+  // ----- PAYROLL -----
+  PAYROLL_VIEW: "PAYROLL_VIEW",
+  PAYROLL_MANAGE: "PAYROLL_MANAGE",
+
   // ----- USER -----
   // USER_VIEW: "USER_VIEW",
   USER_VIEW: "/monthlyRent" || "/dailyRent" || "/food-only",

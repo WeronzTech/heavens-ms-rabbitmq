@@ -160,6 +160,8 @@ export const getAllSalaryRecords = async (filters) => {
       propertyId,
       type,
       paymentMethod,
+      pettyCashType,
+      manager,
       search,
       month,
       year,
@@ -172,6 +174,14 @@ export const getAllSalaryRecords = async (filters) => {
     if (propertyId) query.propertyId = propertyId;
     if (type) query.employeeType = type;
     if (paymentMethod) query.paymentMethod = paymentMethod;
+    if (manager) {
+      query.handledBy = new mongoose.Types.ObjectId(manager);
+    }
+
+    if (pettyCashType) {
+      query.pettyCashType = pettyCashType;
+    }
+
     if (search) query.employeeName = {$regex: search, $options: "i"};
 
     // Month & year filter using date range

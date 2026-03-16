@@ -1,4 +1,3 @@
-// models/User.model.js
 import mongoose from "mongoose";
 import DatabaseCounter from "./databaseCounter.model.js";
 

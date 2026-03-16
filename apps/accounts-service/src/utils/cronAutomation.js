@@ -6,9 +6,9 @@
 //     const daysInPreviousMonth = previousMonth.daysInMonth();
 
 import moment from "moment";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 
 //     // 1. Fetch all active staff and managers
@@ -127,22 +127,22 @@ export const generateMonthlySalaries = async () => {
       : [];
 
     const employees = [
-      ...activeStaff.map((s) => ({ ...s, employeeType: "Staff" })),
-      ...activeManagers.map((m) => ({ ...m, employeeType: "Manager" })),
+      ...activeStaff.map((s) => ({...s, employeeType: "Staff"})),
+      ...activeManagers.map((m) => ({...m, employeeType: "Manager"})),
     ];
 
     if (employees.length === 0) {
       console.log(
-        "CRON JOB: No active employees found. No salaries to generate."
+        "CRON JOB: No active employees found. No salaries to generate.",
       );
-      return { success: true, message: "No active employees found." };
+      return {success: true, message: "No active employees found."};
     }
 
     let createdCount = 0;
     for (const employee of employees) {
       const existingRecord = await StaffSalaryHistory.findOne({
         employeeId: employee._id,
-        date: { $gte: previousMonthStart, $lte: previousMonthEnd },
+        date: {$gte: previousMonthStart, $lte: previousMonthEnd},
       });
 
       if (existingRecord) continue;
@@ -156,7 +156,7 @@ export const generateMonthlySalaries = async () => {
             .startOf("month")
             .format("YYYY-MM-DD"),
           endDate: previousMonth.clone().endOf("month").format("YYYY-MM-DD"),
-        }
+        },
       );
 
       const attendanceRecords = attendanceResponse.success
@@ -204,27 +204,155 @@ export const generateMonthlySalaries = async () => {
       if (employee.employeeType === "Staff") {
         await sendRPCRequest(PROPERTY_PATTERN.STAFF.UPDATE_STAFF, {
           staffId: employee._id,
-          updateData: { advanceSalary: remainingAdvanceForNextMonth },
+          updateData: {advanceSalary: remainingAdvanceForNextMonth},
         });
       } else if (employee.employeeType === "Manager") {
         await sendRPCRequest(CLIENT_PATTERN.MANAGER.EDIT_MANAGER, {
           id: employee._id,
-          updates: { advanceSalary: remainingAdvanceForNextMonth },
+          updates: {advanceSalary: remainingAdvanceForNextMonth},
         });
       }
       createdCount++;
     }
 
     const logMessage = `CRON JOB: Successfully generated ${createdCount} new salary records for ${previousMonth.format(
-      "MMMM YYYY"
+      "MMMM YYYY",
     )}.`;
     console.log(logMessage);
-    return { success: true, message: logMessage, data: { createdCount } };
+    return {success: true, message: logMessage, data: {createdCount}};
   } catch (error) {
     console.error("CRON JOB: Error generating monthly salaries:", error);
     return {
       success: false,
       message: "Error during automated salary generation.",
+      error: error.message,
+    };
+  }
+};
+
+export const generateMonthlyPayroll = async () => {
+  try {
+    const now = new Date();
+
+    let month = now.getMonth() - 1;
+    let year = now.getFullYear();
+
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+
+    const endOfMonth = new Date(year, month + 1, 0);
+    const daysInMonth = 30;
+
+    console.log(`Generating payroll for ${month + 1}/${year}`);
+
+    // fetch managers and staff
+    const managers = await sendRPCRequest(
+      CLIENT_PATTERN.MANAGER.GET_ALL_MANAGERS,
+      {},
+    );
+
+    const staffs = await sendRPCRequest(
+      PROPERTY_PATTERN.STAFF.GET_ALL_STAFF,
+      {},
+    );
+
+    const employees = [
+      ...(managers?.data || []).map((e) => ({
+        ...e,
+        employeeType: "Manager",
+      })),
+      ...(staffs?.data?.staff || []).map((e) => ({
+        ...e,
+        employeeType: "Staff",
+      })),
+    ];
+
+    for (const emp of employees) {
+      if (emp.status !== "Active") continue;
+      if (new Date(emp.joinDate) > endOfMonth) continue;
+
+      const exists = await Payroll.findOne({
+        employeeId: emp._id,
+        employeeType: emp.employeeType,
+        month,
+        year,
+      });
+
+      if (exists) continue;
+
+      /* -------------------------
+         1️⃣ Calculate base salary
+      -------------------------- */
+      let payableDays = daysInMonth;
+
+      const perDaySalary = emp.salary / daysInMonth;
+      const baseSalary = Math.round(perDaySalary * payableDays);
+
+      /* -------------------------
+         2️⃣ Fetch advances for THIS MONTH only
+      -------------------------- */
+      const advanceResult = await StaffSalaryHistory.aggregate([
+        {
+          $match: {
+            employeeId: new mongoose.Types.ObjectId(emp._id),
+            month,
+            year,
+            isAdvance: true,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalAdvance: {$sum: "$paidAmount"},
+          },
+        },
+      ]);
+
+      const advanceAdjusted = advanceResult[0]?.totalAdvance || 0;
+
+      /* -------------------------
+         3️⃣ Net Salary
+      -------------------------- */
+      const netSalary = Math.max(baseSalary - advanceAdjusted, 0);
+
+      /* -------------------------
+         4️⃣ Create payroll with advance adjustment details
+      -------------------------- */
+      await Payroll.create({
+        name: emp.name,
+        jobTitle: emp.jobTitle,
+        employeeId: emp._id,
+        employeeType: emp.employeeType,
+        month,
+        year,
+        salary: emp.salary,
+        leaveDays: 0,
+        leaveDeduction: 0,
+        advanceAdjusted,
+        netSalary,
+        paidAmount: 0,
+        pendingAmount: netSalary,
+        status: "Pending",
+
+        propertyId: emp.propertyId,
+        kitchenId: emp.kitchenId,
+        clientId: emp.clientId,
+      });
+    }
+
+    console.log("Payroll generation completed");
+
+    return {
+      success: true,
+      message: "Payroll generated successfully",
+    };
+  } catch (error) {
+    console.error("Payroll generation error:", error);
+    return {
+      success: false,
+      message: "Payroll generation failed",
       error: error.message,
     };
   }

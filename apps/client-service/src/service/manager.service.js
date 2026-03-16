@@ -3,17 +3,124 @@ import {
   uploadToFirebase,
   deleteFromFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
 import Manager from "../models/manager.model.js";
 import bcrypt from "bcrypt";
+
+// export const registerManager = async (data) => {
+//   try {
+//     const {
+//       name,
+//       managerType,
+//       jobTitle,
+//       email,
+//       phone,
+//       password,
+//       role,
+//       salary,
+//       propertyId,
+//       kitchenId,
+//       gender,
+//       address,
+//       files,
+//       clientId,
+//     } = data;
+
+//     if (!name || !email || !phone || !password || !salary || !propertyId) {
+//       return {
+//         success: false,
+//         status: 400,
+//         message: "Missing required fields.",
+//       };
+//     }
+
+//     // ✅ Handle file uploads
+//     let photoUrl = null;
+//     let aadharFrontUrl = null;
+//     let aadharBackUrl = null;
+//     let panCardUrl = null;
+
+//     if (files) {
+//       if (files.photo) {
+//         photoUrl = await uploadToFirebase(files.photo, "staff-photos");
+//       }
+//       if (files.aadharFrontImage) {
+//         aadharFrontUrl = await uploadToFirebase(
+//           files.aadharFrontImage,
+//           "staff-documents",
+//         );
+//       }
+//       if (files.aadharBackImage) {
+//         aadharBackUrl = await uploadToFirebase(
+//           files.aadharBackImage,
+//           "staff-documents",
+//         );
+//       }
+//       if (files.panCardImage) {
+//         panCardUrl = await uploadToFirebase(
+//           files.panCardImage,
+//           "staff-documents",
+//         );
+//       }
+//     }
+
+//     const existingManager = await Manager.findOne({email});
+//     if (existingManager) {
+//       return {
+//         success: false,
+//         status: 409,
+//         message: "A manager with this email already exists.",
+//       };
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const newManager = new Manager({
+//       name,
+//       managerType,
+//       jobTitle,
+//       email,
+//       contactNumber: phone,
+//       password: hashedPassword,
+//       role,
+//       salary,
+//       photo: photoUrl,
+//       aadhaarImage: aadharUrl,
+//       panCardImage: panCardUrl,
+//       propertyId,
+//       gender,
+//       address,
+//       panCardNumber: panNumber,
+//       clientId,
+//       kitchenId,
+//     });
+
+//     await newManager.save();
+//     const {password: _, ...managerData} = newManager.toObject();
+
+//     return {
+//       success: true,
+//       status: 201,
+//       message: "Manager registered successfully.",
+//       data: managerData,
+//     };
+//   } catch (error) {
+//     console.error("Error registering manager:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal Server Error",
+//     };
+//   }
+// };
 
 export const registerManager = async (data) => {
   try {
     const {
       name,
       managerType,
-      jobTitle,
+      jobTitle,joinDate,
       email,
       phone,
       password,
@@ -65,7 +172,7 @@ export const registerManager = async (data) => {
       }
     }
 
-    const existingManager = await Manager.findOne({ email });
+    const existingManager = await Manager.findOne({email});
     if (existingManager) {
       return {
         success: false,
@@ -79,25 +186,25 @@ export const registerManager = async (data) => {
     const newManager = new Manager({
       name,
       managerType,
-      jobTitle,
+      jobTitle,joinDate,
       email,
       contactNumber: phone,
       password: hashedPassword,
       role,
       salary,
       photo: photoUrl,
-      aadhaarImage: aadharUrl,
+      aadharFrontImage: aadharFrontUrl,
+      aadharBackImage: aadharBackUrl,
       panCardImage: panCardUrl,
       propertyId,
+      kitchenId,
       gender,
       address,
-      panCardNumber: panNumber,
       clientId,
-      kitchenId,
     });
 
     await newManager.save();
-    const { password: _, ...managerData } = newManager.toObject();
+    const {password: _, ...managerData} = newManager.toObject();
 
     return {
       success: true,
@@ -117,11 +224,11 @@ export const registerManager = async (data) => {
 
 export const getManagerByEmail = async (data) => {
   try {
-    const { email } = data;
+    const {email} = data;
     if (!email) {
-      return { success: false, status: 400, message: "Email is required." };
+      return {success: false, status: 400, message: "Email is required."};
     }
-    const manager = await Manager.findOne({ email });
+    const manager = await Manager.findOne({email});
     if (!manager) {
       return {
         success: false,
@@ -138,12 +245,12 @@ export const getManagerByEmail = async (data) => {
     };
   } catch (error) {
     console.error("Error fetching manager by email:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const validateManagerCredentials = async (data) => {
-  const { email, password } = data;
+  const {email, password} = data;
   try {
     if (!email || !password) {
       return {
@@ -152,9 +259,9 @@ export const validateManagerCredentials = async (data) => {
         message: "Please provide both email and password.",
       };
     }
-    const manager = await Manager.findOne({ email }).select("+password");
+    const manager = await Manager.findOne({email}).select("+password");
     if (!manager) {
-      return { success: false, status: 401, message: "Invalid credentials." };
+      return {success: false, status: 401, message: "Invalid credentials."};
     }
     if (!manager.isVerified) {
       return {
@@ -165,7 +272,7 @@ export const validateManagerCredentials = async (data) => {
     }
     const isMatch = await bcrypt.compare(password, manager.password);
     if (!isMatch) {
-      return { success: false, status: 401, message: "Invalid credentials." };
+      return {success: false, status: 401, message: "Invalid credentials."};
     }
     if (!manager.loginEnabled) {
       return {
@@ -174,7 +281,7 @@ export const validateManagerCredentials = async (data) => {
         message: "Manager account has been disabled.",
       };
     }
-    const { password: _, ...managerData } = manager.toObject();
+    const {password: _, ...managerData} = manager.toObject();
     return {
       success: true,
       status: 200,
@@ -183,14 +290,14 @@ export const validateManagerCredentials = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager validation:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const forgotPasswordManager = async (data) => {
-  const { email } = data;
+  const {email} = data;
   try {
-    const manager = await Manager.findOne({ email });
+    const manager = await Manager.findOne({email});
     if (!manager) {
       return {
         success: true, // Obfuscate whether user exists
@@ -227,7 +334,7 @@ export const forgotPasswordManager = async (data) => {
           host: process.env.EMAIL_HOST,
           port: process.env.EMAIL_PORT,
           secure: false,
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+          auth: {user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS},
         });
         await transporter.sendMail({
           from: `"Heavens Living" <${process.env.EMAIL_USER}>`,
@@ -252,12 +359,12 @@ export const forgotPasswordManager = async (data) => {
     };
   } catch (error) {
     console.error("Error in manager forgot password service:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const resetPasswordManager = async (data) => {
-  const { token, password } = data;
+  const {token, password} = data;
   try {
     if (!token || !password) {
       return {
@@ -269,7 +376,7 @@ export const resetPasswordManager = async (data) => {
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     const manager = await Manager.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
+      resetPasswordExpires: {$gt: Date.now()},
     });
 
     if (!manager) {
@@ -292,21 +399,21 @@ export const resetPasswordManager = async (data) => {
     };
   } catch (error) {
     console.error("Error in manager reset password service:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const getAllManagers = async (data) => {
   try {
-    const { propertyId, joinDate, status, name } = data;
+    const {propertyId, joinDate, status, name} = data;
     console.log("xxxxcxxxxxwwww");
     console.log(data);
 
     const filter = {};
-    if (propertyId) filter.propertyId = { $in: [propertyId] };
+    if (propertyId) filter.propertyId = {$in: [propertyId]};
     if (joinDate) filter.joinDate = joinDate;
     if (status) filter.status = status;
-    if (name) filter.name = { $regex: name, $options: "i" };
+    if (name) filter.name = {$regex: name, $options: "i"};
 
     const managers = await Manager.find(filter);
     return {
@@ -317,17 +424,17 @@ export const getAllManagers = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager retrieval:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const getManagerById = async (data) => {
   try {
-    const { id } = data;
+    const {id} = data;
 
     const manager = await Manager.findById(id);
     if (!manager) {
-      return { success: false, status: 404, message: "Manager not found." };
+      return {success: false, status: 404, message: "Manager not found."};
     }
 
     const managerObject = manager.toObject();
@@ -335,7 +442,7 @@ export const getManagerById = async (data) => {
       try {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: manager.propertyId[0] },
+          {id: manager.propertyId[0]},
         );
         if (propertyResponse.data) {
           managerObject.property = {
@@ -348,7 +455,7 @@ export const getManagerById = async (data) => {
           `Failed to fetch property details for ID ${manager.propertyId[0]}:`,
           axiosError.message,
         );
-        managerObject.property = { name: "Could not fetch property details" };
+        managerObject.property = {name: "Could not fetch property details"};
       }
     }
     return {
@@ -359,17 +466,17 @@ export const getManagerById = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager retrieval:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const editManager = async (data) => {
   try {
-    const { id, updates = {}, files } = data;
+    const {id, updates = {}, files} = data;
     console.log(data);
     const manager = await Manager.findById(id);
     if (!manager) {
-      return { success: false, status: 404, message: "Manager not found." };
+      return {success: false, status: 404, message: "Manager not found."};
     }
 
     // ============================================================
@@ -417,39 +524,46 @@ export const editManager = async (data) => {
     // 3️⃣ Handle File Updates
     // ============================================================
     if (files) {
-      if (files.photo) {
-        if (manager.photo) {
-          await deleteFromFirebase(manager.photo);
-        }
-        updates.photo = await uploadToFirebase(files.photo, "staff-photos");
+      if (files.photo && files.photo.buffer) {
+        if (manager.photo) await deleteFromFirebase(manager.photo);
+
+        const photoFile = {
+          buffer: Buffer.from(files.photo.buffer, "base64"),
+          mimetype: files.photo.mimetype,
+          originalname: files.photo.originalname,
+        };
+
+        updates.photo = await uploadToFirebase(photoFile, "staff-photos");
       }
 
-      if (files.aadharFrontImage) {
-        if (manager.aadharFrontImage) {
-          await deleteFromFirebase(manager.aadharFrontImage);
-        }
-        updates.aadharFrontImage = await uploadToFirebase(
-          files.aadharFrontImage,
+      if (files.aadharImage && files.aadharImage.buffer) {
+        if (manager.aadhaarImage)
+          await deleteFromFirebase(manager.aadhaarImage);
+
+        const aadharFile = {
+          buffer: Buffer.from(files.aadharImage.buffer, "base64"),
+          mimetype: files.aadharImage.mimetype,
+          originalname: files.aadharImage.originalname,
+        };
+
+        updates.aadhaarImage = await uploadToFirebase(
+          aadharFile,
           "staff-documents",
         );
       }
 
-      if (files.aadharBackImage) {
-        if (manager.aadharBackImage) {
-          await deleteFromFirebase(manager.aadharBackImage);
-        }
-        updates.aadharBackImage = await uploadToFirebase(
-          files.aadharBackImage,
-          "staff-documents",
-        );
-      }
-
-      if (files.panCardImage) {
-        if (manager.panCardImage) {
+      if (files.panCardImage && files.panCardImage.buffer) {
+        if (manager.panCardImage)
           await deleteFromFirebase(manager.panCardImage);
-        }
+
+        const panCardFile = {
+          buffer: Buffer.from(files.panCardImage.buffer, "base64"),
+          mimetype: files.panCardImage.mimetype,
+          originalname: files.panCardImage.originalname,
+        };
+
         updates.panCardImage = await uploadToFirebase(
-          files.panCardImage,
+          panCardFile,
           "staff-documents",
         );
       }
@@ -474,7 +588,7 @@ export const editManager = async (data) => {
     // ============================================================
     const updatedManager = await Manager.findByIdAndUpdate(
       id,
-      { $set: updates },
+      {$set: updates},
       {
         new: true,
         runValidators: true,
@@ -497,9 +611,143 @@ export const editManager = async (data) => {
   }
 };
 
+// export const editManager = async (data) => {
+//   try {
+//     const { id, updates = {}, files } = data;
+//     console.log(data);
+//     const manager = await Manager.findById(id);
+//     if (!manager) {
+//       return { success: false, status: 404, message: "Manager not found." };
+//     }
+
+//     // ============================================================
+//     // 1️⃣ Normalize propertyId & kitchenId (string → array)
+//     // ============================================================
+//     if (updates.propertyId) {
+//       if (!Array.isArray(updates.propertyId)) {
+//         updates.propertyId = [updates.propertyId];
+//       }
+//     }
+
+//     if (updates.kitchenId) {
+//       if (!Array.isArray(updates.kitchenId)) {
+//         updates.kitchenId = [updates.kitchenId];
+//       }
+//     }
+
+//     // ============================================================
+//     // 2️⃣ Handle managerType switch logic
+//     // ============================================================
+//     if (updates.managerType) {
+//       switch (updates.managerType) {
+//         case "Property":
+//           updates.kitchenId = [];
+//           break;
+
+//         case "Kitchen":
+//           updates.propertyId = [];
+//           break;
+
+//         case "Property & Kitchen":
+//           // allow both
+//           break;
+
+//         default:
+//           return {
+//             success: false,
+//             status: 400,
+//             message: "Invalid managerType",
+//           };
+//       }
+//     }
+
+//     // ============================================================
+//     // 3️⃣ Handle File Updates
+//     // ============================================================
+//     if (files) {
+//       if (files.photo) {
+//         if (manager.photo) {
+//           await deleteFromFirebase(manager.photo);
+//         }
+//         updates.photo = await uploadToFirebase(files.photo, "staff-photos");
+//       }
+
+//       if (files.aadharFrontImage) {
+//         if (manager.aadharFrontImage) {
+//           await deleteFromFirebase(manager.aadharFrontImage);
+//         }
+//         updates.aadharFrontImage = await uploadToFirebase(
+//           files.aadharFrontImage,
+//           "staff-documents",
+//         );
+//       }
+
+//       if (files.aadharBackImage) {
+//         if (manager.aadharBackImage) {
+//           await deleteFromFirebase(manager.aadharBackImage);
+//         }
+//         updates.aadharBackImage = await uploadToFirebase(
+//           files.aadharBackImage,
+//           "staff-documents",
+//         );
+//       }
+
+//       if (files.panCardImage) {
+//         if (manager.panCardImage) {
+//           await deleteFromFirebase(manager.panCardImage);
+//         }
+//         updates.panCardImage = await uploadToFirebase(
+//           files.panCardImage,
+//           "staff-documents",
+//         );
+//       }
+//     }
+
+//     // ============================================================
+//     // 4️⃣ Hash password if updating
+//     // ============================================================
+//     if (updates.password) {
+//       updates.password = await bcrypt.hash(updates.password, 10);
+//     }
+
+//     // ============================================================
+//     // 5️⃣ Ensure numeric fields are proper numbers
+//     // ============================================================
+//     if (updates.salary) {
+//       updates.salary = Number(updates.salary);
+//     }
+
+//     // ============================================================
+//     // 6️⃣ Update Manager
+//     // ============================================================
+//     const updatedManager = await Manager.findByIdAndUpdate(
+//       id,
+//       { $set: updates },
+//       {
+//         new: true,
+//         runValidators: true,
+//       },
+//     );
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Manager updated successfully.",
+//       data: updatedManager,
+//     };
+//   } catch (error) {
+//     console.error("Error during manager update:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal Server Error",
+//     };
+//   }
+// };
+
 export const deleteManager = async (data) => {
   try {
-    const { id } = data;
+    const {id} = data;
 
     const manager = await Manager.findById(id);
     if (!manager) {
@@ -542,10 +790,10 @@ export const deleteManager = async (data) => {
 
 export const changeManagerStatus = async (data) => {
   try {
-    const { id } = data;
+    const {id} = data;
     const manager = await Manager.findById(id);
     if (!manager) {
-      return { success: false, status: 404, message: "Manager not found." };
+      return {success: false, status: 404, message: "Manager not found."};
     }
     manager.status = manager.status === "Active" ? "Inactive" : "Active";
     await manager.save();
@@ -557,13 +805,13 @@ export const changeManagerStatus = async (data) => {
     };
   } catch (error) {
     console.error("Error during manager status update:", error);
-    return { success: false, status: 500, message: "Internal Server Error" };
+    return {success: false, status: 500, message: "Internal Server Error"};
   }
 };
 
 export const getManagerCount = async (data) => {
   try {
-    const { propertyId, clientId } = data;
+    const {propertyId, clientId} = data;
 
     const filter = {
       status: "Active",
@@ -582,7 +830,7 @@ export const getManagerCount = async (data) => {
 
     return {
       status: 200,
-      data: { count },
+      data: {count},
     };
   } catch (error) {
     console.error("Error in getManagerCount:", error);

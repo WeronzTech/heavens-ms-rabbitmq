@@ -5,9 +5,12 @@ import cors from "cors";
 import helmet from "helmet";
 import cron from "node-cron";
 
-import { connect } from "../../../libs/common/rabbitMq.js";
-import { errorHandler } from "./middleware/errorHandler.js";
-import { generateMonthlySalaries } from "./utils/cronAutomation.js";
+import {connect} from "../../../libs/common/rabbitMq.js";
+import {errorHandler} from "./middleware/errorHandler.js";
+import {
+  generateMonthlyPayroll,
+  generateMonthlySalaries,
+} from "./utils/cronAutomation.js";
 // ⛔️ REMOVED: Controller import is moved into the startup function.
 // import "./controllers/feePayment.controller.js";
 
@@ -26,12 +29,12 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" }));
+app.use(cors({origin: process.env.ALLOWED_ORIGINS?.split(",") || "*"}));
 app.use(helmet());
 
 // Health check endpoint
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "OK" });
+  res.status(200).json({status: "OK"});
 });
 
 cron.schedule(
@@ -42,7 +45,26 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Asia/Kolkata",
-  }
+  },
+);
+
+cron.schedule(
+  "0 2 1 * *", // 1st of every month at 02:00 AM
+  async () => {
+    console.log("Starting monthly payroll generation...");
+
+    try {
+      await generateMonthlyPayroll();
+
+      console.log("Payroll generated successfully");
+    } catch (error) {
+      console.error("Payroll cron error:", error);
+    }
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  },
 );
 
 // Global error handler
@@ -70,6 +92,8 @@ const startServer = async () => {
     await import("./controllers/report.controller.js");
     await import("./controllers/chartOfAccounts.controller.js");
     await import("./controllers/accountSetting.controller.js");
+    await import("./controllers/payroll.controller.js");
+
     console.log("[ACCOUNTS] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.
@@ -80,7 +104,7 @@ const startServer = async () => {
     // ✅ STEP 4: Start the HTTP server.
     const server = app.listen(process.env.ACCOUNTS_PORT, () => {
       console.log(
-        `[ACCOUNTS] Service is fully started and running on port ${process.env.ACCOUNTS_PORT}`
+        `[ACCOUNTS] Service is fully started and running on port ${process.env.ACCOUNTS_PORT}`,
       );
     });
 

@@ -6,61 +6,52 @@ const staffSalaryHistorySchema = new mongoose.Schema({
     required: true,
   },
   employeeName: {type: String, required: true},
-  // employeeType: {
-  //   type: String,
-  //   required: true,
-  //   enum: ["Staff", "Manager"],
-  // },
   employeeType: {
     type: String,
     required: true,
-    enum: ["Property", "Kitchen", "Property & Kitchen", "Staff", "Manager"],
+    enum: ["Staff", "Manager"],
   },
   salary: {type: Number, required: true}, // The gross salary calculated for the month
-  date: {type: Date, required: true}, // The month this salary is for
-  salaryCut: {type: Number, default: 0},
-  salaryIncrement: {type: Number, default: 0},
+  paymentDate: {type: Date, required: true}, // The month this salary is for
   salaryPending: {type: Number, default: 0},
-  advanceSalary: {type: Number, default: 0}, // Advance amount deducted for this month's salary
-  status: {
-    type: String,
-    required: true,
-    enum: ["pending", "paid"],
-    default: "pending",
-  },
+
   paidAmount: {type: Number, default: 0},
-  paidBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: false, // Not required for auto-generation
-  },
-  paymentMethod: {type: String},
-  giverName: {type: String, required: false},
-  paymentDate: {type: String, required: false},
-  transactionId: {type: String},
-  remarkType: {
+  createdBy: {
     type: String,
-    enum: [
-      "AUTOMATIC_GENERATION",
-      "MANUAL_ADDITION",
-      "PAYMENT",
-      "ADVANCE_PAYMENT",
-    ],
-    required: false,
   },
-  // propertyId: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   required: true,
-  // },
+  handledBy: {
+    type: mongoose.Schema.Types.ObjectId,
+  },
+  paymentMethod: {
+    type: String,
+    enum: ["Cash", "UPI", "Bank Transfer", "Petty Cash"],
+    required: true,
+  },
+  pettyCashType: {
+    type: String,
+    enum: ["inHand", "inAccount"],
+    required: function () {
+      return this.paymentMethod === "Petty Cash";
+    },
+  },
+  transactionId: {type: String},
+  remarks: {
+    type: String,
+  },
+  month: Number,
+  year: Number,
+  isAdvance: {type: Boolean, default: false},
   propertyId: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
     },
   ],
-  kitchenId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: false,
-  },
+  kitchenId: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+  ],
+  clientId: mongoose.Schema.Types.ObjectId,
 });
 
 const StaffSalaryHistory = mongoose.model(

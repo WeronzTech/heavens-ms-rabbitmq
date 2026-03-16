@@ -191,6 +191,7 @@ export const tenantLogin = async (data) => {
           id: user._id,
           email: user.email,
           name: user.name,
+          companyName: user.companyName,
           userType,
           properties: user.propertyId || [],
           role: {

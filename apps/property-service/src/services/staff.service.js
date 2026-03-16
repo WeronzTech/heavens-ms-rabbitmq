@@ -410,6 +410,104 @@ export const addStaff = async (data) => {
   }
 };
 
+// export const addStaff = async (data) => {
+//   try {
+//     const {
+//       name,
+//       jobTitle,
+//       employeeType,
+//       gender,
+//       contactNumber,
+//       address,
+//       salary,
+//       joinDate,
+//       status,
+//       propertyId,
+//       createdBy,
+//       kitchenId,
+//       adminName,
+//       files,
+//       clientId,
+//     } = data;
+
+//     // ✅ Handle file uploads
+//     let photoUrl = null;
+//     let aadharFrontUrl = null;
+//     let aadharBackUrl = null;
+//     let panCardUrl = null;
+
+//     if (files) {
+//       if (files.photo) {
+//         photoUrl = await uploadToFirebase(files.photo, "staff-photos");
+//       }
+//       if (files.aadharFrontImage) {
+//         aadharFrontUrl = await uploadToFirebase(
+//           files.aadharFrontImage,
+//           "staff-documents",
+//         );
+//       }
+//       if (files.aadharBackImage) {
+//         aadharBackUrl = await uploadToFirebase(
+//           files.aadharBackImage,
+//           "staff-documents",
+//         );
+//       }
+//       if (files.panCardImage) {
+//         panCardUrl = await uploadToFirebase(
+//           files.panCardImage,
+//           "staff-documents",
+//         );
+//       }
+//     }
+
+//     // ✅ Save staff
+//     const newStaff = new Staff({
+//       name,
+//       jobTitle,
+//       employeeType,
+//       gender,
+//       contactNumber,
+//       address,
+//       salary,
+//       pendingSalary: salary,
+//       joinDate,
+//       status,
+//       propertyId,
+//       createdBy,
+//       kitchenId,
+//       photo: photoUrl,
+//       aadharFrontImage: aadharFrontUrl,
+//       aadharBackImage: aadharBackUrl,
+//       panCardImage: panCardUrl,
+//       clientId,
+//     });
+
+//     const savedStaff = await newStaff.save();
+
+//     // ✅ Log action
+//     try {
+//       await PropertyLog.create({
+//         propertyId,
+//         action: "create",
+//         category: "staff",
+//         changedByName: adminName,
+//         message: `Employee "${name}" (Contact: ${contactNumber}) added to property "${existingProperty.propertyName}" by ${adminName}`,
+//       });
+//     } catch (logError) {
+//       console.error("Failed to save property log (addStaff):", logError);
+//     }
+
+//     return {
+//       status: 201,
+//       message: "Staff added successfully",
+//       data: savedStaff,
+//     };
+//   } catch (error) {
+//     console.error("❌ Error in addStaff:", error);
+//     return {status: 500, message: error.message};
+//   }
+// };
+
 export const updateStaff = async (data) => {
   try {
     const {staffId, updateData = {}, adminName, files} = data;

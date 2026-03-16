@@ -64,6 +64,7 @@ import orderRoutes from "./routes/order/order.routes.js";
 import dailyInventoryRoutes from "./routes/inventory/dailyInventoryRequirement.routes.js";
 import salesReportRoutes from "./routes/order/dailySalesReport.routes.js";
 import busPaymentRoutes from "./routes/accounts/busPayment.routes.js";
+import payrollRoutes from "./routes/accounts/payroll.routes.js";
 
 dotenv.config();
 const app = express();
@@ -155,6 +156,7 @@ app.use("/api/v2/accounting", accountingRoutes);
 app.use("/api/v2/reports", reportRoutes);
 app.use("/api/v2/chart-of-accounts", coaRoutes);
 app.use("/api/v2/account-settings", accountSettingRoutes);
+app.use("/api/v2/payroll", payrollRoutes);
 app.use("/api/v2/order/shop-owner", shopOwnerRoutes);
 app.use("/api/v2/order/business-category", businessCategoryRoutes);
 app.use("/api/v2/order/merchant", merchantRoutes);
