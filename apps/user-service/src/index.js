@@ -5,13 +5,12 @@ import cors from "cors";
 import helmet from "helmet";
 import cron from "node-cron";
 
-import { parseForwardedAuth } from "./utils/parseForwardAuth.js";
-import { sendRentReminders } from "./utils/cronAutomation.js";
-import { connect } from "../../../libs/common/rabbitMq.js";
+import {parseForwardedAuth} from "./utils/parseForwardAuth.js";
+import {sendRentReminders} from "./utils/cronAutomation.js";
+import {connect} from "../../../libs/common/rabbitMq.js";
 // ⛔️ REMOVED: Controller imports are moved into the startup function.
 // import "./controllers/user.controller.js";
 // import "./controllers/reminderNote.controller.js";
-
 dotenv.config();
 
 const app = express();
@@ -19,7 +18,7 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" }));
+app.use(cors({origin: process.env.ALLOWED_ORIGINS?.split(",") || "*"}));
 app.use(helmet());
 app.use(parseForwardedAuth);
 
@@ -31,13 +30,13 @@ cron.schedule("05 18 * * *", sendRentReminders, {
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK" });
+  res.status(200).json({status: "OK"});
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: "Internal Server Error" });
+  res.status(500).json({error: "Internal Server Error"});
 });
 
 const startServer = async () => {
