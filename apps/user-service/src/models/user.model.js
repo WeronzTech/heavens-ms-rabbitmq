@@ -127,6 +127,7 @@ const userSchema = new mongoose.Schema(
       monthlyRent: {type: Number, default: 0},
       pendingRent: {type: Number, default: 0},
       accountBalance: {type: Number, default: 0},
+      advanceBalance: {type: Number, default: 0},
       nextDueDate: {type: Date},
       clearedTillMonth: {type: String},
       paymentDueSince: {type: Date},

@@ -217,7 +217,7 @@ export const sendRentReminders = async () => {
         monthlyRent,
         pendingRent: currentPendingRentInDB,
         pendingAmount,
-        accountBalance,
+        advanceBalance,
       } = user.financialDetails;
 
       if (!monthlyRent || monthlyRent <= 0) continue;
@@ -295,16 +295,22 @@ export const sendRentReminders = async () => {
         iterationMonth.add(1, "months");
       }
 
-      if (accountBalance && accountBalance > 0) {
-        correctlyCalculatedPendingRent -= accountBalance;
+      let updatedAdvanceBalance = advanceBalance || 0;
 
-        // Ensure rent doesn't go below zero (e.g. if Balance is 5000 and Rent is 4000)
-        correctlyCalculatedPendingRent = Math.max(
-          0,
-          correctlyCalculatedPendingRent,
-        );
-
-        monthAddedLog.push(`(Deducted Account Balance: -${accountBalance})`);
+      if (updatedAdvanceBalance > 0 && correctlyCalculatedPendingRent > 0) {
+        if (updatedAdvanceBalance >= correctlyCalculatedPendingRent) {
+          // Advance fully clears pending
+          updatedAdvanceBalance -= correctlyCalculatedPendingRent;
+          monthAddedLog.push(
+            `(Advance used: -${correctlyCalculatedPendingRent})`,
+          );
+          correctlyCalculatedPendingRent = 0;
+        } else {
+          // Advance partially reduces pending
+          correctlyCalculatedPendingRent -= updatedAdvanceBalance;
+          monthAddedLog.push(`(Advance used: -${updatedAdvanceBalance})`);
+          updatedAdvanceBalance = 0;
+        }
       }
 
       // Log for specific users to debug production issues
@@ -330,17 +336,6 @@ export const sendRentReminders = async () => {
         correctlyCalculatedPendingRent > 0 &&
         user.financialDetails.nextDueDate
       ) {
-        // Calculate block threshold using IST
-        // const dueDate = moment(user.financialDetails.nextDueDate)
-        //   .utcOffset("+05:30")
-        //   .startOf("day");
-        // // Calculate the cut-off date (Due Date + 5 Days)
-        // const blockThresholdDate = dueDate.clone().add(5, "days");
-
-        // // If today is strictly after the 5-day grace period
-        // if (today.isAfter(blockThresholdDate, "day")) {
-        //   shouldBlockUser = true;
-        // }
         const dueDate = moment(user.financialDetails.nextDueDate)
           .utcOffset("+05:30")
           .startOf("day");
@@ -389,6 +384,9 @@ export const sendRentReminders = async () => {
         shouldBlockUser
       ) {
         user.financialDetails.pendingRent = correctlyCalculatedPendingRent;
+        user.financialDetails.pendingAmount = correctlyCalculatedPendingRent;
+        user.financialDetails.advanceBalance = updatedAdvanceBalance;
+
         // Also update payment status if they are now pending
         if (correctlyCalculatedPendingRent > 0) {
           console.log("Here----today---------------------", user.name);

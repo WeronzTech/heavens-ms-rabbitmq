@@ -991,8 +991,8 @@ const processAndRecordPayment = async ({
 }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  console.log("collectedBy, collectedById");
-  console.log({collectedBy, collectedById});
+  // console.log("collectedBy, collectedById");
+  // console.log({collectedBy, collectedById});
 
   try {
     const userResponse = await sendRPCRequest(
@@ -1053,6 +1053,8 @@ const processAndRecordPayment = async ({
       // STEP 2️⃣ Add to partial tracker
       partialPaid += incomingAmount;
 
+      let advanceBalance = user.financialDetails.advanceBalance || 0;
+
       // STEP 3️⃣ Convert partial → full months
       if (partialPaid >= monthlyRent) {
         const fullMonths = Math.floor(partialPaid / monthlyRent);
@@ -1060,9 +1062,14 @@ const processAndRecordPayment = async ({
         partialPaid = partialPaid % monthlyRent;
       }
 
+      if (currentPending === 0 && partialPaid > 0) {
+        advanceBalance += partialPaid;
+      }
+
       user.financialDetails.pendingRent = currentPending;
       user.financialDetails.pendingAmount = currentPending;
       user.financialDetails.accountBalance = partialPaid;
+      user.financialDetails.advanceBalance = advanceBalance;
 
       if (currentPending === 0) {
         user.paymentStatus = "paid";

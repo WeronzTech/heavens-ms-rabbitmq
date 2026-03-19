@@ -8,119 +8,13 @@ import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.patt
 import Manager from "../models/manager.model.js";
 import bcrypt from "bcrypt";
 
-// export const registerManager = async (data) => {
-//   try {
-//     const {
-//       name,
-//       managerType,
-//       jobTitle,
-//       email,
-//       phone,
-//       password,
-//       role,
-//       salary,
-//       propertyId,
-//       kitchenId,
-//       gender,
-//       address,
-//       files,
-//       clientId,
-//     } = data;
-
-//     if (!name || !email || !phone || !password || !salary || !propertyId) {
-//       return {
-//         success: false,
-//         status: 400,
-//         message: "Missing required fields.",
-//       };
-//     }
-
-//     // ✅ Handle file uploads
-//     let photoUrl = null;
-//     let aadharFrontUrl = null;
-//     let aadharBackUrl = null;
-//     let panCardUrl = null;
-
-//     if (files) {
-//       if (files.photo) {
-//         photoUrl = await uploadToFirebase(files.photo, "staff-photos");
-//       }
-//       if (files.aadharFrontImage) {
-//         aadharFrontUrl = await uploadToFirebase(
-//           files.aadharFrontImage,
-//           "staff-documents",
-//         );
-//       }
-//       if (files.aadharBackImage) {
-//         aadharBackUrl = await uploadToFirebase(
-//           files.aadharBackImage,
-//           "staff-documents",
-//         );
-//       }
-//       if (files.panCardImage) {
-//         panCardUrl = await uploadToFirebase(
-//           files.panCardImage,
-//           "staff-documents",
-//         );
-//       }
-//     }
-
-//     const existingManager = await Manager.findOne({email});
-//     if (existingManager) {
-//       return {
-//         success: false,
-//         status: 409,
-//         message: "A manager with this email already exists.",
-//       };
-//     }
-
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     const newManager = new Manager({
-//       name,
-//       managerType,
-//       jobTitle,
-//       email,
-//       contactNumber: phone,
-//       password: hashedPassword,
-//       role,
-//       salary,
-//       photo: photoUrl,
-//       aadhaarImage: aadharUrl,
-//       panCardImage: panCardUrl,
-//       propertyId,
-//       gender,
-//       address,
-//       panCardNumber: panNumber,
-//       clientId,
-//       kitchenId,
-//     });
-
-//     await newManager.save();
-//     const {password: _, ...managerData} = newManager.toObject();
-
-//     return {
-//       success: true,
-//       status: 201,
-//       message: "Manager registered successfully.",
-//       data: managerData,
-//     };
-//   } catch (error) {
-//     console.error("Error registering manager:", error);
-//     return {
-//       success: false,
-//       status: 500,
-//       message: "Internal Server Error",
-//     };
-//   }
-// };
-
 export const registerManager = async (data) => {
   try {
     const {
       name,
       managerType,
-      jobTitle,joinDate,
+      jobTitle,
+      joinDate,
       email,
       phone,
       password,
@@ -186,7 +80,8 @@ export const registerManager = async (data) => {
     const newManager = new Manager({
       name,
       managerType,
-      jobTitle,joinDate,
+      jobTitle,
+      joinDate,
       email,
       contactNumber: phone,
       password: hashedPassword,
@@ -610,140 +505,6 @@ export const editManager = async (data) => {
     };
   }
 };
-
-// export const editManager = async (data) => {
-//   try {
-//     const { id, updates = {}, files } = data;
-//     console.log(data);
-//     const manager = await Manager.findById(id);
-//     if (!manager) {
-//       return { success: false, status: 404, message: "Manager not found." };
-//     }
-
-//     // ============================================================
-//     // 1️⃣ Normalize propertyId & kitchenId (string → array)
-//     // ============================================================
-//     if (updates.propertyId) {
-//       if (!Array.isArray(updates.propertyId)) {
-//         updates.propertyId = [updates.propertyId];
-//       }
-//     }
-
-//     if (updates.kitchenId) {
-//       if (!Array.isArray(updates.kitchenId)) {
-//         updates.kitchenId = [updates.kitchenId];
-//       }
-//     }
-
-//     // ============================================================
-//     // 2️⃣ Handle managerType switch logic
-//     // ============================================================
-//     if (updates.managerType) {
-//       switch (updates.managerType) {
-//         case "Property":
-//           updates.kitchenId = [];
-//           break;
-
-//         case "Kitchen":
-//           updates.propertyId = [];
-//           break;
-
-//         case "Property & Kitchen":
-//           // allow both
-//           break;
-
-//         default:
-//           return {
-//             success: false,
-//             status: 400,
-//             message: "Invalid managerType",
-//           };
-//       }
-//     }
-
-//     // ============================================================
-//     // 3️⃣ Handle File Updates
-//     // ============================================================
-//     if (files) {
-//       if (files.photo) {
-//         if (manager.photo) {
-//           await deleteFromFirebase(manager.photo);
-//         }
-//         updates.photo = await uploadToFirebase(files.photo, "staff-photos");
-//       }
-
-//       if (files.aadharFrontImage) {
-//         if (manager.aadharFrontImage) {
-//           await deleteFromFirebase(manager.aadharFrontImage);
-//         }
-//         updates.aadharFrontImage = await uploadToFirebase(
-//           files.aadharFrontImage,
-//           "staff-documents",
-//         );
-//       }
-
-//       if (files.aadharBackImage) {
-//         if (manager.aadharBackImage) {
-//           await deleteFromFirebase(manager.aadharBackImage);
-//         }
-//         updates.aadharBackImage = await uploadToFirebase(
-//           files.aadharBackImage,
-//           "staff-documents",
-//         );
-//       }
-
-//       if (files.panCardImage) {
-//         if (manager.panCardImage) {
-//           await deleteFromFirebase(manager.panCardImage);
-//         }
-//         updates.panCardImage = await uploadToFirebase(
-//           files.panCardImage,
-//           "staff-documents",
-//         );
-//       }
-//     }
-
-//     // ============================================================
-//     // 4️⃣ Hash password if updating
-//     // ============================================================
-//     if (updates.password) {
-//       updates.password = await bcrypt.hash(updates.password, 10);
-//     }
-
-//     // ============================================================
-//     // 5️⃣ Ensure numeric fields are proper numbers
-//     // ============================================================
-//     if (updates.salary) {
-//       updates.salary = Number(updates.salary);
-//     }
-
-//     // ============================================================
-//     // 6️⃣ Update Manager
-//     // ============================================================
-//     const updatedManager = await Manager.findByIdAndUpdate(
-//       id,
-//       { $set: updates },
-//       {
-//         new: true,
-//         runValidators: true,
-//       },
-//     );
-
-//     return {
-//       success: true,
-//       status: 200,
-//       message: "Manager updated successfully.",
-//       data: updatedManager,
-//     };
-//   } catch (error) {
-//     console.error("Error during manager update:", error);
-//     return {
-//       success: false,
-//       status: 500,
-//       message: "Internal Server Error",
-//     };
-//   }
-// };
 
 export const deleteManager = async (data) => {
   try {

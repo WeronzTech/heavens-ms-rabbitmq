@@ -19,13 +19,12 @@ export const processSalaryPayment = async (data) => {
     managerId,
     pettyCashType,
   } = data;
-  console.log(data);
+  // console.log(data);
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const payroll = await Payroll.findById(payrollId).session(session);
-    console.log(payroll);
     if (!payroll) {
       throw new Error("Payroll record not found");
     }

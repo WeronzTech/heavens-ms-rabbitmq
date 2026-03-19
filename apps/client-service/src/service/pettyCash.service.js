@@ -25,8 +25,6 @@ export const addPettyCash = async (data) => {
       createdByName,
       paymentMode,
     } = data;
-    console.log("HAHAHAHAHAHAHAHAHHA");
-    console.log(data);
 
     const client = await Manager.findById(manager);
     if (!client) {
@@ -147,7 +145,6 @@ export const addPettyCash = async (data) => {
       },
     };
   } catch (error) {
-    console.log(error);
     console.error("Petty cash service error:", error);
 
     return {
