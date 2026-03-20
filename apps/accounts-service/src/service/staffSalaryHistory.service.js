@@ -202,7 +202,7 @@ export const getAllSalaryRecords = async (filters) => {
 
     // Fetch paginated records
     const records = await StaffSalaryHistory.find(query)
-      .sort({date: -1, createdAt: -1})
+      .sort({paymentDate: -1, createdAt: -1})
       .skip(skip)
       .limit(limit);
 

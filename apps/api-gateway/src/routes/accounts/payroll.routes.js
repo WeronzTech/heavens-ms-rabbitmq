@@ -82,4 +82,5 @@ payrollRoutes.put(
   hasPermission(PERMISSIONS.PAYROLL_MANAGE),
   editPayrollSalary,
 );
+
 export default payrollRoutes;
