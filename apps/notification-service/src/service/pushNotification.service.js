@@ -1,11 +1,11 @@
 import FcmToken from "../models/fcmToken.model.js";
 import PushNotification from "../models/pushNotification.model.js";
-import { sendPushNotificationToUser } from "../utils/sendNotificationHelper.js";
+import {sendPushNotificationToUser} from "../utils/sendNotificationHelper.js";
 import {
   deleteFromFirebase,
   uploadToFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import { getUserIds } from "./internal.service.js";
+import {getUserIds} from "./internal.service.js";
 import NotificationLog from "../models/notificationLog.model.js";
 
 export const addPushNotification = async (data) => {
@@ -48,7 +48,7 @@ export const addPushNotification = async (data) => {
       },
     };
   } catch (error) {
-    console.error("RPC Push Notification Error:", error);
+    console.log("RPC Push Notification Error:", error);
     return {
       status: 500,
       message: error.message || "Failed to create push notification",
@@ -94,7 +94,7 @@ export const updatePushNotification = async (data) => {
     });
 
     if (!updated) {
-      return { status: 404, message: "Notification not found" };
+      return {status: 404, message: "Notification not found"};
     }
 
     return {
@@ -113,20 +113,20 @@ export const updatePushNotification = async (data) => {
   }
 };
 
-export const deletePushNotification = async ({ data }) => {
+export const deletePushNotification = async ({data}) => {
   try {
-    const { id } = data; // ✅ safely extract id
+    const {id} = data; // ✅ safely extract id
 
     const deleted = await PushNotification.findByIdAndDelete(id);
 
     if (!deleted) {
-      return { status: 404, message: "Notification not found" };
+      return {status: 404, message: "Notification not found"};
     }
     await deleteFromFirebase(deleted.imageUrl);
 
     return {
       status: 200,
-      data: { message: "Push notification deleted successfully" },
+      data: {message: "Push notification deleted successfully"},
     };
   } catch (error) {
     console.error("RPC Delete Push Notification Error:", error);
@@ -137,9 +137,9 @@ export const deletePushNotification = async ({ data }) => {
   }
 };
 
-export const getPushNotifications = async ({ data }) => {
+export const getPushNotifications = async ({data}) => {
   try {
-    const { studentOnly, messOnly, workerOnly, dailyRentOnly } = data; // ✅ extract from data
+    const {studentOnly, messOnly, workerOnly, dailyRentOnly} = data; // ✅ extract from data
 
     const query = {};
     if (studentOnly !== undefined) query.studentOnly = studentOnly;
@@ -151,7 +151,7 @@ export const getPushNotifications = async ({ data }) => {
       createdAt: -1,
     });
 
-    return { status: 200, data: { notifications } };
+    return {status: 200, data: {notifications}};
   } catch (error) {
     console.error("RPC Get Push Notifications Error:", error);
     return {
@@ -161,9 +161,9 @@ export const getPushNotifications = async ({ data }) => {
   }
 };
 
-export const sendPushNotification = async ({ data }) => {
+export const sendPushNotification = async ({data}) => {
   try {
-    const { id } = data;
+    const {id} = data;
 
     const notification = await PushNotification.findById(id);
     if (!notification) {
@@ -208,7 +208,7 @@ export const sendPushNotification = async ({ data }) => {
     console.log("User IDs:", ids);
 
     // Find FCM tokens
-    const tokenDocs = await FcmToken.find({ userId: { $in: ids } });
+    const tokenDocs = await FcmToken.find({userId: {$in: ids}});
     if (!tokenDocs.length) {
       return {
         success: true,
@@ -217,7 +217,7 @@ export const sendPushNotification = async ({ data }) => {
       };
     }
 
-    const message = { title, body: description, image: imageUrl };
+    const message = {title, body: description, image: imageUrl};
     let sentCount = 0;
     const successfulUserIds = new Set();
 

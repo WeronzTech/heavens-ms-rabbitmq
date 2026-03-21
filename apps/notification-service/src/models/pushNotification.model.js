@@ -12,7 +12,7 @@ const pushNotificationSchema = new mongoose.Schema(
     },
     imageUrl: {
       type: String,
-      required: true,
+      required: false,
     },
     messOnly: {
       type: Boolean,
@@ -37,11 +37,11 @@ const pushNotificationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const PushNotification = mongoose.model(
   "PushNotification",
-  pushNotificationSchema
+  pushNotificationSchema,
 );
 export default PushNotification;
