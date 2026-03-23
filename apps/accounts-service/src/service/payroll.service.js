@@ -6,7 +6,6 @@ import Payroll from "../models/payroll.model.js";
 import {createJournalEntry} from "./accounting.service.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
-
 export const processSalaryPayment = async (data) => {
   const {
     payrollId,
@@ -19,7 +18,7 @@ export const processSalaryPayment = async (data) => {
     managerId,
     pettyCashType,
   } = data;
-  // console.log(data);
+  console.log(data);
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -87,7 +86,7 @@ export const processSalaryPayment = async (data) => {
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
         {managerId},
       );
-      console.log(pettyCashResponse);
+
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
         return {
           success: false,
@@ -161,7 +160,6 @@ export const processSalaryPayment = async (data) => {
     }
 
     await payroll.save({session});
-
     /* ------------------------------
        Accounting Journal Entry
     ------------------------------ */
@@ -201,7 +199,6 @@ export const processSalaryPayment = async (data) => {
     if (paymentMethod === "Petty Cash" && pettyCashType === "inHand") {
       await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
         manager: managerId,
-        managerName: payroll.name,
         pettyCashType,
         inHandAmount: -paymentAmount,
       });
@@ -210,7 +207,6 @@ export const processSalaryPayment = async (data) => {
     if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
       await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
         manager: managerId,
-        managerName: payroll.name,
         pettyCashType,
         inAccountAmount: -paymentAmount,
       });
@@ -419,7 +415,6 @@ export const createSalaryAdvance = async (data) => {
   if (paymentMethod === "Petty Cash" && pettyCashType === "inHand") {
     await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
       manager: managerId,
-      managerName,
       pettyCashType,
       inHandAmount: -amount,
     });
@@ -428,7 +423,6 @@ export const createSalaryAdvance = async (data) => {
   if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
     await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
       manager: managerId,
-      managerName,
       pettyCashType,
       inAccountAmount: -amount,
     });
