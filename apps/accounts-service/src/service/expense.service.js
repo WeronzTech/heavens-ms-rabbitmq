@@ -11,6 +11,7 @@ import {createAccountLog} from "./accountsLog.service.js";
 import Voucher from "../models/voucher.model.js";
 import {createJournalEntry} from "./accounting.service.js";
 import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
+import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 
 export const addExpense = async (data) => {
   const session = await mongoose.startSession();
@@ -875,4 +876,81 @@ export const updateExpense = async (data) => {
       error: error.message,
     };
   }
+};
+
+export const getPettyCashUsage = async (data) => {
+  const {managerId, managerIds} = data;
+
+  let match = {
+    paymentMethod: "Petty Cash",
+  };
+
+  // 🔹 Handle filters properly
+  if (managerId) {
+    match.handledBy = new mongoose.Types.ObjectId(managerId);
+  } else if (managerIds && managerIds.length > 0) {
+    match.handledBy = {
+      $in: managerIds.map((id) => new mongoose.Types.ObjectId(id)),
+    };
+  }
+
+  // 🔹 Expense
+  const expense = await Expense.aggregate([
+    {$match: match},
+    {
+      $group: {
+        _id: {
+          manager: "$handledBy",
+          type: "$pettyCashType",
+        },
+        total: {$sum: "$amount"},
+      },
+    },
+  ]);
+
+  // 🔹 Salary
+  const salary = await StaffSalaryHistory.aggregate([
+    {$match: match},
+    {
+      $group: {
+        _id: {
+          manager: "$handledBy",
+          type: "$pettyCashType",
+        },
+        total: {$sum: "$paidAmount"},
+      },
+    },
+  ]);
+
+  const usageMap = {};
+
+  const process = (data) => {
+    data.forEach((item) => {
+      if (!item._id?.manager || !item._id?.type) return;
+
+      const manager = item._id.manager.toString();
+      const type = item._id.type;
+
+      if (!usageMap[manager]) {
+        usageMap[manager] = {
+          inHand: 0,
+          inAccount: 0,
+        };
+      }
+
+      // 🔥 Safety: only allow valid types
+      if (type === "inHand" || type === "inAccount") {
+        usageMap[manager][type] += item.total;
+      }
+    });
+  };
+
+  process(expense);
+  process(salary);
+
+  return Object.keys(usageMap).map((manager) => ({
+    manager,
+    inHand: usageMap[manager].inHand,
+    inAccount: usageMap[manager].inAccount,
+  }));
 };
