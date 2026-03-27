@@ -135,7 +135,9 @@ export const addItemToRequirement = async (data) => {
     }
 
     // Determine base unit
-    let baseUnit = inventoryItem.quantityType === "kg" ? "g" : "ml";
+    let baseUnit = inventoryItem.quantityType;
+    if (baseUnit === "kg") baseUnit = "g";
+    else if (baseUnit === "l") baseUnit = "ml";
 
     // Convert incoming quantity TO BASE UNIT
     let convertedQty = quantityRequired;
@@ -176,7 +178,7 @@ export const addItemToRequirement = async (data) => {
 
     // Check existing item in requirement
     const existingItemIndex = requirement.items.findIndex(
-      (item) => item.inventoryId.toString() === inventoryId
+      (item) => item.inventoryId.toString() === inventoryId,
     );
 
     if (existingItemIndex > -1) {
@@ -272,7 +274,7 @@ export const removeItemFromRequirement = async (data) => {
 
     // Remove item from items array
     requirement.items = requirement.items.filter(
-      (item) => item.inventoryId.toString() !== inventoryId
+      (item) => item.inventoryId.toString() !== inventoryId,
     );
 
     requirement.updatedAt = new Date();
@@ -408,7 +410,7 @@ export const approveDailyRequirement = async (data) => {
       const inventoryItem = await Inventory.findById(item.inventoryId);
       if (!inventoryItem) {
         console.warn(
-          `Inventory item ${item.productName} (${item.inventoryId}) not found during approval.`
+          `Inventory item ${item.productName} (${item.inventoryId}) not found during approval.`,
         );
         continue;
       }
@@ -416,7 +418,7 @@ export const approveDailyRequirement = async (data) => {
       // 1. Normalize current stock to base unit
       const normalizedCurrentStock = normalizeQuantity(
         inventoryItem.stockQuantity,
-        inventoryItem.quantityType
+        inventoryItem.quantityType,
       );
 
       // 2. Deduct the required amount (already in base unit from the model)
@@ -426,7 +428,7 @@ export const approveDailyRequirement = async (data) => {
       // 3. Denormalize back to original unit
       const newStockInOriginalUnit = denormalizeQuantity(
         newStockInBaseUnit,
-        inventoryItem.quantityType
+        inventoryItem.quantityType,
       );
 
       // 4. Update Inventory
@@ -454,7 +456,7 @@ export const approveDailyRequirement = async (data) => {
         operation: "remove",
         performedBy: userAuth || "system",
         notes: `Daily Usage Approved for ${new Date(
-          requirement.date
+          requirement.date,
         ).toDateString()}`,
       });
     }
@@ -557,13 +559,12 @@ export const getInventoryItems = async (data) => {
           message: "Invalid requirementId format.",
         };
 
-      const requirement = await DailyInventoryRequirement.findById(
-        requirementId
-      ).select("items");
+      const requirement =
+        await DailyInventoryRequirement.findById(requirementId).select("items");
 
       if (requirement) {
         requirementItems = requirement.items.map((item) =>
-          item.inventoryId.toString()
+          item.inventoryId.toString(),
         );
       }
     }
@@ -577,7 +578,7 @@ export const getInventoryItems = async (data) => {
     // Filter items NOT in the requirement
     if (requirementItems.length > 0) {
       inventoryData = inventoryData.filter(
-        (inv) => !requirementItems.includes(inv._id.toString())
+        (inv) => !requirementItems.includes(inv._id.toString()),
       );
     }
 

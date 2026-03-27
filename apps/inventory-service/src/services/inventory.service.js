@@ -158,7 +158,7 @@ export const addInventory = async (data) => {
         });
       } catch (rpcError) {
         console.error(
-          `[InventoryService] Failed to create journal entry for inventory ${newItem._id}: ${rpcError.message}`
+          `[InventoryService] Failed to create journal entry for inventory ${newItem._id}: ${rpcError.message}`,
         );
       }
     }
@@ -273,7 +273,7 @@ export const editInventory = async (data) => {
         "productName",
         item.productName,
         productName,
-        `Name changed from "${item.productName}" to "${productName}"`
+        `Name changed from "${item.productName}" to "${productName}"`,
       );
       item.productName = productName;
     }
@@ -321,7 +321,7 @@ export const deleteInventory = async ({ inventoryId, userAuth }) => {
 
 export const useInventory = async (data) => {
   try {
-    const { inventoryId, quantity, kitchenId, userAuth } = data;
+    const { inventoryId, quantity, kitchenId, userAuth, date } = data;
     if (!kitchenId)
       return { success: false, status: 400, message: "kitchenId is required" };
 
@@ -348,6 +348,7 @@ export const useInventory = async (data) => {
       operation: "remove",
       performedBy: userAuth,
       notes: "Daily usage",
+      date: date ? new Date(date) : new Date(),
     });
 
     return { success: true, status: 200, data: item };
@@ -547,9 +548,8 @@ export const getInventoryById = async ({ inventoryId }) => {
   try {
     if (!inventoryId)
       return { success: false, status: 400, message: "Invalid inventory ID" };
-    const inventoryItem = await Inventory.findById(inventoryId).populate(
-      "categoryId"
-    );
+    const inventoryItem =
+      await Inventory.findById(inventoryId).populate("categoryId");
     if (!inventoryItem)
       return {
         success: false,

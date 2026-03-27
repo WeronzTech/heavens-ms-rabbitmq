@@ -42,7 +42,7 @@ export const updateInventoryFromBookings = async () => {
       // FIX: Ensure ingredient.name is populated and has an _id before processing
       if (!ingredient.name || !ingredient.name._id) {
         console.warn(
-          `Skipping an ingredient in a recipe because its ID is not populated.`
+          `Skipping an ingredient in a recipe because its ID is not populated.`,
         );
         return;
       }
@@ -54,7 +54,7 @@ export const updateInventoryFromBookings = async () => {
       const ingredientMap = kitchenIngredientMap.get(kitchenIdStr);
       const normalized = normalizeQuantity(
         ingredient.quantity,
-        ingredient.unit
+        ingredient.unit,
       );
 
       // FIX: Use the inventory ID as the key for aggregation. This is more reliable.
@@ -79,7 +79,7 @@ export const updateInventoryFromBookings = async () => {
       const menu = await WeeklyMenu.findOne({ kitchenId }).lean();
       if (!menu) {
         console.warn(
-          `No weekly menu found for kitchenId: ${kitchenId}. Skipping meal booking ${booking._id}.`
+          `No weekly menu found for kitchenId: ${kitchenId}. Skipping meal booking ${booking._id}.`,
         );
         continue;
       }
@@ -103,11 +103,15 @@ export const updateInventoryFromBookings = async () => {
           console.warn(`Recipe with ID ${recipeId} not found. Skipping.`);
           continue;
         }
-        console.log("ingredients", recipe.ingredients);
+        const servings = recipe.servings || 1;
 
-        recipe.ingredients.forEach((ingredient) =>
-          addIngredientToMap(kitchenId, ingredient)
-        );
+        recipe.ingredients.forEach((ingredient) => {
+          const scaledIngredient = {
+            ...ingredient,
+            quantity: ingredient.quantity / servings,
+          };
+          addIngredientToMap(kitchenId, scaledIngredient);
+        });
       }
     }
 
@@ -128,15 +132,17 @@ export const updateInventoryFromBookings = async () => {
 
         if (!recipe) {
           console.warn(
-            `Recipe with ID ${addonInfo.itemId} for an addon not found. Skipping.`
+            `Recipe with ID ${addonInfo.itemId} for an addon not found. Skipping.`,
           );
           continue;
         }
 
+        const servings = recipe.servings || 1;
+
         recipe.ingredients.forEach((ingredient) => {
           const scaledIngredient = {
             ...ingredient,
-            quantity: ingredient.quantity * addonItem.quantity,
+            quantity: (ingredient.quantity / servings) * addonItem.quantity,
           };
           addIngredientToMap(kitchenId, scaledIngredient);
         });
@@ -146,7 +152,7 @@ export const updateInventoryFromBookings = async () => {
     // 3. Log usage and update inventory for each kitchen
     for (const [kitchenId, ingredientMap] of kitchenIngredientMap.entries()) {
       console.log(
-        `Staging inventory requirements for Kitchen ID: ${kitchenId}`
+        `Staging inventory requirements for Kitchen ID: ${kitchenId}`,
       );
 
       const itemsArray = [];
@@ -181,11 +187,11 @@ export const updateInventoryFromBookings = async () => {
         const result = await DailyInventoryRequirement.findOneAndUpdate(
           query,
           update,
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true },
         );
 
         console.log(
-          `Requirements staged for Kitchen ${kitchenId}: ${itemsArray.length} items.`
+          `Requirements staged for Kitchen ${kitchenId}: ${itemsArray.length} items.`,
         );
       }
     }
@@ -198,7 +204,7 @@ export const updateInventoryFromBookings = async () => {
 
 export const checkInventoryForTomorrow = async () => {
   console.log(
-    "Cron job started: Checking inventory levels for tomorrow's bookings."
+    "Cron job started: Checking inventory levels for tomorrow's bookings.",
   );
 
   const tomorrow = new Date();
@@ -226,7 +232,7 @@ export const checkInventoryForTomorrow = async () => {
     const addIngredientToMap = (kitchenId, ingredient) => {
       if (!ingredient.name || !ingredient.name._id) {
         console.warn(
-          `Skipping an ingredient in a recipe because its ID is not populated.`
+          `Skipping an ingredient in a recipe because its ID is not populated.`,
         );
         return;
       }
@@ -238,7 +244,7 @@ export const checkInventoryForTomorrow = async () => {
       const ingredientMap = kitchenIngredientMap.get(kitchenIdStr);
       const normalized = normalizeQuantity(
         ingredient.quantity,
-        ingredient.unit
+        ingredient.unit,
       );
 
       const key = ingredient.name._id.toString(); // Use inventory ID as the key
@@ -268,7 +274,15 @@ export const checkInventoryForTomorrow = async () => {
           .lean();
         if (!recipe) continue;
 
-        recipe.ingredients.forEach((ing) => addIngredientToMap(kitchenId, ing));
+        const servings = recipe.servings || 1;
+
+        recipe.ingredients.forEach((ing) => {
+          const scaledIngredient = {
+            ...ing,
+            quantity: ing.quantity / servings,
+          };
+          addIngredientToMap(kitchenId, scaledIngredient);
+        });
       }
     }
 
@@ -285,10 +299,12 @@ export const checkInventoryForTomorrow = async () => {
           .lean();
         if (!recipe) continue;
 
+        const servings = recipe.servings || 1;
+
         recipe.ingredients.forEach((ingredient) => {
           const scaledIngredient = {
             ...ingredient,
-            quantity: ingredient.quantity * addonItem.quantity,
+            quantity: (ingredient.quantity / servings) * addonItem.quantity,
           };
           addIngredientToMap(kitchenId, scaledIngredient);
         });
@@ -303,7 +319,7 @@ export const checkInventoryForTomorrow = async () => {
 
         if (!inventoryItem) {
           console.error(
-            `Inventory item with ID '${inventoryId}' not found but is required for kitchen ${kitchenId}.`
+            `Inventory item with ID '${inventoryId}' not found but is required for kitchen ${kitchenId}.`,
           );
           continue;
         }
@@ -311,7 +327,7 @@ export const checkInventoryForTomorrow = async () => {
         if (inventoryItem.stockQuantity < requiredQuantity) {
           const deficit = requiredQuantity - inventoryItem.stockQuantity;
           console.log(
-            `!! INSUFFICIENT STOCK in Kitchen ${kitchenId} for ${inventoryItem.productName}. Required: ${requiredQuantity}, Available: ${inventoryItem.stockQuantity}, Deficit: ${deficit}`
+            `!! INSUFFICIENT STOCK in Kitchen ${kitchenId} for ${inventoryItem.productName}. Required: ${requiredQuantity}, Available: ${inventoryItem.stockQuantity}, Deficit: ${deficit}`,
           );
 
           //
@@ -361,17 +377,17 @@ export const checkLowStockAndNotify = async () => {
       // Normalize both the current stock and the low stock threshold to base units
       const normalizedStock = normalizeQuantity(
         item.stockQuantity,
-        item.quantityType
+        item.quantityType,
       );
       const normalizedLowStock = normalizeQuantity(
         item.lowStockQuantity,
-        item.quantityType
+        item.quantityType,
       );
 
       // Ensure we are comparing compatible units (e.g., grams with grams)
       if (normalizedStock.baseUnit !== normalizedLowStock.baseUnit) {
         console.warn(
-          `Skipping item ${item.productName} due to incompatible units for comparison.`
+          `Skipping item ${item.productName} due to incompatible units for comparison.`,
         );
         continue;
       }
@@ -403,21 +419,21 @@ export const checkLowStockAndNotify = async () => {
 
           try {
             console.log(
-              `Sending notification to user ${userId} for kitchen ${kitchen.name}...`
+              `Sending notification to user ${userId} for kitchen ${kitchen.name}...`,
             );
 
             await sendRPCRequest(
               NOTIFICATION_PATTERN.NOTIFICATION.SEND_NOTIFICATION,
-              notificationPayload // ✅ wrapped in data
+              notificationPayload, // ✅ wrapped in data
             );
 
             console.log(
-              `Successfully sent notification for ${item.productName} to user ${userId}.`
+              `Successfully sent notification for ${item.productName} to user ${userId}.`,
             );
           } catch (error) {
             console.error(
               `Failed to send notification for item ${item.productName} to user ${userId}.`,
-              error.response ? error.response.data : error.message
+              error.response ? error.response.data : error.message,
             );
           }
         }
@@ -492,19 +508,19 @@ export const deleteOldMealBookings = async () => {
 
     if (result.deletedCount > 0) {
       console.log(
-        `Successfully deleted ${result.deletedCount} old meal bookings.`
+        `Successfully deleted ${result.deletedCount} old meal bookings.`,
       );
     } else {
       console.log("No old meal bookings found to delete.");
     }
 
     console.log(
-      "Cron job for deleting old meal bookings finished successfully."
+      "Cron job for deleting old meal bookings finished successfully.",
     );
   } catch (error) {
     console.error(
       "Error running the old meal bookings cleanup cron job:",
-      error
+      error,
     );
   }
 };

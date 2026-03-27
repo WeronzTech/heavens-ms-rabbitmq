@@ -10,7 +10,7 @@ const inventorySchema = new mongoose.Schema(
     quantityType: {
       type: String,
       required: true,
-      enum: ["kg", "g", "l", "ml"],
+      enum: ["kg", "g", "l", "ml", "numbers", "packet"],
     },
     stockQuantity: {
       type: Number,
@@ -62,7 +62,7 @@ const inventorySchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const Inventory = mongoose.model("Inventory", inventorySchema);
