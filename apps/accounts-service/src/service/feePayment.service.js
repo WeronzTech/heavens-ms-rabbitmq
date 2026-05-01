@@ -987,11 +987,10 @@ const processAndRecordPayment = async ({
   collectedBy = "",
   collectedById = null,
   remarks = "",
-  createdBy,
+  processAndRecordPayment,
 }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  // console.log("collectedBy, collectedById");
   // console.log({collectedBy, collectedById});
 
   try {
