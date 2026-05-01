@@ -30,7 +30,7 @@ export const validateObjectId = (id, fieldName) => {
 export const validateMealTypeForAddon = (
   addon,
   requestedMealType,
-  path = "mealType"
+  path = "mealType",
 ) => {
   const allowedTypes = ["Breakfast", "Lunch", "Snacks", "Dinner"];
   if (!allowedTypes.includes(requestedMealType)) {
@@ -53,7 +53,7 @@ export const validateMealTypeForAddon = (
             addon.itemName
           }: ${addon.mealType.join(", ")}`,
         },
-      ]
+      ],
     );
   }
 };
@@ -69,7 +69,7 @@ export const getTomorrowDate = () => {
   return new Date(
     tomorrow.getFullYear(),
     tomorrow.getMonth(),
-    tomorrow.getDate()
+    tomorrow.getDate(),
   );
 };
 
@@ -136,7 +136,7 @@ export const validateAddonData = (data, partial = false) => {
           errors.push({
             field: `mealType[${index}]`,
             message: `${type} is not a valid meal type. Valid types are: ${allowedMeals.join(
-              ", "
+              ", ",
             )}`,
           });
         }
@@ -178,7 +178,7 @@ export const validateMealAvailability = async (propertyId, date, mealType) => {
     if (!matchingMeal.items || typeof matchingMeal.items !== "object") {
       throw new ApiError(
         400,
-        `items are not available for ${mealType} on ${dayOfWeek}`
+        `items are not available for ${mealType} on ${dayOfWeek}`,
       );
     }
   } catch (error) {
@@ -205,7 +205,7 @@ export const validateBookingTime = async (propertyId) => {
   ) {
     throw new ApiError(
       400,
-      `Bookings are only allowed between ${menu.bookingStartTime} and ${menu.bookingEndTime}`
+      `Bookings are only allowed between ${menu.bookingStartTime} and ${menu.bookingEndTime}`,
     );
   }
 };
@@ -374,11 +374,15 @@ export const normalizeQuantity = (quantity, unit) => {
       return { value: quantity * 1000, baseUnit: "ml" };
     case "ml":
       return { value: quantity, baseUnit: "ml" };
+    case "numbers":
+      return { value: quantity, baseUnit: "numbers" };
+    case "packet":
+      return { value: quantity, baseUnit: "packet" };
     default:
       // For units like 'piece', 'packet', we cannot convert automatically.
       // The system will assume a 1-to-1 deduction.
       console.warn(
-        `Unit "${unit}" cannot be normalized. Assuming a 1-to-1 quantity deduction.`
+        `Unit "${unit}" cannot be normalized. Assuming a 1-to-1 quantity deduction.`,
       );
       return { value: quantity, baseUnit: unit };
   }
@@ -393,6 +397,8 @@ export const denormalizeQuantity = (quantityInBaseUnit, originalUnit) => {
       return quantityInBaseUnit / 1000;
     case "g":
     case "ml":
+    case "numbers":
+    case "packet":
     default:
       return quantityInBaseUnit;
   }
@@ -480,7 +486,7 @@ export const drawTable = (doc, logs) => {
           log.inventoryId?.quantityType || ""
         }`,
         colX.quantity + 5,
-        y + 8
+        y + 8,
       )
       .text(log.notes.replace(/^Dead Stock: /, ""), colX.reason + 5, y + 8, {
         width: colWidths.reason - 10,
@@ -539,7 +545,7 @@ export const drawWeeklyUsageTable = (doc, reportData, reportDates) => {
       `${item.productName} (${item.quantityType})`,
       startX + 5,
       currentY + 11,
-      { width: colWidths.itemName - 10 }
+      { width: colWidths.itemName - 10 },
     );
     let x = startX + colWidths.itemName;
     reportDates.forEach((date) => {
@@ -553,7 +559,7 @@ export const drawWeeklyUsageTable = (doc, reportData, reportDates) => {
         dayData.used.toString(),
         x + colWidths.dayBlock / 2,
         currentY + 11,
-        { width: colWidths.dayBlock / 2, align: "center" }
+        { width: colWidths.dayBlock / 2, align: "center" },
       );
       x += colWidths.dayBlock;
     });
