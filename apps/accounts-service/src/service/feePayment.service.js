@@ -1259,7 +1259,6 @@ const processAndRecordPayment = async ({
             managerName: collectedBy,
             date: paymentDate,
             notes: `Rent received from ${user.name}`,
-            createdBy,
             paymentMode: "cash",
           });
         } catch (err) {
