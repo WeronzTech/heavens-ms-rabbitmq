@@ -4,10 +4,10 @@ import Merchant from "../models/merchant.model.js";
 import Order from "../models/orders.model.js";
 import ShopOwner from "../models/shopOwner.model.js";
 import {
-  createRazorpayOrderId,
-  verifyPayment,
-  razorpayRefund,
-} from "../utils/razorpay.js"; // Assuming this path based on structure
+  createEasebuzzOrderId,
+  verifyOrderPaymentSignature,
+  processEasebuzzRefund,
+} from "../utils/easebuzz.js";
 
 export const createOrder = async (data) => {
   try {
@@ -37,25 +37,27 @@ export const createOrder = async (data) => {
       paymentStatus: "Pending",
     });
 
-    let razorpayOrderData = null;
+    let easebuzzOrderData = null;
 
-    // 3. If Online Payment, initiate Razorpay Order
+    // 3. If Online Payment, initiate Easebuzz Order
     if (paymentMethod === "Online") {
-      const rzResult = await createRazorpayOrderId(bill.grandTotal, merchant);
+      const ebResult = await createEasebuzzOrderId(bill.grandTotal, merchant);
 
-      if (!rzResult.success) {
+      if (!ebResult.success) {
         // If payment init fails, we might want to delete the pending order or leave it as failed
         await Order.findByIdAndDelete(newOrder._id);
         return { status: 500, message: "Failed to initiate payment gateway." };
       }
 
-      // Save the Razorpay Order ID (transactionId) to the order
-      newOrder.transactionId = rzResult.orderId;
+      // Save the Easebuzz Order ID (txnid) to the order
+      newOrder.transactionId = ebResult.orderId;
       await newOrder.save();
 
-      razorpayOrderData = {
-        id: rzResult.orderId,
-        amount: bill.grandTotal * 100, // Amount in paise
+      easebuzzOrderData = {
+        id: ebResult.orderId,
+        access_key: ebResult.access_key,
+        key: ebResult.key,
+        amount: bill.grandTotal, // Amount in INR
         currency: "INR",
       };
     }
@@ -65,7 +67,7 @@ export const createOrder = async (data) => {
       data: {
         message: "Order created successfully",
         order: newOrder,
-        razorpayOrder: razorpayOrderData, // Send this to frontend
+        easebuzzOrder: easebuzzOrderData, // Send this to frontend
       },
     };
   } catch (error) {
@@ -80,7 +82,7 @@ export const createOrder = async (data) => {
 export const verifyOrderPayment = async (data) => {
   try {
     const { orderId, paymentDetails } = data;
-    // paymentDetails should contain: razorpay_order_id, razorpay_payment_id, razorpay_signature
+    // paymentDetails should contain: txnid, easepayid, hash, status, etc.
     const order = await Order.findById(orderId);
 
     if (!order) {
@@ -88,7 +90,7 @@ export const verifyOrderPayment = async (data) => {
     }
 
     // 1. Verify Signature
-    const isValid = await verifyPayment(paymentDetails, order.merchant);
+    const isValid = await verifyOrderPaymentSignature(paymentDetails, order.merchant);
 
     if (!isValid) {
       return { status: 400, message: "Payment verification failed" };
@@ -100,7 +102,7 @@ export const verifyOrderPayment = async (data) => {
       {
         // status: "Confirmed",
         paymentStatus: "Completed",
-        paymentId: paymentDetails.razorpay_payment_id, // Save the actual Payment ID
+        paymentId: paymentDetails.easepayid, // Save the actual Payment ID
       },
       { new: true }
     );
@@ -157,7 +159,7 @@ export const updateOrderStatus = async (data) => {
     if (status === "Cancelled") {
       // Check if refund is needed
       if (order.paymentStatus === "Completed" && order.paymentId) {
-        const refundResult = await razorpayRefund(
+        const refundResult = await processEasebuzzRefund(
           order.paymentId,
           order.bill.grandTotal,
           order.merchant

@@ -2,9 +2,9 @@ import Payments from "../models/feePayments.model.js";
 import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
 import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
 import {
-  createRazorpayOrderId,
-  verifyPayment as verifyRazorpaySignature,
-} from "../../../../libs/common/razorpay.js";
+  initiateEasebuzzPayment,
+  verifyEasebuzzPayment as verifyEasebuzzSignature,
+} from "../../../../libs/common/easebuzz.js";
 import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
@@ -46,9 +46,9 @@ export const addFeePayment = async (data) => {
       remarks = "",
       property = {},
       receiptNumber = "",
-      razorpayOrderId = "",
-      razorpayPaymentId = "",
-      razorpaySignature = "",
+      easebuzzTxnId = "",
+      easebuzzPaymentId = "",
+      easebuzzHash = "",
       clientId = "",
       userId,
     } = data;
@@ -115,9 +115,9 @@ export const addFeePayment = async (data) => {
       remarks: remarks?.toString().trim(),
       property: property || {}, // Use provided property data directly
       receiptNumber: receiptNumber?.toString().trim(),
-      razorpayOrderId: razorpayOrderId?.toString().trim(),
-      razorpayPaymentId: razorpayPaymentId?.toString().trim(),
-      razorpaySignature: razorpaySignature?.toString().trim(),
+      easebuzzTxnId: easebuzzTxnId?.toString().trim(),
+      easebuzzPaymentId: easebuzzPaymentId?.toString().trim(),
+      easebuzzHash: easebuzzHash?.toString().trim(),
       clientId: clientId?.toString().trim(),
       userId: userId?.toString().trim(),
     };
@@ -165,9 +165,9 @@ export const updateFeePayment = async (paymentId, updateData) => {
       remarks,
       property,
       receiptNumber,
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
+      easebuzzTxnId,
+      easebuzzPaymentId,
+      easebuzzHash,
       clientId,
       userId,
     } = updateData;
@@ -220,12 +220,12 @@ export const updateFeePayment = async (paymentId, updateData) => {
     if (property !== undefined) updateFields.property = property;
     if (receiptNumber !== undefined)
       updateFields.receiptNumber = receiptNumber.toString().trim();
-    if (razorpayOrderId !== undefined)
-      updateFields.razorpayOrderId = razorpayOrderId.toString().trim();
-    if (razorpayPaymentId !== undefined)
-      updateFields.razorpayPaymentId = razorpayPaymentId.toString().trim();
-    if (razorpaySignature !== undefined)
-      updateFields.razorpaySignature = razorpaySignature.toString().trim();
+    if (easebuzzTxnId !== undefined)
+      updateFields.easebuzzTxnId = easebuzzTxnId.toString().trim();
+    if (easebuzzPaymentId !== undefined)
+      updateFields.easebuzzPaymentId = easebuzzPaymentId.toString().trim();
+    if (easebuzzHash !== undefined)
+      updateFields.easebuzzHash = easebuzzHash.toString().trim();
     if (clientId !== undefined)
       updateFields.clientId = clientId.toString().trim();
     if (userId !== undefined) updateFields.userId = userId.toString().trim();
@@ -979,7 +979,7 @@ const processAndRecordPayment = async ({
   amount,
   paymentMethod,
   transactionId = null,
-  razorpayDetails = {},
+  easebuzzDetails = {},
   waveOffAmount = 0,
   waveOffReason = null,
   referralAmountUsed = 0,
@@ -1163,7 +1163,7 @@ const processAndRecordPayment = async ({
       userId: user._id,
       collectedBy,
       remarks,
-      ...razorpayDetails,
+      ...easebuzzDetails,
     });
 
     await newPayment.save({session});
@@ -1309,6 +1309,7 @@ export const initiateOnlinePayment = async (data) => {
     const propertyId = user.stayDetails?.propertyId;
     let keyId = null;
     let keySecret = null;
+    let subMerchantId = null;
 
     if (propertyId) {
       const propertyResponse = await sendRPCRequest(
@@ -1317,10 +1318,12 @@ export const initiateOnlinePayment = async (data) => {
       );
       if (
         propertyResponse.success &&
-        propertyResponse.data?.razorpayCredentials
+        propertyResponse.data?.easebuzzCredentials
       ) {
-        keyId = propertyResponse.data.razorpayCredentials.keyId;
-        keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+        keyId = propertyResponse.data.easebuzzCredentials.key;
+        keySecret = propertyResponse.data.easebuzzCredentials.salt;
+        subMerchantId = propertyResponse.data.easebuzzCredentials.subMerchantId;
+
       }
     }
 
@@ -1395,16 +1398,26 @@ export const initiateOnlinePayment = async (data) => {
     }
 
     if (paymentAmount > 0) {
-      const razorpayResponse = await createRazorpayOrderId(
-        paymentAmount,
-        keyId,
-        keySecret,
-      );
-      if (!razorpayResponse.success) {
+      const easebuzzResponse = await initiateEasebuzzPayment({
+        amount: paymentAmount,
+        productinfo: "Rent Payment",
+        firstname: user.name,
+        email: user.email,
+        phone: user.contact,
+        surl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-success`,
+        furl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-failure`,
+        key: keyId,
+        salt: keySecret,
+        merchantId: subMerchantId,
+
+      });
+
+      if (!easebuzzResponse.success) {
         return {
           success: false,
           status: 500,
           message: "Failed to create payment order.",
+          error: easebuzzResponse.error,
         };
       }
 
@@ -1413,10 +1426,11 @@ export const initiateOnlinePayment = async (data) => {
         status: 200,
         message: "Order created successfully.",
         data: {
-          orderId: razorpayResponse.orderId,
+          access_key: easebuzzResponse.access_key,
+          orderId: easebuzzResponse.txnid, // use txnid as orderId for easebuzz
           amount: paymentAmount,
           name: "Heavens Living",
-          keyId: keyId || process.env.RAZORPAY_KEY_ID,
+          key: keyId || process.env.EASEBUZZ_KEY,
           prefill: {
             name: user.name,
             email: user.email,
@@ -1440,12 +1454,14 @@ export const initiateOnlinePayment = async (data) => {
 
 export const verifyAndRecordOnlinePayment = async (data) => {
   const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
+    txnid,
+    easepayid,
+    hash,
+    status,
     userId,
     amount,
     useReferralBalance,
+    ...rest
   } = data;
 
   let keySecret = null;
@@ -1464,9 +1480,9 @@ export const verifyAndRecordOnlinePayment = async (data) => {
         );
         if (
           propertyResponse.success &&
-          propertyResponse.data?.razorpayCredentials
+          propertyResponse.data?.easebuzzCredentials
         ) {
-          keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+          keySecret = propertyResponse.data.easebuzzCredentials.salt;
         }
       }
     }
@@ -1475,19 +1491,21 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     // Continue to try verifying with env secret if fetching fails
   }
 
-  const isVerified = await verifyRazorpaySignature(
+  const isVerified = verifyEasebuzzSignature(
     {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
+      txnid,
+      easepayid,
+      hash,
+      status,
+      ...rest,
     },
     keySecret,
   );
-  if (!isVerified) {
+  if (!isVerified || status !== "success") {
     return {
       success: false,
       status: 400,
-      message: "Payment verification failed. Invalid signature.",
+      message: "Payment verification failed. Invalid signature or payment status not successful.",
     };
   }
 
@@ -1495,13 +1513,13 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     userId,
     amount: Number(amount),
     referralAmountUsed: Number(useReferralBalance) || 0,
-    paymentMethod: "Razorpay",
-    razorpayDetails: {
-      razorpayOrderId: razorpay_order_id,
-      razorpayPaymentId: razorpay_payment_id,
-      razorpaySignature: razorpay_signature,
+    paymentMethod: "Easebuzz",
+    easebuzzDetails: {
+      easebuzzTxnId: txnid,
+      easebuzzPaymentId: easepayid,
+      easebuzzHash: hash,
     },
-    transactionId: razorpay_payment_id,
+    transactionId: easepayid,
   });
 };
 

@@ -75,6 +75,7 @@ export const createProperty = async (data) => {
       totalFloors,
       clientId,
       razorpayCredentials,
+      easebuzzCredentials,
       rentDetails,
       ...rest
     } = data;
@@ -104,6 +105,7 @@ export const createProperty = async (data) => {
       kitchenId,
       clientId,
       razorpayCredentials,
+      easebuzzCredentials,
       rentDetails,
       images,
     };
@@ -157,6 +159,7 @@ export const updateProperty = async (data) => {
       images,
       adminName,
       razorpayCredentials,
+      easebuzzCredentials,
       rentDetails,
       ...rest
     } = data;
@@ -185,6 +188,7 @@ export const updateProperty = async (data) => {
       deposit,
       kitchenId,
       razorpayCredentials,
+      easebuzzCredentials,
       rentDetails,
       images,
     };

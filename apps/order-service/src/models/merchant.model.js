@@ -26,7 +26,7 @@ const daySchema = new mongoose.Schema(
   },
   {
     _id: false,
-  }
+  },
 );
 
 const availabilitySchema = new mongoose.Schema(
@@ -48,7 +48,7 @@ const availabilitySchema = new mongoose.Schema(
   },
   {
     _id: false,
-  }
+  },
 );
 
 const ratingByCustomerSchema = new mongoose.Schema(
@@ -70,7 +70,7 @@ const ratingByCustomerSchema = new mongoose.Schema(
   },
   {
     _id: false,
-  }
+  },
 );
 
 const bankDetailSchema = mongoose.Schema(
@@ -99,10 +99,27 @@ const bankDetailSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    easebuzzKey: {
+      type: String,
+      default: null,
+    },
+    easebuzzSalt: {
+      type: String,
+      default: null,
+    },
+    easebuzzSubMerchantId: {
+      type: String,
+      default: null,
+    },
+    easebuzzEnv: {
+      type: String,
+      enum: ["test", "production"],
+      default: "test",
+    },
   },
   {
     _id: false,
-  }
+  },
 );
 
 const merchantDetailSchema = new mongoose.Schema(
@@ -208,7 +225,7 @@ const merchantDetailSchema = new mongoose.Schema(
     _id: false,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 const merchantSchema = new mongoose.Schema(
@@ -269,7 +286,7 @@ const merchantSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Middleware to set the custom _id before saving
@@ -287,7 +304,7 @@ merchantSchema.pre("save", async function (next) {
           month: parseInt(month, 10),
         },
         { $inc: { count: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
+        { new: true, upsert: true, setDefaultsOnInsert: true },
       );
 
       if (!counter) {
@@ -311,7 +328,7 @@ merchantDetailSchema.virtual("averageRating").get(function () {
 
   const total = this?.ratingByCustomers?.reduce(
     (acc, rating) => acc + rating.rating,
-    0
+    0,
   );
   return total / this?.ratingByCustomers?.length;
 });

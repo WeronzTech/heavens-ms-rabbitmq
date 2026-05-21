@@ -1,26 +1,26 @@
 import mongoose from "mongoose";
-import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import {
-  createRazorpayOrderId,
-  verifyPayment as verifyRazorpaySignature,
-} from "../../../../libs/common/razorpay.js";
-import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
+  initiateEasebuzzPayment,
+  verifyEasebuzzPayment as verifyEasebuzzSignature,
+} from "../../../../libs/common/easebuzz.js";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import Deposits from "../models/depositPayments.model.js";
-import {createAccountLog} from "./accountsLog.service.js";
+import { createAccountLog } from "./accountsLog.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
-import {createJournalEntry} from "./accounting.service.js";
-import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
-import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import moment from "moment";
 import emailService from "../../../../libs/email/email.service.js";
-import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
   const counter = await ReceiptCounter.findOneAndUpdate(
-    {propertyId: property.propertyId, monthYear},
-    {$inc: {sequence: 1}},
-    {new: true, upsert: true, session},
+    { propertyId: property.propertyId, monthYear },
+    { $inc: { sequence: 1 } },
+    { new: true, upsert: true, session },
   );
 
   const seq = String(counter.sequence).padStart(4, "0");
@@ -222,7 +222,7 @@ const processAndRecordDepositPayment = async ({
   transactionId = null,
   collectedBy = "",
   collectedById = null,
-  razorpayDetails = {},
+  easebuzzDetails = {},
   remarks = "",
   createdBy,
 }) => {
@@ -233,7 +233,7 @@ const processAndRecordDepositPayment = async ({
     // Fetch user
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
 
     if (!userResponse.body.success) {
@@ -333,10 +333,10 @@ const processAndRecordDepositPayment = async ({
       receiptNumber,
       userId: user._id,
       remarks,
-      ...razorpayDetails,
+      ...easebuzzDetails,
     });
 
-    await newDeposit.save({session});
+    await newDeposit.save({ session });
 
     await createAccountLog({
       logType: "Deposit",
@@ -356,7 +356,7 @@ const processAndRecordDepositPayment = async ({
         ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
         : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
-    const journalTransactions = [{systemName: paymentAccount, debit: amount}];
+    const journalTransactions = [{ systemName: paymentAccount, debit: amount }];
 
     if (refundablePart > 0) {
       journalTransactions.push({
@@ -381,7 +381,7 @@ const processAndRecordDepositPayment = async ({
         referenceId: newDeposit._id,
         referenceType: "Deposits",
       },
-      {session},
+      { session },
     );
 
     // -------------------------------------------------------------------
@@ -391,7 +391,7 @@ const processAndRecordDepositPayment = async ({
       USER_PATTERN.USER.UPDATE_USER,
       {
         userId,
-        userData: {stayDetails: stay},
+        userData: { stayDetails: stay },
       },
     );
 
@@ -448,7 +448,7 @@ const processAndRecordDepositPayment = async ({
   } catch (error) {
     await session.abortTransaction();
     console.error("Error during deposit processing:", error);
-    return {success: false, status: 400, message: error.message};
+    return { success: false, status: 400, message: error.message };
   } finally {
     session.endSession();
   }
@@ -461,7 +461,7 @@ export const processAndRecordRefundPayment = async ({
   paymentDate,
   transactionId = null,
   handledBy = "",
-  razorpayDetails = {},
+  easebuzzDetails = {},
   remarks = "",
 }) => {
   const session = await mongoose.startSession();
@@ -470,15 +470,15 @@ export const processAndRecordRefundPayment = async ({
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
     if (!userResponse.body.success) {
       throw new Error(userResponse.message || "User not found.");
     }
     const user = userResponse.body.data;
 
-    const {stayDetails} = user;
-    const {refundableDeposit} = stayDetails;
+    const { stayDetails } = user;
+    const { refundableDeposit } = stayDetails;
 
     const amountNumber = Number(amount);
     const refundableNumber = Number(refundableDeposit);
@@ -508,10 +508,10 @@ export const processAndRecordRefundPayment = async ({
       userId: user._id,
       remarks,
       isRefund: true,
-      ...razorpayDetails,
+      ...easebuzzDetails,
     });
 
-    await newDeposit.save({session});
+    await newDeposit.save({ session });
 
     await createAccountLog({
       logType: "Deposit",
@@ -538,12 +538,12 @@ export const processAndRecordRefundPayment = async ({
             accountName: ACCOUNT_SYSTEM_NAMES.LIABILITY_SECURITY_DEPOSIT,
             debit: Number(amount),
           },
-          {accountName: paymentAccount, credit: Number(amount)},
+          { accountName: paymentAccount, credit: Number(amount) },
         ],
         referenceId: newDeposit._id,
         referenceType: "Deposit", // Use 'Deposit' for consistency
       },
-      {session},
+      { session },
     );
 
     // Update user via RPC
@@ -571,7 +571,7 @@ export const processAndRecordRefundPayment = async ({
   } catch (error) {
     await session.abortTransaction();
     console.error("Error during refund processing:", error);
-    return {success: false, status: 400, message: error.message};
+    return { success: false, status: 400, message: error.message };
   } finally {
     session.endSession();
   }
@@ -579,7 +579,7 @@ export const processAndRecordRefundPayment = async ({
 
 export const initiateOnlineDepositPayment = async (data) => {
   try {
-    const {userId, amount} = data;
+    const { userId, amount } = data;
     const paymentAmount = Number(amount);
 
     if (!userId || !paymentAmount || paymentAmount <= 0) {
@@ -592,34 +592,36 @@ export const initiateOnlineDepositPayment = async (data) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
     if (!userResponse.body.success) {
-      return {success: false, status: 404, message: "User not found."};
+      return { success: false, status: 404, message: "User not found." };
     }
     const user = userResponse.body.data;
 
     const propertyId = user.stayDetails?.propertyId;
     let keyId = null;
     let keySecret = null;
+    let subMerchantId = null;
 
     if (propertyId) {
       const propertyResponse = await sendRPCRequest(
         PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-        {id: propertyId},
+        { id: propertyId },
       );
       if (
         propertyResponse.success &&
-        propertyResponse.data?.razorpayCredentials
+        propertyResponse.data?.easebuzzCredentials
       ) {
-        keyId = propertyResponse.data.razorpayCredentials.keyId;
-        keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+        keyId = propertyResponse.data.easebuzzCredentials.key;
+        keySecret = propertyResponse.data.easebuzzCredentials.salt;
+        subMerchantId = propertyResponse.data.easebuzzCredentials.subMerchantId;
       }
     }
 
     // ✅ NEW: Validate payment amount before creating Razorpay order
-    const {stayDetails} = user;
-    const {depositAmountPaid, nonRefundableDeposit, refundableDeposit} =
+    const { stayDetails } = user;
+    const { depositAmountPaid, nonRefundableDeposit, refundableDeposit } =
       stayDetails;
     let totalDepositAmount = nonRefundableDeposit + refundableDeposit;
     let pendingDeposit = totalDepositAmount - depositAmountPaid;
@@ -634,16 +636,25 @@ export const initiateOnlineDepositPayment = async (data) => {
       };
     }
 
-    const razorpayResponse = await createRazorpayOrderId(
-      paymentAmount,
-      keyId,
-      keySecret,
-    );
-    if (!razorpayResponse.success) {
+    const easebuzzResponse = await initiateEasebuzzPayment({
+      amount: paymentAmount,
+      productinfo: "Deposit Payment",
+      firstname: user.name,
+      email: user.email,
+      phone: user.contact,
+      surl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-success`,
+      furl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-failure`,
+      key: keyId,
+      salt: keySecret,
+      merchantId: subMerchantId,
+    });
+
+    if (!easebuzzResponse.success) {
       return {
         success: false,
         status: 500,
         message: "Failed to create payment order.",
+        error: easebuzzResponse.error,
       };
     }
 
@@ -652,33 +663,28 @@ export const initiateOnlineDepositPayment = async (data) => {
       status: 200,
       message: "Order created successfully.",
       data: {
-        orderId: razorpayResponse.orderId,
+        access_key: easebuzzResponse.access_key,
+        orderId: easebuzzResponse.txnid,
         amount: paymentAmount,
         name: "Heavens Living",
-        keyId: keyId || process.env.RAZORPAY_KEY_ID,
-        prefill: {name: user.name, email: user.email, contact: user.contact},
+        key: keyId || process.env.EASEBUZZ_KEY,
+        prefill: { name: user.name, email: user.email, contact: user.contact },
       },
     };
   } catch (error) {
     console.error("Error during payment initiation:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
 export const verifyAndRecordOnlineDepositPayment = async (data) => {
-  const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    userId,
-    amount,
-  } = data;
+  const { txnid, easepayid, hash, status, userId, amount, ...rest } = data;
 
   let keySecret = null;
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
     if (userResponse.body.success) {
       const user = userResponse.body.data;
@@ -686,13 +692,13 @@ export const verifyAndRecordOnlineDepositPayment = async (data) => {
       if (propertyId) {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          {id: propertyId},
+          { id: propertyId },
         );
         if (
           propertyResponse.success &&
-          propertyResponse.data?.razorpayCredentials
+          propertyResponse.data?.easebuzzCredentials
         ) {
-          keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+          keySecret = propertyResponse.data.easebuzzCredentials.salt;
         }
       }
     }
@@ -700,32 +706,35 @@ export const verifyAndRecordOnlineDepositPayment = async (data) => {
     console.error("Error fetching property credentials:", error);
   }
 
-  const isVerified = await verifyRazorpaySignature(
+  const isVerified = verifyEasebuzzSignature(
     {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
+      txnid,
+      easepayid,
+      hash,
+      status,
+      ...rest,
     },
     keySecret,
   );
-  if (!isVerified) {
+  if (!isVerified || status !== "success") {
     return {
       success: false,
       status: 400,
-      message: "Payment verification failed. Invalid signature.",
+      message:
+        "Payment verification failed. Invalid signature or payment status not successful.",
     };
   }
 
   return await processAndRecordDepositPayment({
     userId,
     amount: Number(amount),
-    paymentMethod: "Razorpay",
-    razorpayDetails: {
-      razorpayOrderId: razorpay_order_id,
-      razorpayPaymentId: razorpay_payment_id,
-      razorpaySignature: razorpay_signature,
+    paymentMethod: "Easebuzz",
+    easebuzzDetails: {
+      easebuzzTxnId: txnid,
+      easebuzzPaymentId: easepayid,
+      easebuzzHash: hash,
     },
-    transactionId: razorpay_payment_id,
+    transactionId: easepayid,
   });
 };
 
@@ -758,7 +767,7 @@ export const recordManualDepositPayment = async (data) => {
   }
 
   if (transactionId) {
-    const existingTxn = await Deposits.findOne({transactionId});
+    const existingTxn = await Deposits.findOne({ transactionId });
 
     if (existingTxn) {
       return {
@@ -828,15 +837,15 @@ export const getAllDepositPayments = async (data) => {
     if (paymentMonth && paymentYear) {
       const startDate = new Date(paymentYear, paymentMonth - 1, 1);
       const endDate = new Date(paymentYear, paymentMonth, 1);
-      mainQueryFilter["paymentDate"] = {$gte: startDate, $lt: endDate};
-      aggregationFilter["paymentDate"] = {$gte: startDate, $lt: endDate};
+      mainQueryFilter["paymentDate"] = { $gte: startDate, $lt: endDate };
+      aggregationFilter["paymentDate"] = { $gte: startDate, $lt: endDate };
     }
 
     // Search filter
     if (search) {
       const regex = new RegExp(search, "i");
-      mainQueryFilter["$or"] = [{name: regex}, {transactionId: regex}];
-      aggregationFilter["$or"] = [{name: regex}, {transactionId: regex}];
+      mainQueryFilter["$or"] = [{ name: regex }, { transactionId: regex }];
+      aggregationFilter["$or"] = [{ name: regex }, { transactionId: regex }];
     }
 
     // Handle isRefund filter for main query only
@@ -866,7 +875,7 @@ export const getAllDepositPayments = async (data) => {
 
     // Fetch paginated deposits
     const deposits = await Deposits.find(mainQueryFilter, projection)
-      .sort({paymentDate: -1, createdAt: -1})
+      .sort({ paymentDate: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -893,35 +902,35 @@ export const getAllDepositPayments = async (data) => {
     if (typeof isRefund !== "undefined") {
       const refundFlag = isRefund === true || isRefund === "true";
       if (refundFlag) {
-        refundedMatch = {...aggregationFilter, isRefund: true};
-        receivedMatch = {...propertyOnlyFilter, isRefund: false};
+        refundedMatch = { ...aggregationFilter, isRefund: true };
+        receivedMatch = { ...propertyOnlyFilter, isRefund: false };
       } else {
-        refundedMatch = {...propertyOnlyFilter, isRefund: true};
-        receivedMatch = {...aggregationFilter, isRefund: false};
+        refundedMatch = { ...propertyOnlyFilter, isRefund: true };
+        receivedMatch = { ...aggregationFilter, isRefund: false };
       }
     } else {
-      refundedMatch = {...aggregationFilter, isRefund: true};
-      receivedMatch = {...aggregationFilter, isRefund: false};
+      refundedMatch = { ...aggregationFilter, isRefund: true };
+      receivedMatch = { ...aggregationFilter, isRefund: false };
     }
 
     const [receivedAggregation, refundedAggregation] = await Promise.all([
       // Total received (non-refunded)
       Deposits.aggregate([
-        {$match: receivedMatch},
+        { $match: receivedMatch },
         {
           $group: {
             _id: null,
-            totalAmount: {$sum: "$amountPaid"},
+            totalAmount: { $sum: "$amountPaid" },
           },
         },
       ]),
       // Total refunded
       Deposits.aggregate([
-        {$match: refundedMatch},
+        { $match: refundedMatch },
         {
           $group: {
             _id: null,
-            totalAmount: {$sum: "$amountPaid"},
+            totalAmount: { $sum: "$amountPaid" },
           },
         },
       ]),
@@ -953,21 +962,21 @@ export const getAllDepositPayments = async (data) => {
   }
 };
 
-export const getLatestDepositPaymentsByUsers = async ({userIds}) => {
+export const getLatestDepositPaymentsByUsers = async ({ userIds }) => {
   try {
     const deposits = await Deposits.aggregate([
       {
         $match: {
-          userId: {$in: userIds.map((id) => new mongoose.Types.ObjectId(id))},
+          userId: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
         },
       },
-      {$sort: {createdAt: -1}}, // ensure latest first
+      { $sort: { createdAt: -1 } }, // ensure latest first
       {
         $group: {
           _id: "$userId",
-          paymentDate: {$first: "$paymentDate"},
-          amountPaid: {$first: "$amountPaid"}, // take from latest doc
-          dueAmount: {$first: "$dueAmount"},
+          paymentDate: { $first: "$paymentDate" },
+          amountPaid: { $first: "$amountPaid" }, // take from latest doc
+          dueAmount: { $first: "$dueAmount" },
         },
       },
       {
@@ -981,15 +990,15 @@ export const getLatestDepositPaymentsByUsers = async ({userIds}) => {
       },
     ]);
 
-    return {success: true, status: 200, data: deposits};
+    return { success: true, status: 200, data: deposits };
   } catch (err) {
-    return {success: false, status: 500, message: err.message};
+    return { success: false, status: 500, message: err.message };
   }
 };
 
 export const getTransactionHistoryByUserId = async (data) => {
   try {
-    const {userId} = data;
+    const { userId } = data;
 
     if (!userId) {
       return {
@@ -1000,8 +1009,8 @@ export const getTransactionHistoryByUserId = async (data) => {
       };
     }
 
-    const payments = await Deposits.find({userId})
-      .sort({paymentDate: -1}) // latest first
+    const payments = await Deposits.find({ userId })
+      .sort({ paymentDate: -1 }) // latest first
       .lean();
 
     if (!payments || payments.length === 0) {

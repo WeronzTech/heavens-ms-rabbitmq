@@ -3,11 +3,11 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import {createProxyMiddleware} from "http-proxy-middleware";
-import {HOST} from "./config/env.js";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { HOST } from "./config/env.js";
 import authRoutes from "./routes/auth/auth.routes.js";
 import roleRoutes from "./routes/auth/role.routes.js";
-import {connect} from "../../../libs/common/rabbitMq.js";
+import { connect } from "../../../libs/common/rabbitMq.js";
 import clientRoutes from "./routes/client/client.routes.js";
 import managerRoutes from "./routes/client/manager.routes.js";
 import mealRoutes from "./routes/inventory/messMenu.route.js";
@@ -71,7 +71,8 @@ const app = express();
 // ⛔️ REMOVED: The connect() call is moved into the startup function to ensure proper order.
 
 // ----- Middleware ----- //
-app.use(express.json({limit: "10mb"}));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(
   cors({
     origin: [
@@ -85,6 +86,7 @@ app.use(
       "http://localhost:8082",
       "http://localhost:8083",
       "http://192.168.1.70:8082",
+      "http://127.0.0.1:5500",
     ],
     credentials: true,
   }),
@@ -169,7 +171,7 @@ app.use("/api/v2/order", orderRoutes);
 app.use("/api/v2/order/sales", salesReportRoutes);
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
-  res.status(200).json({status: "OK CI/CD is working fine and running."});
+  res.status(200).json({ status: "OK CI/CD is working fine and running." });
 });
 
 app.get("/", (_, res) => {

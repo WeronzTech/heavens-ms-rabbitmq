@@ -13,9 +13,9 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import {
-  createRazorpayOrderId,
-  verifyPayment,
-} from "../../../../libs/common/razorpay.js";
+  initiateEasebuzzPayment,
+  verifyEasebuzzPayment as verifyEasebuzzSignature,
+} from "../../../../libs/common/easebuzz.js";
 
 export const createAddonBooking = async (data) => {
   try {
@@ -44,7 +44,7 @@ export const createAddonBooking = async (data) => {
       USER_PATTERN.USER.GET_USER_BY_ID,
       {
         userId,
-      }
+      },
     );
     if (!userResponse.body.success) {
       return {
@@ -60,7 +60,7 @@ export const createAddonBooking = async (data) => {
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
       {
         id: propertyId,
-      }
+      },
     );
     if (!property || !property?.data.kitchenId) {
       return {
@@ -72,15 +72,17 @@ export const createAddonBooking = async (data) => {
 
     const kitchenId = property?.data.kitchenId;
 
-    let keyId = null;
-    let keySecret = null;
+    let key = null;
+    let salt = null;
+    let subMerchantId = null;
     if (
       property.success &&
-      property.data?.razorpayCredentials?.keyId &&
-      property.data?.razorpayCredentials?.keySecret
+      property.data?.easebuzzCredentials?.key &&
+      property.data?.easebuzzCredentials?.salt
     ) {
-      keyId = property.data.razorpayCredentials.keyId;
-      keySecret = property.data.razorpayCredentials.keySecret;
+      key = property.data.easebuzzCredentials.key;
+      salt = property.data.easebuzzCredentials.salt;
+      subMerchantId = property.data.easebuzzCredentials.subMerchantId;
     }
 
     if (!propertyId) {
@@ -107,22 +109,29 @@ export const createAddonBooking = async (data) => {
       processedAddons.push({ ...item, totalPrice });
     }
 
-    const paymentResponse = await createRazorpayOrderId(
-      grandTotalPrice,
-      keyId,
-      keySecret
-    );
+    const paymentResponse = await initiateEasebuzzPayment({
+      amount: grandTotalPrice,
+      productinfo: "Addon Booking",
+      firstname: userDetails.name || "User",
+      email: userDetails.email || "user@heavens.com",
+      phone: userDetails.contact || "9999999999",
+      surl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-success`,
+      furl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-failure`,
+      key,
+      salt,
+      merchantId: subMerchantId,
+    });
 
     if (!paymentResponse.success) {
       return {
         success: false,
         status: 500,
-        message: "Failed to create Razorpay Order.",
+        message: "Failed to create Easebuzz Order.",
         error: paymentResponse.error,
       };
     }
 
-    const { orderId: razorpayOrderId } = paymentResponse;
+    const { txnid: easebuzzOrderId, access_key } = paymentResponse;
 
     const newBooking = await AddonBooking.create({
       ...bookingData,
@@ -130,7 +139,7 @@ export const createAddonBooking = async (data) => {
       kitchenId,
       addons: processedAddons,
       grandTotalPrice,
-      razorpayOrderId,
+      razorpayOrderId: easebuzzOrderId, // using same field name to minimize schema changes
       bookingDate: normalizeDate(bookingData.bookingDate),
       deliveryDate: normalizeDate(bookingData.deliveryDate),
     });
@@ -141,8 +150,9 @@ export const createAddonBooking = async (data) => {
       message: "Addon Booking created successfully",
       data: {
         ...newBooking.toObject(),
-        // Return keyId to frontend so checkout opens with correct merchant
-        keyId: keyId || process.env.RAZORPAY_KEY_ID,
+        // Return key to frontend so checkout opens with correct merchant
+        access_key,
+        key: key || process.env.EASEBUZZ_KEY,
       },
     };
   } catch (error) {
@@ -152,9 +162,9 @@ export const createAddonBooking = async (data) => {
 
 export const verifyAddonBookingPayment = async (data) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
+    const { txnid, easepayid, hash, status, ...rest } = data;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!txnid || !easepayid || !hash) {
       return {
         success: false,
         status: 400,
@@ -163,7 +173,7 @@ export const verifyAddonBookingPayment = async (data) => {
     }
 
     const booking = await AddonBooking.findOne({
-      razorpayOrderId: razorpay_order_id,
+      razorpayOrderId: txnid, // we mapped txnid to razorpayOrderId field
     });
     if (!booking) {
       return {
@@ -173,62 +183,65 @@ export const verifyAddonBookingPayment = async (data) => {
       };
     }
 
-    let keySecret = null;
+    let salt = null;
     if (booking.propertyId) {
       try {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          { id: booking.propertyId }
+          { id: booking.propertyId },
         );
         if (
           propertyResponse.success &&
-          propertyResponse.data?.razorpayCredentials?.keySecret
+          propertyResponse.data?.easebuzzCredentials?.salt
         ) {
-          keySecret = propertyResponse.data.razorpayCredentials.keySecret;
+          salt = propertyResponse.data.easebuzzCredentials.salt;
         }
       } catch (err) {
         console.error(
           "Failed to fetch property credentials for verification",
-          err
+          err,
         );
       }
     }
 
-    const isPaymentValid = await verifyPayment(
+    const isPaymentValid = verifyEasebuzzSignature(
       {
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature,
+        txnid,
+        easepayid,
+        hash,
+        status,
+        ...rest,
       },
-      keySecret
+      salt,
     );
 
-    if (!isPaymentValid) {
+    if (!isPaymentValid || status !== "success") {
       await AddonBooking.findByIdAndDelete(booking._id);
 
       return {
         success: false,
         status: 400,
-        message: "Payment verification failed. Signature mismatch.",
+        message:
+          "Payment verification failed. Signature mismatch or status not successful.",
       };
     }
 
     const finalizedBooking = await AddonBooking.findByIdAndUpdate(
       booking._id,
       {
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
+        razorpayPaymentId: easepayid, // mapped
+        razorpaySignature: hash, // mapped
         status: "Pending",
         paymentStatus: "Paid",
         deliveredDate: null,
       },
-      { new: true }
+      { new: true },
     );
 
     const kitchen = await Kitchen.findById(booking?.kitchenId).lean();
     const propertyResponse = await sendRPCRequest(
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-      { id: booking?.propertyId }
+      { id: booking?.propertyId },
     );
     const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID
     if (kitchen?.incharge) userIdsToNotify.push(kitchen.incharge.toString());
@@ -458,7 +471,7 @@ export const getAddonBookingsByProperty = async (filters) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      { userIds: allUserIds }
+      { userIds: allUserIds },
     );
 
     const usersMap = {};
@@ -476,10 +489,10 @@ export const getAddonBookingsByProperty = async (filters) => {
       allUserIds.map(async (id) => {
         const response = await sendRPCRequest(
           USER_PATTERN.USER.GET_USER_BY_ID,
-          { userId: id }
+          { userId: id },
         );
         userMap[id] = response?.body?.data || {};
-      })
+      }),
     );
 
     const enrichedData = bookingsData.map((b) => {
@@ -510,11 +523,11 @@ export const getAddonBookingsByProperty = async (filters) => {
     // 8️⃣ STATS BASED ON FINAL FILTERED DATA
     // -------------------------------------------
     const deliveredCount = enrichedData.filter(
-      (b) => b.status === "Delivered"
+      (b) => b.status === "Delivered",
     ).length;
 
     const pendingCount = enrichedData.filter(
-      (b) => b.status === "Pending"
+      (b) => b.status === "Pending",
     ).length;
 
     const todayDeliveredTotal = enrichedData
@@ -650,7 +663,7 @@ export const updateAddonBookingStatus = async ({ bookingId, status }) => {
     const kitchen = await Kitchen.findById(booking?.kitchenId).lean();
     const propertyResponse = await sendRPCRequest(
       PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-      { id: booking?.propertyId }
+      { id: booking?.propertyId },
     );
 
     const userIdsToNotify = ["688722e075ee06d71c8fdb02"]; // Admin ID

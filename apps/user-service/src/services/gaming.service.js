@@ -3,21 +3,19 @@ import {
   uploadToFirebase,
 } from "../../../../libs/common/imageOperation.js";
 import {
-  createRazorpayOrderId,
-  verifyPayment,
-} from "../../../../libs/common/razorpay.js";
+  initiateEasebuzzPayment,
+  verifyEasebuzzPayment,
+} from "../../../../libs/common/easebuzz.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import GamingItem from "../models/gamingItem.model.js";
 import GamingOrder from "../models/gamingOrder.model.js";
 import User from "../models/user.model.js";
 
-const getRazorpayCredentialsForUser = async (userId) => {
+const getEasebuzzCredentialsForUser = async (userId) => {
   try {
-    if (!userId) return { keyId: null, keySecret: null };
+    if (!userId) return { key: null, salt: null, subMerchantId: null };
 
     // 1. Get User to find Property ID
-    // Since we are inside user-service, we can directly query the User model
-    // instead of making an RPC call to itself.
     const user = await User.findById(userId).select("stayDetails");
 
     if (user && user.stayDetails?.propertyId) {
@@ -31,23 +29,24 @@ const getRazorpayCredentialsForUser = async (userId) => {
 
       if (
         propertyResponse.success &&
-        propertyResponse.data?.razorpayCredentials?.keyId &&
-        propertyResponse.data?.razorpayCredentials?.keySecret
+        propertyResponse.data?.easebuzzCredentials?.key &&
+        propertyResponse.data?.easebuzzCredentials?.salt
       ) {
         return {
-          keyId: propertyResponse.data.razorpayCredentials.keyId,
-          keySecret: propertyResponse.data.razorpayCredentials.keySecret,
+          key: propertyResponse.data.easebuzzCredentials.key,
+          salt: propertyResponse.data.easebuzzCredentials.salt,
+          subMerchantId: propertyResponse.data.easebuzzCredentials.subMerchantId,
         };
       }
     }
   } catch (error) {
     console.error(
-      "Error fetching Razorpay credentials for gaming order:",
+      "Error fetching Easebuzz credentials for gaming order:",
       error
     );
   }
-  // Return nulls to fallback to env vars in razorpay utils
-  return { keyId: null, keySecret: null };
+  // Return nulls to fallback to env vars in easebuzz utils
+  return { key: null, salt: null, subMerchantId: null };
 };
 
 export const createGamingItem = async (data) => {
@@ -201,22 +200,32 @@ export const initiateGamingOrder = async ({
       };
     }
 
-    const { keyId, keySecret } = await getRazorpayCredentialsForUser(userId);
+    const { key, salt, subMerchantId } = await getEasebuzzCredentialsForUser(userId);
+    
+    // Create the payment order with Easebuzz/mock service
+    const paymentResponse = await initiateEasebuzzPayment({
+      amount: finalPrice,
+      productinfo: "Gaming Item Purchase",
+      firstname: "User",
+      email: "user@heavens.com",
+      phone: "9999999999",
+      surl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-success`,
+      furl: `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-failure`,
+      key,
+      salt,
+      merchantId: subMerchantId,
 
-    // Create the payment order with Razorpay/mock service
-    const paymentResponse = await createRazorpayOrderId(
-      finalPrice,
-      keyId,
-      keySecret
-    );
+    });
+
     if (!paymentResponse.success) {
       return {
         success: false,
         status: 500,
         message: "Failed to create payment order.",
+        error: paymentResponse.error,
       };
     }
-    const { orderId: razorpayOrderId } = paymentResponse;
+    const { txnid: easebuzzTxnId, access_key } = paymentResponse;
 
     // Create a preliminary order in our database
     const newOrder = await GamingOrder.create({
@@ -227,20 +236,19 @@ export const initiateGamingOrder = async ({
       finalPrice,
       paymentStatus: "Pending",
       paymentDetails: {
-        orderId: razorpayOrderId,
+        orderId: easebuzzTxnId,
       },
     });
 
-    // Return the razorpayOrderId to the client to open the payment modal
+    // Return the access_key to the client to open the payment modal
     return {
       success: true,
       status: 201,
       message: "Gaming order initiated successfully.",
       data: {
         ...newOrder.toObject(),
-        // --- UPDATE START: Return correct Key ID for frontend ---
-        keyId: keyId || process.env.RAZORPAY_KEY_ID,
-        // --- UPDATE END ---
+        access_key,
+        key: key || process.env.EASEBUZZ_KEY,
       },
     };
   } catch (error) {
@@ -255,9 +263,9 @@ export const initiateGamingOrder = async ({
  */
 export const verifyPaymentAndConfirmOrder = async (data) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
+    const { txnid, easepayid, hash, status, ...rest } = data;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!txnid || !easepayid || !hash) {
       return {
         success: false,
         status: 400,
@@ -266,7 +274,7 @@ export const verifyPaymentAndConfirmOrder = async (data) => {
     }
 
     const order = await GamingOrder.findOne({
-      "paymentDetails.orderId": razorpay_order_id,
+      "paymentDetails.orderId": txnid,
     });
     if (!order) {
       return {
@@ -276,31 +284,33 @@ export const verifyPaymentAndConfirmOrder = async (data) => {
       };
     }
 
-    const { keySecret } = await getRazorpayCredentialsForUser(order.userId);
+    const { salt } = await getEasebuzzCredentialsForUser(order.userId);
     // Verify the payment signature
-    const isPaymentValid = await verifyPayment(
+    const isPaymentValid = verifyEasebuzzPayment(
       {
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature,
+        txnid,
+        easepayid,
+        hash,
+        status,
+        ...rest,
       },
-      keySecret
+      salt
     );
 
-    if (!isPaymentValid) {
+    if (!isPaymentValid || status !== "success") {
       // If payment fails, delete the preliminary order to prevent clutter
       await GamingOrder.findByIdAndDelete(order._id);
       return {
         success: false,
         status: 400,
-        message: "Payment verification failed. Invalid signature.",
+        message: "Payment verification failed. Invalid signature or status.",
       };
     }
 
     // If payment is successful, update the order
     order.paymentStatus = "Success";
-    order.paymentDetails.paymentId = razorpay_payment_id;
-    order.paymentDetails.signature = razorpay_signature;
+    order.paymentDetails.paymentId = easepayid;
+    order.paymentDetails.signature = hash;
     await order.save();
 
     // Here you can trigger notifications, etc.
