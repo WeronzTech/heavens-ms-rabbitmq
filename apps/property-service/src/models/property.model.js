@@ -54,6 +54,12 @@ const propertySchema = new mongoose.Schema({
     keyId: { type: String, required: false },
     keySecret: { type: String, required: false },
   },
+  easebuzzCredentials: {
+    key: { type: String, required: false },
+    salt: { type: String, required: false },
+    subMerchantId: { type: String, required: false },
+    env: { type: String, enum: ["test", "production"], default: "test" },
+  },
   rentDetails: {
     isRentEnabled: { type: Boolean, default: false },
     rentAmount: { type: Number, default: 0 },

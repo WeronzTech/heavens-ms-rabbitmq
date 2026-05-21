@@ -16,3 +16,4 @@ docker-compose.override.yml
 .DS_Store
 .vscode/
 *.swp
+easebuzz-test-frontend/index.html
