@@ -18,7 +18,7 @@ const paymentSchema = new mongoose.Schema(
     remainingBalance: {type: Number, default: 0},
     paymentMethod: {
       type: String,
-      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay"],
+      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay", "Easebuzz"],
       required: true,
     },
     transactionId: {

@@ -103,6 +103,7 @@ const initiateEasebuzzPayment = async ({
 
 const verifyEasebuzzPayment = (paymentData, salt = null) => {
   const merchantSalt = salt || process.env.EASEBUZZ_SALT;
+  console.log("paymentData------------", paymentData, merchantSalt);
   return verifyHash(paymentData, merchantSalt);
 };
 

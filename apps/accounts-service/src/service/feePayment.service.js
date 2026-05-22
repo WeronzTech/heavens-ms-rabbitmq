@@ -1463,6 +1463,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     useReferralBalance,
     ...rest
   } = data;
+  console.log("Data", data)
 
   let keySecret = null;
   try {
@@ -1497,10 +1498,12 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       easepayid,
       hash,
       status,
+      amount, // We destructured it earlier, so we must add it back here!
       ...rest,
     },
     keySecret,
   );
+  console.log("isverified", isVerified)
   if (!isVerified || status !== "success") {
     return {
       success: false,
