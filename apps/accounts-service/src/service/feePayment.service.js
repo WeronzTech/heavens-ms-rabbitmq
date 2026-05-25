@@ -975,6 +975,7 @@ const generateReceiptNumber = async (property, session) => {
 // };
 
 const processAndRecordPayment = async ({
+  paidBy,
   userId,
   amount,
   paymentMethod,
@@ -1151,6 +1152,7 @@ const processAndRecordPayment = async ({
       paymentForMonths,
       advanceForMonths,
       status: "Paid",
+      paidBy,
       property: {
         id: user.stayDetails?.propertyId,
         name: user.stayDetails?.propertyName,
@@ -1285,7 +1287,7 @@ const processAndRecordPayment = async ({
 
 export const initiateOnlinePayment = async (data) => {
   try {
-    const {userId, amount, useReferralBalance} = data;
+    const {userId, paidBy, amount, useReferralBalance} = data;
     let paymentAmount = Number(amount);
     let referralAmountUsed = Number(useReferralBalance) || 0;
 
@@ -1323,7 +1325,6 @@ export const initiateOnlinePayment = async (data) => {
         keyId = propertyResponse.data.easebuzzCredentials.key;
         keySecret = propertyResponse.data.easebuzzCredentials.salt;
         subMerchantId = propertyResponse.data.easebuzzCredentials.subMerchantId;
-
       }
     }
 
@@ -1409,7 +1410,6 @@ export const initiateOnlinePayment = async (data) => {
         key: keyId,
         salt: keySecret,
         merchantId: subMerchantId,
-
       });
 
       if (!easebuzzResponse.success) {
@@ -1440,6 +1440,7 @@ export const initiateOnlinePayment = async (data) => {
       };
     } else {
       return await processAndRecordPayment({
+        paidBy,
         userId,
         amount: 0, // No new amount paid online
         paymentMethod: "Referral Balance",
@@ -1461,9 +1462,10 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     userId,
     amount,
     useReferralBalance,
+    paidBy,
     ...rest
   } = data;
-  console.log("Data", data)
+  console.log("Data", data);
 
   let keySecret = null;
   try {
@@ -1503,16 +1505,18 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     },
     keySecret,
   );
-  console.log("isverified", isVerified)
+  console.log("isverified", isVerified);
   if (!isVerified || status !== "success") {
     return {
       success: false,
       status: 400,
-      message: "Payment verification failed. Invalid signature or payment status not successful.",
+      message:
+        "Payment verification failed. Invalid signature or payment status not successful.",
     };
   }
 
   return await processAndRecordPayment({
+    paidBy,
     userId,
     amount: Number(amount),
     referralAmountUsed: Number(useReferralBalance) || 0,

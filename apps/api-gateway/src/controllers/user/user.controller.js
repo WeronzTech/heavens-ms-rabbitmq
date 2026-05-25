@@ -714,3 +714,27 @@ export const updateRentAndDates = async (req, res) => {
     });
   }
 };
+
+export const getUserByContact = async (req, res) => {
+  try {
+    const {contact} = req.body;
+
+    console.log(contact);
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_CONTACT,
+      {contact},
+    );
+
+    console.log("RPC RESPONSE =>", response);
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[API-GATEWAY] getUserByContact error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch user details",
+    });
+  }
+};

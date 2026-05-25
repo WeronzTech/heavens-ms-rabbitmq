@@ -4373,3 +4373,63 @@ export const updateRentAndDates = async (data) => {
     };
   }
 };
+
+export const getUserByContact = async (data) => {
+  try {
+    const {contact} = data;
+    console.log("herer");
+    console.log(contact);
+
+    // Check if contact is provided
+    if (!contact) {
+      return {
+        success: false,
+        status: 400,
+        message: "Contact number is required.",
+      };
+    }
+
+    // Convert to string and remove spaces
+    const trimmedContact = String(contact).trim();
+
+    // Starts with 6,7,8,9 and total 10 digits
+    const indianPhoneRegex = /^[6-9]\d{9}$/;
+
+    if (!indianPhoneRegex.test(trimmedContact)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid contact number!",
+      };
+    }
+
+    // Find user
+    const user = await User.findOne({contact: trimmedContact}).select(
+      "name contact stayDetails.roomNumber stayDetails.propertyName financialDetails.pendingRent",
+    );
+
+    if (!user) {
+      return {
+        success: false,
+        status: 404,
+        message: "User with this contact number does not exist.",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "User found successfully.",
+      data: user,
+    };
+  } catch (error) {
+    console.error("Error in getUserByContact service:", error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching the user.",
+      error: error.message,
+    };
+  }
+};
