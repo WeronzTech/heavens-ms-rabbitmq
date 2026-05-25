@@ -2065,6 +2065,47 @@ export const getAllAccountsPayments = async (data) => {
   }
 };
 
+// export const getFeePaymentsByUserId = async (data) => {
+//   try {
+//     const {userId} = data;
+
+//     if (!userId) {
+//       return {
+//         success: false,
+//         status: 400,
+//         message: "User ID is required",
+//         data: [],
+//       };
+//     }
+
+//     const payments = await Payments.find({userId}).lean();
+
+//     if (!payments || payments.length === 0) {
+//       return {
+//         success: true,
+//         status: 200,
+//         message: "No payments found for this user",
+//         data: [],
+//       };
+//     }
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Payments fetched successfully",
+//       data: payments,
+//     };
+//   } catch (error) {
+//     console.error("Error in getFeePaymentsByUserId:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal server error while fetching payments",
+//       error: error.message,
+//     };
+//   }
+// };
+
 export const getFeePaymentsByUserId = async (data) => {
   try {
     const {userId} = data;
@@ -2089,14 +2130,47 @@ export const getFeePaymentsByUserId = async (data) => {
       };
     }
 
+    // Add paidBy user name if paidBy exists
+    const updatedPayments = await Promise.all(
+      payments.map(async (payment) => {
+        try {
+          if (payment.paidBy) {
+            const userResponse = await sendRPCRequest(
+              USER_PATTERN.USER.GET_USER_BY_ID,
+              {
+                userId: payment.paidBy,
+              },
+            );
+
+            if (userResponse?.body?.success && userResponse?.body?.data) {
+              payment.paidByUser = {
+                _id: userResponse.body.data._id,
+                name: userResponse.body.data.name,
+              };
+            }
+          }
+
+          return payment;
+        } catch (err) {
+          console.error(
+            `Error fetching paidBy user for payment ${payment._id}:`,
+            err,
+          );
+
+          return payment;
+        }
+      }),
+    );
+
     return {
       success: true,
       status: 200,
       message: "Payments fetched successfully",
-      data: payments,
+      data: updatedPayments,
     };
   } catch (error) {
     console.error("Error in getFeePaymentsByUserId:", error);
+
     return {
       success: false,
       status: 500,
@@ -2425,6 +2499,47 @@ export const getTransactionHistoryByUserId = async (data) => {
       success: false,
       status: 500,
       message: "Internal server error while fetching transactions",
+      error: error.message,
+    };
+  }
+};
+
+export const getSponsoredPayments = async (data) => {
+  try {
+    const {paidBy} = data;
+
+    if (!paidBy) {
+      return {
+        success: false,
+        status: 400,
+        message: "Paid by ID is required",
+        data: [],
+      };
+    }
+
+    const payments = await Payments.find({paidBy}).lean();
+
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No sponsored payments found for this Account.",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Sponsored Payments fetched successfully",
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Error in getPaymentsMadeForOthers:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching payments",
       error: error.message,
     };
   }

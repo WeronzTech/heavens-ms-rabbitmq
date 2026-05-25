@@ -19,6 +19,7 @@ export const ACCOUNTS_PATTERN = {
     GET_LATEST_PAYMENT_BY_USERID: "get_latest_payment_by_userId",
     GET_FEE_PAYMENTS_ANALYTICS: "get_fee_payment_analytics",
     GET_TRANSACTIONS_BY_USERID: "get_transactions_by_userId",
+    GET_PAYMENTS_BY_PAIDBYID: "get_payments_by_paidById",
   },
   DEPOSIT_PAYMENTS: {
     INITIATE_ONLINE_DEPOSIT: "deposit_payment_initiate_online",

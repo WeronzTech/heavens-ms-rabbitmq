@@ -376,3 +376,33 @@ export const getTransactionHistoryByUserId = async (req, res) => {
     });
   }
 };
+
+export const getSponsoredPayments = async (req, res) => {
+  try {
+    const paidBy = req.userAuth;
+
+    if (!paidBy) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "Unauthorized: User ID not found in token",
+      });
+    }
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_PAIDBYID,
+      {paidBy},
+    );
+
+    return res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("[ACCOUNTS] Error in getPaymentsMadeForOthers:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching user payments.",
+      error: error.message,
+    });
+  }
+};
