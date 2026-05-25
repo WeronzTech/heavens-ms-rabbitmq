@@ -4377,8 +4377,6 @@ export const updateRentAndDates = async (data) => {
 export const getUserByContact = async (data) => {
   try {
     const {contact} = data;
-    console.log("herer");
-    console.log(contact);
 
     // Check if contact is provided
     if (!contact) {
@@ -4392,7 +4390,7 @@ export const getUserByContact = async (data) => {
     // Convert to string and remove spaces
     const trimmedContact = String(contact).trim();
 
-    // Starts with 6,7,8,9 and total 10 digits
+    // Validate Indian mobile number (without country code)
     const indianPhoneRegex = /^[6-9]\d{9}$/;
 
     if (!indianPhoneRegex.test(trimmedContact)) {
@@ -4403,8 +4401,17 @@ export const getUserByContact = async (data) => {
       };
     }
 
-    // Find user
-    const user = await User.findOne({contact: trimmedContact}).select(
+    // Match:
+    // 9876543210
+    // 919876543210
+    // +919876543210
+    const contactRegex = new RegExp(`^(\\+91|91)?${trimmedContact}$`);
+
+    // Find active (not vacated) user
+    const user = await User.findOne({
+      contact: {$regex: contactRegex},
+      isVacated: {$ne: true},
+    }).select(
       "name contact stayDetails.roomNumber stayDetails.propertyName financialDetails.pendingRent",
     );
 
@@ -4412,7 +4419,7 @@ export const getUserByContact = async (data) => {
       return {
         success: false,
         status: 404,
-        message: "User with this contact number does not exist.",
+        message: "User not found.",
       };
     }
 
