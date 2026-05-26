@@ -4412,7 +4412,7 @@ export const getUserByContact = async (data) => {
       contact: {$regex: contactRegex},
       isVacated: {$ne: true},
     }).select(
-      "name contact stayDetails.roomNumber stayDetails.propertyName financialDetails.pendingRent",
+      "name contact stayDetails.roomNumber stayDetails.propertyName financialDetails.monthlyRent financialDetails.pendingRent",
     );
 
     if (!user) {
