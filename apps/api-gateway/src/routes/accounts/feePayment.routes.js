@@ -18,6 +18,7 @@ import {
   getFeePaymentsAnalytics,
   getTransactionHistoryByUserId,
   getSponsoredPayments,
+  getUserPaidAndPendingMonths,
 } from "../../controllers/accounts/feePayments.controller.js";
 import {isAuthenticated} from "../../middleware/isAuthenticated.js";
 import {hasPermission} from "../../middleware/hasPermission.js";
@@ -82,6 +83,8 @@ feePaymentRoutes.get(
 feePaymentRoutes.get("/user-payments", getUserPaymentsController);
 
 feePaymentRoutes.get("/sponsored-payments", getSponsoredPayments);
+
+feePaymentRoutes.get("/paid-pending-months", getUserPaidAndPendingMonths);
 
 feePaymentRoutes.get(
   "/transactionHistory/:userId",

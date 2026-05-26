@@ -1378,8 +1378,7 @@ export const initiateOnlinePayment = async (data) => {
       const currentPendingRent = pendingRent || 0;
       const currentBalance = accountBalance || 0;
       const rent = monthlyRent || 0;
-      const totalAvailableAmount =
-        paymentAmount + currentBalance + referralAmountUsed;
+      const totalAvailableAmount = paymentAmount + referralAmountUsed;
 
       if (rent <= 0) {
         return {
@@ -1389,11 +1388,11 @@ export const initiateOnlinePayment = async (data) => {
         };
       }
 
-      if (currentPendingRent > 0 && totalAvailableAmount < rent) {
+      if (currentPendingRent > 0 && totalAvailableAmount < currentPendingRent) {
         return {
           success: false,
           status: 400,
-          message: `To clear your due, the payment of ₹${paymentAmount} plus your advance of ₹${currentBalance} must be at least the monthly rent of ₹${rent}.`,
+          message: `To clear your due, the pending rent amount of ₹${currentPendingRent} must be paid.`,
         };
       }
     }
@@ -2540,6 +2539,118 @@ export const getSponsoredPayments = async (data) => {
       success: false,
       status: 500,
       message: "Internal server error while fetching payments",
+      error: error.message,
+    };
+  }
+};
+
+export const getUserPaidAndPendingMonths = async (data) => {
+  try {
+    const {userId} = data;
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: {},
+      };
+    }
+
+    // Get user details from user service
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      {
+        userId,
+      },
+    );
+
+    let joinDate = null;
+
+    if (userResponse?.body?.success && userResponse?.body?.data) {
+      joinDate = userResponse.body.data?.stayDetails?.joinDate || null;
+    }
+
+    // Fetch all payment documents
+    const payments = await Payments.find({userId}).lean();
+
+    // If no payments found
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: {
+          joinDate,
+          paidMonths: [],
+          pendingMonths: [],
+        },
+      };
+    }
+
+    // Store unique paid months
+    const paidMonthsSet = new Set();
+
+    payments.forEach((payment) => {
+      if (payment.paymentForMonths && Array.isArray(payment.paymentForMonths)) {
+        payment.paymentForMonths.forEach((month) => {
+          paidMonthsSet.add(month.trim());
+        });
+      }
+    });
+
+    const paidMonths = Array.from(paidMonthsSet);
+
+    // Generate months from join date till current month
+    const allMonthsTillNow = [];
+
+    const currentDate = new Date();
+
+    // If joinDate exists use it, otherwise fallback to current year
+    const startDate = joinDate ? new Date(joinDate) : new Date();
+
+    let year = startDate.getFullYear();
+    let month = startDate.getMonth();
+
+    while (
+      year < currentDate.getFullYear() ||
+      (year === currentDate.getFullYear() && month <= currentDate.getMonth())
+    ) {
+      const monthName = new Date(year, month).toLocaleString("default", {
+        month: "long",
+      });
+
+      allMonthsTillNow.push(`${monthName} ${year}`);
+
+      month++;
+
+      if (month > 11) {
+        month = 0;
+        year++;
+      }
+    }
+
+    // Find pending months
+    const pendingMonths = allMonthsTillNow.filter(
+      (month) => !paidMonthsSet.has(month),
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: "User paid and pending months fetched successfully",
+      data: {
+        joinDate,
+        paidMonths,
+        pendingMonths,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getUserPaidAndPendingMonths:", error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching payment months",
       error: error.message,
     };
   }

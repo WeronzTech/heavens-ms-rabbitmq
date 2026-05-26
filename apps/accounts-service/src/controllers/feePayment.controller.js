@@ -21,6 +21,7 @@ import {
   getFeePaymentsAnalytics,
   getTransactionHistoryByUserId,
   getSponsoredPayments,
+  getUserPaidAndPendingMonths,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -148,5 +149,12 @@ createResponder(
   ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_PAYMENTS_BY_PAIDBYID,
   async (data) => {
     return await getSponsoredPayments(data);
+  },
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_MONTHS_PAID_PENDING,
+  async (data) => {
+    return await getUserPaidAndPendingMonths(data);
   },
 );
