@@ -182,7 +182,7 @@ app.get("/", (_, res) => {
 const startServer = async () => {
   try {
     // ✅ STEP 1: Connect to RabbitMQ and wait for it to finish.
-    console.log("[API-GATEWAY] Connecting to RabbitMQ...");
+    console.log("[API-GATEWAY] Connecting to RabbitMQ....");
     await connect();
     console.log("[API-GATEWAY] RabbitMQ connection successful.");
 
