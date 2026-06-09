@@ -12,7 +12,7 @@ logs/
 Dockerfile.dev
 docker-compose.override.yml
 
-# Optional: OS / IDE files
+# Optional: OS / IDE file
 .DS_Store
 .vscode/
 *.swp
