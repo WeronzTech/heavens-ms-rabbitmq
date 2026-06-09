@@ -209,7 +209,7 @@ services:
     environment: { NODE_ENV: production }
     depends_on: { rabbitmq: { condition: service_healthy } }
   # ===================================================================
-  #  3. Infrastructure (No Changes)
+  #  3. Infrastructure (Updated Healthchecks)
   # ===================================================================
   rabbitmq:
     image: rabbitmq:3-management
@@ -229,9 +229,10 @@ services:
         hard: 65536
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 20s
-      timeout: 10s
+      interval: 15s
+      timeout: 20s         # Increased from 10s
       retries: 5
+      start_period: 60s    # Added: Gives it 60 seconds of grace time to boot
     restart: unless-stopped
 
   redis:
@@ -243,9 +244,10 @@ services:
       - heavens-ms-js-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 15s         # Increased from 3s
       retries: 5
+      start_period: 30s    # Added: Gives it 30 seconds of grace time to boot
     restart: unless-stopped
 
 networks:
