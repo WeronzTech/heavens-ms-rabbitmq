@@ -975,6 +975,7 @@ const generateReceiptNumber = async (property, session) => {
 // };
 
 const processAndRecordPayment = async ({
+  paidBy,
   userId,
   amount,
   paymentMethod,
@@ -1151,6 +1152,7 @@ const processAndRecordPayment = async ({
       paymentForMonths,
       advanceForMonths,
       status: "Paid",
+      paidBy,
       property: {
         id: user.stayDetails?.propertyId,
         name: user.stayDetails?.propertyName,
@@ -1259,7 +1261,6 @@ const processAndRecordPayment = async ({
             managerName: collectedBy,
             date: paymentDate,
             notes: `Rent received from ${user.name}`,
-            createdBy,
             paymentMode: "cash",
           });
         } catch (err) {
@@ -1286,7 +1287,7 @@ const processAndRecordPayment = async ({
 
 export const initiateOnlinePayment = async (data) => {
   try {
-    const {userId, amount, useReferralBalance} = data;
+    const {userId, paidBy, amount, useReferralBalance} = data;
     let paymentAmount = Number(amount);
     let referralAmountUsed = Number(useReferralBalance) || 0;
 
@@ -1324,7 +1325,6 @@ export const initiateOnlinePayment = async (data) => {
         keyId = propertyResponse.data.easebuzzCredentials.key;
         keySecret = propertyResponse.data.easebuzzCredentials.salt;
         subMerchantId = propertyResponse.data.easebuzzCredentials.subMerchantId;
-
       }
     }
 
@@ -1378,8 +1378,7 @@ export const initiateOnlinePayment = async (data) => {
       const currentPendingRent = pendingRent || 0;
       const currentBalance = accountBalance || 0;
       const rent = monthlyRent || 0;
-      const totalAvailableAmount =
-        paymentAmount + currentBalance + referralAmountUsed;
+      const totalAvailableAmount = paymentAmount + referralAmountUsed;
 
       if (rent <= 0) {
         return {
@@ -1389,11 +1388,11 @@ export const initiateOnlinePayment = async (data) => {
         };
       }
 
-      if (currentPendingRent > 0 && totalAvailableAmount < rent) {
+      if (currentPendingRent > 0 && totalAvailableAmount < currentPendingRent) {
         return {
           success: false,
           status: 400,
-          message: `To clear your due, the payment of ₹${paymentAmount} plus your advance of ₹${currentBalance} must be at least the monthly rent of ₹${rent}.`,
+          message: `To clear your due, the pending rent amount of ₹${currentPendingRent} must be paid.`,
         };
       }
     }
@@ -1410,7 +1409,6 @@ export const initiateOnlinePayment = async (data) => {
         key: keyId,
         salt: keySecret,
         merchantId: subMerchantId,
-
       });
 
       if (!easebuzzResponse.success) {
@@ -1441,6 +1439,7 @@ export const initiateOnlinePayment = async (data) => {
       };
     } else {
       return await processAndRecordPayment({
+        paidBy,
         userId,
         amount: 0, // No new amount paid online
         paymentMethod: "Referral Balance",
@@ -1462,9 +1461,10 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     userId,
     amount,
     useReferralBalance,
+    paidBy,
     ...rest
   } = data;
-  console.log("Data", data)
+  console.log("Data", data);
 
   let keySecret = null;
   try {
@@ -1504,16 +1504,18 @@ export const verifyAndRecordOnlinePayment = async (data) => {
     },
     keySecret,
   );
-  console.log("isverified", isVerified)
+  console.log("isverified", isVerified);
   if (!isVerified || status !== "success") {
     return {
       success: false,
       status: 400,
-      message: "Payment verification failed. Invalid signature or payment status not successful.",
+      message:
+        "Payment verification failed. Invalid signature or payment status not successful.",
     };
   }
 
   return await processAndRecordPayment({
+    paidBy,
     userId,
     amount: Number(amount),
     referralAmountUsed: Number(useReferralBalance) || 0,
@@ -2062,6 +2064,47 @@ export const getAllAccountsPayments = async (data) => {
   }
 };
 
+// export const getFeePaymentsByUserId = async (data) => {
+//   try {
+//     const {userId} = data;
+
+//     if (!userId) {
+//       return {
+//         success: false,
+//         status: 400,
+//         message: "User ID is required",
+//         data: [],
+//       };
+//     }
+
+//     const payments = await Payments.find({userId}).lean();
+
+//     if (!payments || payments.length === 0) {
+//       return {
+//         success: true,
+//         status: 200,
+//         message: "No payments found for this user",
+//         data: [],
+//       };
+//     }
+
+//     return {
+//       success: true,
+//       status: 200,
+//       message: "Payments fetched successfully",
+//       data: payments,
+//     };
+//   } catch (error) {
+//     console.error("Error in getFeePaymentsByUserId:", error);
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Internal server error while fetching payments",
+//       error: error.message,
+//     };
+//   }
+// };
+
 export const getFeePaymentsByUserId = async (data) => {
   try {
     const {userId} = data;
@@ -2086,14 +2129,47 @@ export const getFeePaymentsByUserId = async (data) => {
       };
     }
 
+    // Add paidBy user name if paidBy exists
+    const updatedPayments = await Promise.all(
+      payments.map(async (payment) => {
+        try {
+          if (payment.paidBy) {
+            const userResponse = await sendRPCRequest(
+              USER_PATTERN.USER.GET_USER_BY_ID,
+              {
+                userId: payment.paidBy,
+              },
+            );
+
+            if (userResponse?.body?.success && userResponse?.body?.data) {
+              payment.paidByUser = {
+                _id: userResponse.body.data._id,
+                name: userResponse.body.data.name,
+              };
+            }
+          }
+
+          return payment;
+        } catch (err) {
+          console.error(
+            `Error fetching paidBy user for payment ${payment._id}:`,
+            err,
+          );
+
+          return payment;
+        }
+      }),
+    );
+
     return {
       success: true,
       status: 200,
       message: "Payments fetched successfully",
-      data: payments,
+      data: updatedPayments,
     };
   } catch (error) {
     console.error("Error in getFeePaymentsByUserId:", error);
+
     return {
       success: false,
       status: 500,
@@ -2422,6 +2498,159 @@ export const getTransactionHistoryByUserId = async (data) => {
       success: false,
       status: 500,
       message: "Internal server error while fetching transactions",
+      error: error.message,
+    };
+  }
+};
+
+export const getSponsoredPayments = async (data) => {
+  try {
+    const {paidBy} = data;
+
+    if (!paidBy) {
+      return {
+        success: false,
+        status: 400,
+        message: "Paid by ID is required",
+        data: [],
+      };
+    }
+
+    const payments = await Payments.find({paidBy}).lean();
+
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No sponsored payments found for this Account.",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Sponsored Payments fetched successfully",
+      data: payments,
+    };
+  } catch (error) {
+    console.error("Error in getPaymentsMadeForOthers:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching payments",
+      error: error.message,
+    };
+  }
+};
+
+export const getUserPaidAndPendingMonths = async (data) => {
+  try {
+    const {userId} = data;
+    if (!userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "User ID is required",
+        data: {},
+      };
+    }
+
+    // Get user details from user service
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      {
+        userId,
+      },
+    );
+
+    let joinDate = null;
+
+    if (userResponse?.body?.success && userResponse?.body?.data) {
+      joinDate = userResponse.body.data?.stayDetails?.joinDate || null;
+    }
+
+    // Fetch all payment documents
+    const payments = await Payments.find({userId}).lean();
+
+    // If no payments found
+    if (!payments || payments.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: "No payments found for this user",
+        data: {
+          joinDate,
+          paidMonths: [],
+          pendingMonths: [],
+        },
+      };
+    }
+
+    // Store unique paid months
+    const paidMonthsSet = new Set();
+
+    payments.forEach((payment) => {
+      if (payment.paymentForMonths && Array.isArray(payment.paymentForMonths)) {
+        payment.paymentForMonths.forEach((month) => {
+          paidMonthsSet.add(month.trim());
+        });
+      }
+    });
+
+    const paidMonths = Array.from(paidMonthsSet);
+
+    // Generate months from join date till current month
+    const allMonthsTillNow = [];
+
+    const currentDate = new Date();
+
+    // If joinDate exists use it, otherwise fallback to current year
+    const startDate = joinDate ? new Date(joinDate) : new Date();
+
+    let year = startDate.getFullYear();
+    let month = startDate.getMonth();
+
+    while (
+      year < currentDate.getFullYear() ||
+      (year === currentDate.getFullYear() && month <= currentDate.getMonth())
+    ) {
+      const monthName = new Date(year, month).toLocaleString("default", {
+        month: "long",
+      });
+
+      allMonthsTillNow.push(`${monthName} ${year}`);
+
+      month++;
+
+      if (month > 11) {
+        month = 0;
+        year++;
+      }
+    }
+
+    // Find pending months
+    const pendingMonths = allMonthsTillNow.filter(
+      (month) => !paidMonthsSet.has(month),
+    );
+
+    return {
+      success: true,
+      status: 200,
+      message: "User paid and pending months fetched successfully",
+      data: {
+        joinDate,
+        paidMonths,
+        pendingMonths,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getUserPaidAndPendingMonths:", error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error while fetching payment months",
       error: error.message,
     };
   }

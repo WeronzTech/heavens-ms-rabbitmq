@@ -38,6 +38,7 @@ import {
   updatePassword,
   getBulkHeavensUserById,
   updateRentAndDates,
+  getUserByContact,
 } from "../services/user.service.js";
 import {createResponder} from "../../../../libs/common/rabbitMq.js";
 import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
@@ -217,4 +218,8 @@ createResponder(USER_PATTERN.USER.GET_BULK_USER_BY_ID, async (data) => {
 
 createResponder(USER_PATTERN.USER.UPDATE_RENT_AND_DATE, async (data) => {
   return await updateRentAndDates(data);
+});
+
+createResponder(USER_PATTERN.USER.GET_USER_BY_CONTACT, async (data) => {
+  return await getUserByContact(data);
 });

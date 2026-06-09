@@ -21,9 +21,9 @@ const propertySchema = new mongoose.Schema({
   phase: String,
   location: String,
   address: String,
-  totalBeds: { type: Number, default: 0 },
-  occupiedBeds: { type: Number, default: 0 },
-  totalFloors: { type: Number, default: 0 },
+  totalBeds: {type: Number, default: 0},
+  occupiedBeds: {type: Number, default: 0},
+  totalFloors: {type: Number, default: 0},
   startingPrice: Number,
   sharingPrices: {
     type: Map,
@@ -43,30 +43,30 @@ const propertySchema = new mongoose.Schema({
     eventPhotos: [String],
     companyPhotos: [String],
   },
-  isHeavens: { type: Boolean, default: false },
+  isHeavens: {type: Boolean, default: false},
   clientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Client",
     required: false,
   },
-  kitchenId: { type: mongoose.Schema.Types.ObjectId, required: false },
+  kitchenId: {type: mongoose.Schema.Types.ObjectId, required: false},
   razorpayCredentials: {
-    keyId: { type: String, required: false },
-    keySecret: { type: String, required: false },
+    keyId: {type: String, required: false},
+    keySecret: {type: String, required: false},
   },
   easebuzzCredentials: {
-    key: { type: String, required: false },
-    salt: { type: String, required: false },
-    subMerchantId: { type: String, required: false },
-    env: { type: String, enum: ["test", "production"], default: "test" },
+    key: {type: String, required: false},
+    salt: {type: String, required: false},
+    subMerchantId: {type: String, required: false},
+    env: {type: String, enum: ["test", "production"], default: "production"},
   },
   rentDetails: {
-    isRentEnabled: { type: Boolean, default: false },
-    rentAmount: { type: Number, default: 0 },
-    dueDate: { type: Number }, // Day of the month (e.g., 5 for 5th of every month)
-    pendingBalance: { type: Number, default: 0 }, // Accumulates if not paid
-    lastPaymentDate: { type: Date, default: null },
-    lastAutoUpdateDate: { type: Date, default: null }, // To prevent double accrual on the same day
+    isRentEnabled: {type: Boolean, default: false},
+    rentAmount: {type: Number, default: 0},
+    dueDate: {type: Number}, // Day of the month (e.g., 5 for 5th of every month)
+    pendingBalance: {type: Number, default: 0}, // Accumulates if not paid
+    lastPaymentDate: {type: Date, default: null},
+    lastAutoUpdateDate: {type: Date, default: null}, // To prevent double accrual on the same day
   },
 });
 
@@ -83,8 +83,8 @@ propertySchema.pre("save", async function (next) {
           year: parseInt(year, 10),
           month: parseInt(month, 10),
         },
-        { $inc: { count: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        {$inc: {count: 1}},
+        {new: true, upsert: true, setDefaultsOnInsert: true},
       );
 
       if (!counter) {

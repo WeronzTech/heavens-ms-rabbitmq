@@ -17,10 +17,12 @@ import {
   getLatestFeePaymentByUserId,
   getFeePaymentsAnalytics,
   getTransactionHistoryByUserId,
+  getSponsoredPayments,
+  getUserPaidAndPendingMonths,
 } from "../../controllers/accounts/feePayments.controller.js";
-import { isAuthenticated } from "../../middleware/isAuthenticated.js";
-import { hasPermission } from "../../middleware/hasPermission.js";
-import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
+import {isAuthenticated} from "../../middleware/isAuthenticated.js";
+import {hasPermission} from "../../middleware/hasPermission.js";
+import {PERMISSIONS} from "../../../../../libs/common/permissions.list.js";
 
 const feePaymentRoutes = express.Router();
 
@@ -79,6 +81,10 @@ feePaymentRoutes.get(
 );
 
 feePaymentRoutes.get("/user-payments", getUserPaymentsController);
+
+feePaymentRoutes.get("/sponsored-payments", getSponsoredPayments);
+
+feePaymentRoutes.get("/paid-pending-months", getUserPaidAndPendingMonths);
 
 feePaymentRoutes.get(
   "/transactionHistory/:userId",

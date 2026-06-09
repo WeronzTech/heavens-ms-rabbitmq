@@ -4373,3 +4373,70 @@ export const updateRentAndDates = async (data) => {
     };
   }
 };
+
+export const getUserByContact = async (data) => {
+  try {
+    const {contact} = data;
+
+    // Check if contact is provided
+    if (!contact) {
+      return {
+        success: false,
+        status: 400,
+        message: "Contact number is required.",
+      };
+    }
+
+    // Convert to string and remove spaces
+    const trimmedContact = String(contact).trim();
+
+    // Validate Indian mobile number (without country code)
+    const indianPhoneRegex = /^[6-9]\d{9}$/;
+
+    if (!indianPhoneRegex.test(trimmedContact)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid contact number!",
+      };
+    }
+
+    // Match:
+    // 9876543210
+    // 919876543210
+    // +919876543210
+    const contactRegex = new RegExp(`^(\\+91|91)?${trimmedContact}$`);
+
+    // Find active (not vacated) user
+    const user = await User.findOne({
+      contact: {$regex: contactRegex},
+      isVacated: {$ne: true},
+    }).select(
+      "name contact stayDetails.roomNumber stayDetails.propertyName financialDetails.monthlyRent financialDetails.pendingRent",
+    );
+
+    if (!user) {
+      return {
+        success: false,
+        status: 404,
+        message: "User not found.",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "User found successfully.",
+      data: user,
+    };
+  } catch (error) {
+    console.error("Error in getUserByContact service:", error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching the user.",
+      error: error.message,
+    };
+  }
+};

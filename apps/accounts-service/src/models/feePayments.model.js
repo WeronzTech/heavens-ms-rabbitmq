@@ -62,6 +62,7 @@ const paymentSchema = new mongoose.Schema(
       ref: "Client",
       required: false,
     }, // Link to the client
+    paidBy: {type: mongoose.Schema.Types.ObjectId, required: false},
     userId: {type: mongoose.Schema.Types.ObjectId, required: true},
   },
   {timestamps: true},

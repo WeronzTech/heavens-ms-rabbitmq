@@ -12,6 +12,7 @@ import {
   getPendingStatusRequests,
   getTodayCheckouts,
   getUnapprovedUsers,
+  getUserByContact,
   getUserIds,
   getUsersByAgencyController,
   getUsersByRentType,
@@ -140,6 +141,13 @@ userRoutes.put(
   "/update-rent-dates",
   hasPermission(PERMISSIONS.USER_MANAGE),
   updateRentAndDates,
+);
+
+userRoutes.get(
+  "/getByContact",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  isAuthenticated,
+  getUserByContact,
 );
 
 userRoutes
