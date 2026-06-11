@@ -103,55 +103,55 @@ const serviceStatus = new Map();
 
 // Schedule task to run every minute
 // Cron format: * * * * * (minute hour day-of-month month day-of-week)
-cron.schedule("* * * * *", async () => {
-  console.log(`\n[${new Date().toISOString()}] --- Starting Health Check ---`);
+// cron.schedule("* * * * *", async () => {
+//   console.log(`\n[${new Date().toISOString()}] --- Starting Health Check ---`);
 
-  const results = await Promise.allSettled(
-    services.map(async (service) => {
-      const start = Date.now();
-      try {
-        await axios.get(service.url, { timeout: 5000 }); // 5s timeout
-        const duration = Date.now() - start;
-        return { status: "UP", name: service.name, duration };
-      } catch (error) {
-        return {
-          status: "DOWN",
-          name: service.name,
-          error: error.message,
-        };
-      }
-    })
-  );
+//   const results = await Promise.allSettled(
+//     services.map(async (service) => {
+//       const start = Date.now();
+//       try {
+//         await axios.get(service.url, { timeout: 5000 }); // 5s timeout
+//         const duration = Date.now() - start;
+//         return { status: "UP", name: service.name, duration };
+//       } catch (error) {
+//         return {
+//           status: "DOWN",
+//           name: service.name,
+//           error: error.message,
+//         };
+//       }
+//     })
+//   );
 
-  // Process results
-  for (const result of results) {
-    const val = result.value;
-    const previousStatus = serviceStatus.get(val.name);
+//   // Process results
+//   for (const result of results) {
+//     const val = result.value;
+//     const previousStatus = serviceStatus.get(val.name);
 
-    if (val.status === "UP") {
-      console.log(`✅ ${val.name} is UP (${val.duration}ms)`);
+//     if (val.status === "UP") {
+//       console.log(`✅ ${val.name} is UP (${val.duration}ms)`);
 
-      // Update status map
-      if (previousStatus === "DOWN") {
-        console.log(`🎉 ${val.name} has recovered.`);
-      }
-      serviceStatus.set(val.name, "UP");
-    } else {
-      console.error(`❌ ${val.name} is DOWN: ${val.error}`);
+//       // Update status map
+//       if (previousStatus === "DOWN") {
+//         console.log(`🎉 ${val.name} has recovered.`);
+//       }
+//       serviceStatus.set(val.name, "UP");
+//     } else {
+//       console.error(`❌ ${val.name} is DOWN: ${val.error}`);
 
-      // Only send email if status CHANGED to DOWN (avoids spamming every minute)
-      if (previousStatus !== "DOWN") {
-        console.log(`📧 Sending alert email for ${val.name}...`);
-        await emailService.sendServerDownEmail(val.name, val.error);
-        serviceStatus.set(val.name, "DOWN");
-      } else {
-        console.log(
-          `... ${val.name} is still down. Skipping email to avoid spam.`
-        );
-      }
-    }
-  }
-});
+//       // Only send email if status CHANGED to DOWN (avoids spamming every minute)
+//       if (previousStatus !== "DOWN") {
+//         console.log(`📧 Sending alert email for ${val.name}...`);
+//         await emailService.sendServerDownEmail(val.name, val.error);
+//         serviceStatus.set(val.name, "DOWN");
+//       } else {
+//         console.log(
+//           `... ${val.name} is still down. Skipping email to avoid spam.`
+//         );
+//       }
+//     }
+//   }
+// });
 
 // Health check endpoint
 app.get("/health", (req, res) => {

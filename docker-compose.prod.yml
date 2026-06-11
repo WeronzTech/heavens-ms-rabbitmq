@@ -242,8 +242,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin123
-      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-kernel inet_dist_listen_min 25672 inet_dist_listen_max 25672
-      - RABBITMQ_NODENAME=rabbit@rabbitmq
     ports:
       - "15672:15672"
     volumes:
