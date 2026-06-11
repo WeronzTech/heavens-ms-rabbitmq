@@ -39,7 +39,7 @@ services:
     expose:
       - "8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,7 +67,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only auth-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -86,7 +86,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only client-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -105,7 +105,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only user-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -124,7 +124,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only property-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -143,7 +143,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only inventory-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -162,7 +162,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only socket-service
     expose: ["5006"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5006/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -182,7 +182,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only notification-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -201,7 +201,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only accounts-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -220,7 +220,7 @@ services:
     command: pm2-runtime ecosystem.config.cjs --only order-service
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -239,6 +239,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
+    hostname: rabbitmq 
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin123
@@ -257,7 +258,7 @@ services:
       interval: 10s # was 15s
       timeout: 10s # was 20s
       retries: 10 # more retries instead of long waits
-      start_period: 30s
+      start_period: 120s
     restart: unless-stopped
 
   redis:
