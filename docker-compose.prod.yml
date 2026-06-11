@@ -242,6 +242,8 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin123
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-kernel inet_dist_listen_min 25672 inet_dist_listen_max 25672
+      - RABBITMQ_NODENAME=rabbit@rabbitmq
     ports:
       - "15672:15672"
     volumes:
@@ -254,10 +256,10 @@ services:
         hard: 65536
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 15s
-      timeout: 20s
-      retries: 5
-      start_period: 60s
+      interval: 10s # was 15s
+      timeout: 10s # was 20s
+      retries: 10 # more retries instead of long waits
+      start_period: 30s
     restart: unless-stopped
 
   redis:
