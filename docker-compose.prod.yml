@@ -211,7 +211,7 @@ services:
   # ===================================================================
   #  3. Infrastructure (Updated Healthchecks)
   # ===================================================================
-  rabbitmq:
+   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     environment:
@@ -228,11 +228,12 @@ services:
         soft: 65536
         hard: 65536
     healthcheck:
-      test: ["CMD-SHELL", "exit 0"] # <--- Fakes a healthy status
-      interval: 15s
-      timeout: 20s
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      interval: 20s
+      timeout: 10s
       retries: 5
-      start_period: 60s
     restart: unless-stopped
 
   redis:
@@ -243,11 +244,10 @@ services:
     networks:
       - heavens-ms-js-net
     healthcheck:
-      test: ["CMD-SHELL", "exit 0"] # <--- Fakes a healthy status
-      interval: 10s
-      timeout: 15s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
-      start_period: 30s
     restart: unless-stopped
 
 networks:
