@@ -168,6 +168,8 @@ export const getAllSalaryRecords = async (filters) => {
       page = 1,
       limit = 20,
     } = filters;
+    console.log("XXXXXXXXX");
+    console.log(filters);
 
     const query = {};
 
@@ -195,7 +197,7 @@ export const getAllSalaryRecords = async (filters) => {
         ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
         : new Date(filterYear, 11, 31, 23, 59, 59, 999);
 
-      query.date = {$gte: start, $lte: end};
+      query.paymentDate = {$gte: start, $lte: end};
     }
 
     const skip = (page - 1) * limit;
