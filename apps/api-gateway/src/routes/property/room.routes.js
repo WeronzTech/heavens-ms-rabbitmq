@@ -9,6 +9,7 @@ import {
   getRoomsByFloorId,
   getRoomsByPropertyId,
   updateRoom,
+  getAvailableRoomsForChange,
 } from "../../controllers/property/room.controller.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
 import { hasPermission } from "../../middleware/hasPermission.js";
@@ -27,6 +28,11 @@ roomRoutes.get(
   "/availableRooms",
   hasPermission(PERMISSIONS.ROOM_VIEW),
   getAvailableRoomsByProperty
+);
+roomRoutes.get(
+  "/availableForChange",
+  hasPermission(PERMISSIONS.ROOM_VIEW),
+  getAvailableRoomsForChange
 );
 roomRoutes.get(
   "/by-floor",

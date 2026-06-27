@@ -42,6 +42,7 @@ import {
 } from "../services/user.service.js";
 import {createResponder} from "../../../../libs/common/rabbitMq.js";
 import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
+import { updateRoomNumberForOccupants } from "../services/userUpdate.service.js";
 
 createResponder(USER_PATTERN.USER.FETCH_USER_DATA, async (data) => {
   return await fetchUserData(data);
@@ -222,4 +223,8 @@ createResponder(USER_PATTERN.USER.UPDATE_RENT_AND_DATE, async (data) => {
 
 createResponder(USER_PATTERN.USER.GET_USER_BY_CONTACT, async (data) => {
   return await getUserByContact(data);
+});
+
+createResponder(USER_PATTERN.USER.UPDATE_ROOM_NUMBER_FOR_OCCUPANTS, async (data) => {
+  return await updateRoomNumberForOccupants(data);
 });

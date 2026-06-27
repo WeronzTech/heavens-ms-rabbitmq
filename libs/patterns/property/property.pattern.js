@@ -21,6 +21,8 @@ export const PROPERTY_PATTERN = {
     CONFIRM_ASSIGNMENT: "confirm_assignment",
     REMOVE_ASSIGNMENT: "remove_assignment",
     GET_ROOMS_BY_FLOOR_ID: "get_rooms_by_floor_id",
+    GET_ROOM_BY_ID: "get_room_by_id",
+    GET_AVAILABLE_ROOMS_FOR_CHANGE: "get_available_rooms_for_change",
   },
   STAFF: {
     GET_ALL_STAFF: "get_all_staff",
