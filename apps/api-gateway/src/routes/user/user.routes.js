@@ -29,6 +29,13 @@ import {
   vacateUser,
   verifyEmail,
 } from "../../controllers/user/user.controller.js";
+import {
+  createRoomChangeRequest,
+  getPendingRoomChangeRequests,
+  respondToRoomChangeRequest,
+  getAvailableRoomsForMobile,
+  getUserRoomChangeRequests,
+} from "../../controllers/user/roomChangeRequest.controller.js";
 import {upload} from "../../../../../libs/common/imageOperation.js";
 import {isAuthenticated} from "../../middleware/isAuthenticated.js";
 import {hasPermission} from "../../middleware/hasPermission.js";
@@ -185,6 +192,33 @@ userRoutes.put(
   "/:id/block-status",
   hasPermission(PERMISSIONS.USER_MANAGE),
   handleBlockStatus,
+);
+
+// Room Change Requests
+userRoutes.post(
+  "/room-change-requests",
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  createRoomChangeRequest
+);
+userRoutes.get(
+  "/room-change-requests/pending",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  getPendingRoomChangeRequests
+);
+userRoutes.put(
+  "/:id/room-change-requests/:requestId/respond",
+  hasPermission(PERMISSIONS.USER_MANAGE),
+  respondToRoomChangeRequest
+);
+userRoutes.get(
+  "/room-change-requests/available-rooms",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  getAvailableRoomsForMobile
+);
+userRoutes.get(
+  "/:id/room-change-requests",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  getUserRoomChangeRequests
 );
 
 export default userRoutes;
