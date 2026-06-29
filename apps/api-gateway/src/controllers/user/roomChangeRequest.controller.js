@@ -182,3 +182,31 @@ export const getUserRoomChangeRequests = async (req, res) => {
     });
   }
 };
+
+export const checkPendingRoomChangeRequest = async (req, res) => {
+  try {
+    const userId = req.userAuth;
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.USER.CHECK_PENDING_ROOM_CHANGE_REQUEST,
+      { userId },
+    );
+
+    if (response.status === 200) {
+      return res.status(200).json(response.data);
+    } else {
+      return res.status(response.status).json({
+        message: response.message || "Failed to check pending room change request",
+      });
+    }
+  } catch (error) {
+    console.error(
+      "❌ Error in checkPendingRoomChangeRequest gateway controller:",
+      error,
+    );
+    return res.status(500).json({
+      message:
+        error.message || "Server error while checking pending room change request",
+    });
+  }
+};
