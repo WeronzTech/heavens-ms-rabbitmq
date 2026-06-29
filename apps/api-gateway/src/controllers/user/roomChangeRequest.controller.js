@@ -99,9 +99,10 @@ export const getAvailableRoomsForMobile = async (req, res) => {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
       {
-        id: userId,
+        userId: userId,
       },
     );
+    // console.log("userresponse", userResponse);
 
     if (!userResponse || userResponse.status !== 200) {
       return res.status(userResponse?.status || 500).json({
@@ -110,7 +111,7 @@ export const getAvailableRoomsForMobile = async (req, res) => {
       });
     }
 
-    const user = userResponse.data;
+    const user = userResponse.body.data;
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
