@@ -37,6 +37,7 @@ export const USER_PATTERN = {
     GET_PENDING_ROOM_CHANGE_REQUESTS: "get_pending_room_change_requests",
     RESPOND_TO_ROOM_CHANGE_REQUEST: "respond_to_room_change_request",
     GET_USER_ROOM_CHANGE_REQUESTS: "get_user_room_change_requests",
+    CHECK_PENDING_ROOM_CHANGE_REQUEST: "check_pending_room_change_request",
     UPDATE_ROOM_NUMBER_FOR_OCCUPANTS: "update_room_number_for_occupants",
   },
   PASSWORD: {

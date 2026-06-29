@@ -301,3 +301,28 @@ export const getUserRoomChangeRequests = async (data) => {
     };
   }
 };
+
+export const checkPendingRoomChangeRequest = async (data) => {
+  try {
+    const { userId } = data;
+    if (!userId) {
+      return { status: 400, message: "userId is required" };
+    }
+
+    const pendingRequest = await RoomChangeRequest.findOne({ userId, status: "pending" });
+
+    return {
+      status: 200,
+      data: {
+        hasPending: !!pendingRequest,
+        pendingRequest: pendingRequest || null,
+      },
+    };
+  } catch (error) {
+    console.error("❌ Error in checkPendingRoomChangeRequest service:", error);
+    return {
+      status: 500,
+      message: error.message || "Server error while checking pending room change request",
+    };
+  }
+};

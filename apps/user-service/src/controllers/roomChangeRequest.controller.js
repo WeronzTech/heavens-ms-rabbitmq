@@ -5,6 +5,7 @@ import {
   getPendingRoomChangeRequests,
   respondToRoomChangeRequest,
   getUserRoomChangeRequests,
+  checkPendingRoomChangeRequest,
 } from "../services/roomChangeRequest.service.js";
 
 createResponder(USER_PATTERN.USER.CREATE_ROOM_CHANGE_REQUEST, async (data) => {
@@ -21,4 +22,8 @@ createResponder(USER_PATTERN.USER.RESPOND_TO_ROOM_CHANGE_REQUEST, async (data) =
 
 createResponder(USER_PATTERN.USER.GET_USER_ROOM_CHANGE_REQUESTS, async (data) => {
   return await getUserRoomChangeRequests(data);
+});
+
+createResponder(USER_PATTERN.USER.CHECK_PENDING_ROOM_CHANGE_REQUEST, async (data) => {
+  return await checkPendingRoomChangeRequest(data);
 });

@@ -35,6 +35,7 @@ import {
   respondToRoomChangeRequest,
   getAvailableRoomsForMobile,
   getUserRoomChangeRequests,
+  checkPendingRoomChangeRequest,
 } from "../../controllers/user/roomChangeRequest.controller.js";
 import {upload} from "../../../../../libs/common/imageOperation.js";
 import {isAuthenticated} from "../../middleware/isAuthenticated.js";
@@ -214,6 +215,11 @@ userRoutes.get(
   "/room-change-requests/available-rooms",
   hasPermission(PERMISSIONS.USER_VIEW),
   getAvailableRoomsForMobile
+);
+userRoutes.get(
+  "/room-change-requests/check-pending",
+  hasPermission(PERMISSIONS.USER_VIEW),
+  checkPendingRoomChangeRequest
 );
 userRoutes.get(
   "/:id/room-change-requests",
