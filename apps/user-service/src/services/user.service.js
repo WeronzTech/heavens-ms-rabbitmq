@@ -164,13 +164,13 @@ export const vacateUserById = async (userId, roleName) => {
         userId: user._id,
         roomId: currentRoomId,
       });
-      await removeFromRoom({ userId: user._id, roomId: currentRoomId });
+      await removeFromRoom({userId: user._id, roomId: currentRoomId});
     }
     user.isVacated = true;
 
-    await user.save({ session });
+    await user.save({session});
 
-    await user.save({ session });
+    await user.save({session});
 
     await session.commitTransaction();
 
@@ -1900,13 +1900,8 @@ export const getCheckOutedUsersByRentType = async (data) => {
 
 export const vacateUser = async (data) => {
   try {
-<<<<<<< HEAD
-    const {adminName, id} = data;
-    const result = await vacateUserById(id);
-=======
     const {roleName, id} = data;
     const result = await vacateUserById(id, roleName);
->>>>>>> c92879c0ceffd155fe0b889bec0432a33ef648b5
     console.log(result);
     try {
       await UserLog.create({
