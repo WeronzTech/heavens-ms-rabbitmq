@@ -192,7 +192,7 @@ export const getRoomOccupants = async (req, res) => {
 
 export const getAvailableRoomsByProperty = async (req, res) => {
   try {
-    const { propertyId } = req.query;
+    const { propertyId, gender } = req.query;
 
     if (!propertyId) {
       return res.status(400).json({ message: "propertyId is required" });
@@ -200,7 +200,7 @@ export const getAvailableRoomsByProperty = async (req, res) => {
 
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.ROOM.GET_AVAILABLE_ROOMS_BY_PROPERTY,
-      { propertyId }
+      { propertyId, gender }
     );
 
     console.log("🏠 Get Available Rooms RPC Response:", response);
@@ -216,6 +216,36 @@ export const getAvailableRoomsByProperty = async (req, res) => {
     console.error("❌ Error in getAvailableRoomsByProperty controller:", error);
     return res.status(500).json({
       message: error.message || "Server error while fetching available rooms",
+    });
+  }
+};
+
+export const getAvailableRoomsForChange = async (req, res) => {
+  try {
+    const { propertyId, sharingType, gender, currentRoomId } = req.query;
+
+    if (!propertyId || !sharingType) {
+      return res.status(400).json({ message: "propertyId and sharingType are required" });
+    }
+
+    const response = await sendRPCRequest(
+      PROPERTY_PATTERN.ROOM.GET_AVAILABLE_ROOMS_FOR_CHANGE,
+      { propertyId, sharingType, gender, currentRoomId }
+    );
+
+    console.log("🏠 Get Available Rooms For Change RPC Response:", response);
+
+    if (response.status === 200) {
+      return res.status(200).json(response.data);
+    } else {
+      return res.status(response.status).json({
+        message: response.message || "Failed to fetch available rooms for change",
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error in getAvailableRoomsForChange controller:", error);
+    return res.status(500).json({
+      message: error.message || "Server error while fetching available rooms for change",
     });
   }
 };

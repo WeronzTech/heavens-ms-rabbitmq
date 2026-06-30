@@ -10,6 +10,8 @@ import {
   getRoomsByPropertyId,
   handleRemoveAssignment,
   updateRoom,
+  getRoomById,
+  getAvailableRoomsForChange,
 } from "../services/room.service.js";
 import { createResponder } from "../../../../libs/common/rabbitMq.js";
 
@@ -54,4 +56,12 @@ createResponder(PROPERTY_PATTERN.ROOM.GET_ALL_HEAVENS_ROOMS, async (data) => {
 
 createResponder(PROPERTY_PATTERN.ROOM.GET_ROOMS_BY_FLOOR_ID, async (data) => {
   return await getRoomsByFloorId(data);
+});
+
+createResponder(PROPERTY_PATTERN.ROOM.GET_ROOM_BY_ID, async (data) => {
+  return await getRoomById(data);
+});
+
+createResponder(PROPERTY_PATTERN.ROOM.GET_AVAILABLE_ROOMS_FOR_CHANGE, async (data) => {
+  return await getAvailableRoomsForChange(data);
 });

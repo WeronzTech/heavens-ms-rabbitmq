@@ -450,3 +450,32 @@ export const handleRoomChange = async (user, newRoomId, newPropertyId) => {
     throw error;
   }
 };
+
+export const updateRoomNumberForOccupants = async (data) => {
+  try {
+    const { roomId, newRoomNumber } = data;
+    if (!roomId || !newRoomNumber) {
+      return { status: 400, success: false, message: "roomId and newRoomNumber are required" };
+    }
+
+    const result = await User.updateMany(
+      { "stayDetails.roomId": new mongoose.Types.ObjectId(roomId) },
+      { $set: { "stayDetails.roomNumber": newRoomNumber } }
+    );
+
+    console.log(`Updated roomNumber to ${newRoomNumber} for ${result.modifiedCount} occupants.`);
+
+    return {
+      status: 200,
+      success: true,
+      data: { modifiedCount: result.modifiedCount },
+    };
+  } catch (error) {
+    console.error("❌ Error in updateRoomNumberForOccupants service:", error);
+    return {
+      status: 500,
+      success: false,
+      message: error.message || "Server error while updating room number for occupants",
+    };
+  }
+};

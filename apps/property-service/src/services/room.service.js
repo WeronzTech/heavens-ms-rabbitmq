@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import {fetchUserData} from "./internal.service.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import Floor from "../models/floor.model.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 
 export const addRoom = async (data) => {
   const {
@@ -398,6 +400,8 @@ export const updateRoom = async (data) => {
       return {status: 404, message: "Room not found"};
     }
 
+    const isRoomNoChanged = roomNo && roomNo !== room.roomNo;
+
     // ✅ Check for duplicate roomNo in the same property
     if (roomNo && roomNo !== room.roomNo) {
       const existingRoom = await Room.findOne({
@@ -460,6 +464,18 @@ export const updateRoom = async (data) => {
 
     // ✅ Save changes
     const updatedRoom = await room.save();
+
+    // ✅ If room number changed, update occupants in user service
+    if (isRoomNoChanged) {
+      try {
+        await sendRPCRequest(
+          USER_PATTERN.USER.UPDATE_ROOM_NUMBER_FOR_OCCUPANTS,
+          { roomId: room._id.toString(), newRoomNumber: room.roomNo }
+        );
+      } catch (rpcError) {
+        console.error("❌ Failed to update room number for occupants via RPC:", rpcError);
+      }
+    }
 
     if (floorId) {
       // Find the previous floor (if room was already on a floor)
@@ -634,7 +650,7 @@ export const getRoomOccupants = async (data) => {
 
 export const getAvailableRoomsByProperty = async (data) => {
   try {
-    const {propertyId} = data;
+    const {propertyId, gender} = data;
 
     if (!propertyId) {
       return {status: 400, message: "propertyId is required"};
@@ -646,7 +662,54 @@ export const getAvailableRoomsByProperty = async (data) => {
       vacantSlot: {$ne: 0},
     };
 
-    const rooms = await Room.find(roomFilter);
+    let rooms = await Room.find(roomFilter);
+
+    // If gender is provided, filter rooms by occupants' gender
+    if (gender) {
+      const filteredRooms = [];
+
+      for (const room of rooms) {
+        if (!room.roomOccupants || room.roomOccupants.length === 0) {
+          // Empty rooms are available
+          filteredRooms.push(room);
+          continue;
+        }
+
+        // Get occupant user IDs
+        const occupantUserIds = room.roomOccupants
+          .filter((occ) => occ.userId)
+          .map((occ) => occ.userId.toString());
+
+        if (occupantUserIds.length === 0) {
+          filteredRooms.push(room);
+          continue;
+        }
+
+        try {
+          const usersResponse = await sendRPCRequest(
+            USER_PATTERN.USER.GET_BULK_USER_BY_ID,
+            { userIds: occupantUserIds }
+          );
+
+          if (usersResponse && usersResponse.status === 200 && usersResponse.body?.success) {
+            const users = usersResponse.body.data || [];
+            const isMatch = users.every(
+              (u) => u.personalDetails?.gender?.toLowerCase() === gender.toLowerCase()
+            );
+
+            if (isMatch) {
+              filteredRooms.push(room);
+            }
+          } else {
+            console.warn(`Could not verify genders for room ${room.roomNo} occupants`);
+          }
+        } catch (rpcError) {
+          console.error("Error fetching bulk users for gender validation:", rpcError);
+        }
+      }
+
+      rooms = filteredRooms;
+    }
 
     const property = await Property.findById(propertyId).select(
       "sharingPrices deposit",
@@ -756,6 +819,111 @@ export const getRoomsByFloorId = async (data) => {
       status: 500,
       message: "Server error while fetching rooms by floor ID",
       error: error.message,
+    };
+  }
+};
+
+export const getRoomById = async (data) => {
+  try {
+    const { roomId } = data;
+    if (!roomId) {
+      return { status: 400, message: "roomId is required" };
+    }
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return { status: 404, message: "Room not found" };
+    }
+
+    return {
+      status: 200,
+      data: room,
+    };
+  } catch (error) {
+    console.error("❌ Error in getRoomById service:", error);
+    return {
+      status: 500,
+      message: error.message || "Server error while fetching room",
+    };
+  }
+};
+
+export const getAvailableRoomsForChange = async (data) => {
+  try {
+    const { propertyId, sharingType, gender, currentRoomId } = data;
+    if (!propertyId || !sharingType) {
+      return { status: 400, message: "propertyId and sharingType are required" };
+    }
+
+    const roomFilter = {
+      propertyId,
+      sharingType,
+      status: "available",
+      vacantSlot: { $gt: 0 },
+    };
+
+    if (currentRoomId) {
+      roomFilter._id = { $ne: new mongoose.Types.ObjectId(currentRoomId) };
+    }
+
+    let rooms = await Room.find(roomFilter);
+
+    // If gender is provided, filter rooms by occupants' gender
+    if (gender) {
+      const filteredRooms = [];
+
+      for (const room of rooms) {
+        if (!room.roomOccupants || room.roomOccupants.length === 0) {
+          // Empty rooms are available
+          filteredRooms.push(room);
+          continue;
+        }
+
+        // Get occupant user IDs
+        const occupantUserIds = room.roomOccupants
+          .filter((occ) => occ.userId)
+          .map((occ) => occ.userId.toString());
+
+        if (occupantUserIds.length === 0) {
+          filteredRooms.push(room);
+          continue;
+        }
+
+        try {
+          const usersResponse = await sendRPCRequest(
+            USER_PATTERN.USER.GET_BULK_USER_BY_ID,
+            { userIds: occupantUserIds }
+          );
+
+          if (usersResponse && usersResponse.status === 200 && usersResponse.body?.success) {
+            const users = usersResponse.body.data || [];
+            const isMatch = users.every(
+              (u) => u.personalDetails?.gender?.toLowerCase() === gender.toLowerCase()
+            );
+
+            if (isMatch) {
+              filteredRooms.push(room);
+            }
+          } else {
+            console.warn(`Could not verify genders for room ${room.roomNo} occupants`);
+          }
+        } catch (rpcError) {
+          console.error("Error fetching bulk users for gender validation:", rpcError);
+        }
+      }
+
+      rooms = filteredRooms;
+    }
+
+    return {
+      status: 200,
+      data: rooms,
+    };
+  } catch (error) {
+    console.error("❌ Error in getAvailableRoomsForChange service:", error);
+    return {
+      status: 500,
+      message: error.message || "Server error while fetching available rooms",
     };
   }
 };
