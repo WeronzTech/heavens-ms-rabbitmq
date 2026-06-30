@@ -29,6 +29,7 @@ export const addPettyCashController = async (req, res) => {
         createdBy,
         createdByName,
         paymentMode,
+        createdBy: req.userAuth,
       },
     );
 
@@ -108,6 +109,46 @@ export const getPettyCashTransactionsByManagerController = async (req, res) => {
     const response = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_TRANSACTIONS_BY_MANAGER,
       {managerId},
+    );
+    console.log("Response", response);
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error fetching petty cash transactions by manager:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message:
+        "An internal server error occurred while fetching petty cash transactions by manager.",
+    });
+  }
+};
+
+export const transferPettyCashController = async (req, res) => {
+  try {
+    const {
+      fromManagerId,
+      toManagerId,
+      inHandAmount = 0,
+      inAccountAmount = 0,
+      paymentMode,
+      date,
+      notes,
+      createdBy,
+    } = req.body;
+
+    const response = await sendRPCRequest(
+      CLIENT_PATTERN.PETTYCASH.TRANSFER_PETTYCASH,
+      {
+        fromManagerId,
+        toManagerId,
+        inHandAmount,
+        inAccountAmount,
+        paymentMode,
+        date,
+        notes,
+        createdBy,
+      },
     );
     console.log("Response", response);
 

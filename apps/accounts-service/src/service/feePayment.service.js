@@ -1083,11 +1083,23 @@ const processAndRecordPayment = async ({
   ================================ */
 
       if (monthsCleared > 0) {
-        const lastClearedDate = user.financialDetails.clearedTillMonth
-          ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
-          : new Date(user.stayDetails.joinDate);
+        // const lastClearedDate = user.financialDetails.clearedTillMonth
+        //   ? new Date(`${user.financialDetails.clearedTillMonth}-01`)
+        //   : new Date(user.stayDetails.joinDate);
 
-        if (!user.financialDetails.clearedTillMonth) {
+        // if (!user.financialDetails.clearedTillMonth) {
+        //   lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
+        // }
+        let lastClearedDate;
+
+        if (user.financialDetails.clearedTillMonth) {
+          lastClearedDate = new Date(
+            `${user.financialDetails.clearedTillMonth}-01`,
+          );
+        } else {
+          // Previous month because the first payment clears the current month
+          lastClearedDate = new Date();
+          lastClearedDate.setDate(1);
           lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
         }
 
@@ -1110,13 +1122,18 @@ const processAndRecordPayment = async ({
           finalClearedDate.getMonth() + 1,
         ).padStart(2, "0")}`;
 
-        const joinDay = new Date(user.stayDetails.joinDate).getDate();
+        // const joinDay = new Date(user.stayDetails.joinDate).getDate();
 
-        user.financialDetails.nextDueDate = new Date(
-          finalClearedDate.getFullYear(),
-          finalClearedDate.getMonth() + 1,
-          joinDay,
-        );
+        // user.financialDetails.nextDueDate = new Date(
+        //   finalClearedDate.getFullYear(),
+        //   finalClearedDate.getMonth() + 1,
+        //   joinDay,
+        // );
+        user.financialDetails.nextDueDate = moment
+          .utc(finalClearedDate)
+          .add(1, "month")
+          .startOf("month")
+          .toDate();
       }
     }
 
@@ -1131,6 +1148,7 @@ const processAndRecordPayment = async ({
       user.stayDetails,
       session,
     );
+    const payment = new Date(paymentDate);
 
     const newPayment = new Payments({
       name: user.name,
@@ -1146,7 +1164,13 @@ const processAndRecordPayment = async ({
       accountBalance: user.financialDetails?.accountBalance || 0,
       dueAmount,
       paymentMethod,
-      paymentDate,
+      paymentDate: new Date(
+        Date.UTC(
+          payment.getUTCFullYear(),
+          payment.getUTCMonth(),
+          payment.getUTCDate(),
+        ),
+      ),
       transactionId,
       referralAmountUsed,
       paymentForMonths,
@@ -1280,6 +1304,234 @@ const processAndRecordPayment = async ({
     await session.abortTransaction();
     console.error("Error during payment processing:", error);
     return {success: false, status: 400, message: error.message};
+  } finally {
+    session.endSession();
+  }
+};
+
+const waveOffRent = async ({
+  userId,
+  waveOffAmount,
+  waveOffReason,
+  paymentDate,
+  remarks = "",
+}) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (!waveOffAmount || waveOffAmount <= 0) {
+      throw new Error("Wave-off amount should be greater than zero.");
+    }
+
+    const userResponse = await sendRPCRequest(
+      USER_PATTERN.USER.GET_USER_BY_ID,
+      {userId},
+    );
+
+    if (!userResponse.body.success) {
+      throw new Error(userResponse.message || "User not found.");
+    }
+
+    const user = userResponse.body.data;
+
+    let paymentForMonths = [];
+    let advanceForMonths = [];
+
+    if (user.rentType === "daily" || user.rentType === "mess") {
+      user.financialDetails.paidAmount =
+        (user.financialDetails.paidAmount || 0) + waveOffAmount;
+
+      const totalAmount = user.financialDetails.totalAmount;
+
+      user.financialDetails.pendingAmount = Math.max(
+        0,
+        totalAmount - user.financialDetails.paidAmount,
+      );
+
+      if (user.financialDetails.pendingAmount === 0) {
+        user.paymentStatus = "paid";
+        user.isBlocked = false;
+      }
+    } else if (user.rentType === "monthly") {
+      const monthlyRent = user.financialDetails.monthlyRent || 0;
+
+      if (!monthlyRent) {
+        throw new Error("Monthly rent is not configured.");
+      }
+
+      let currentPending = user.financialDetails.pendingRent || 0;
+      let partialPaid = user.financialDetails.accountBalance || 0;
+      let advanceBalance = user.financialDetails.advanceBalance || 0;
+
+      currentPending = Math.max(0, currentPending - waveOffAmount);
+
+      partialPaid += waveOffAmount;
+
+      let monthsCleared = 0;
+
+      if (partialPaid >= monthlyRent) {
+        monthsCleared = Math.floor(partialPaid / monthlyRent);
+        partialPaid = partialPaid % monthlyRent;
+      }
+
+      if (currentPending === 0 && partialPaid > 0) {
+        advanceBalance += partialPaid;
+      }
+
+      user.financialDetails.pendingRent = currentPending;
+      user.financialDetails.pendingAmount = currentPending;
+      user.financialDetails.accountBalance = partialPaid;
+      user.financialDetails.advanceBalance = advanceBalance;
+
+      if (currentPending === 0) {
+        user.paymentStatus = "paid";
+        user.isBlocked = false;
+      } else {
+        user.paymentStatus = "pending";
+      }
+
+      if (monthsCleared > 0) {
+        let lastClearedDate;
+
+        if (user.financialDetails.clearedTillMonth) {
+          lastClearedDate = new Date(
+            `${user.financialDetails.clearedTillMonth}-01`,
+          );
+        } else {
+          lastClearedDate = new Date();
+          lastClearedDate.setDate(1);
+          lastClearedDate.setMonth(lastClearedDate.getMonth() - 1);
+        }
+
+        for (let i = 0; i < monthsCleared; i++) {
+          const paymentMonthDate = new Date(lastClearedDate);
+          paymentMonthDate.setMonth(paymentMonthDate.getMonth() + i + 1);
+
+          paymentForMonths.push(
+            paymentMonthDate.toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            }),
+          );
+        }
+
+        const finalClearedDate = new Date(lastClearedDate);
+        finalClearedDate.setMonth(finalClearedDate.getMonth() + monthsCleared);
+
+        user.financialDetails.clearedTillMonth = `${finalClearedDate.getFullYear()}-${String(
+          finalClearedDate.getMonth() + 1,
+        ).padStart(2, "0")}`;
+
+        user.financialDetails.nextDueDate = moment
+          .utc(finalClearedDate)
+          .add(1, "month")
+          .startOf("month")
+          .toDate();
+      }
+    }
+
+    const payment = new Date(paymentDate);
+
+    const dueAmount =
+      user.financialDetails.pendingRent ??
+      user.financialDetails.pendingAmount ??
+      0;
+
+    const transaction = new Payments({
+      name: user.name,
+      rentType: user.rentType,
+      userType: user.userType,
+      contact: user.contact,
+
+      room: user.stayDetails?.roomNumber || "N/A",
+
+      rent:
+        user.financialDetails.monthlyRent || user.stayDetails?.dailyRent || 0,
+
+      amount: 0,
+
+      waveOffAmount,
+
+      waveOffReason,
+
+      isWaveOff: true,
+
+      accountBalance: user.financialDetails.accountBalance || 0,
+
+      dueAmount,
+
+      paymentDate: new Date(
+        Date.UTC(
+          payment.getUTCFullYear(),
+          payment.getUTCMonth(),
+          payment.getUTCDate(),
+        ),
+      ),
+
+      paymentForMonths,
+
+      paymentMethod: "WaveOff Only",
+
+      status: dueAmount === 0 ? "Paid" : "Pending",
+
+      property: {
+        id: user.stayDetails?.propertyId,
+        name: user.stayDetails?.propertyName,
+      },
+
+      kitchen: {
+        id: user.messDetails?.kitchenId,
+        name: user.messDetails?.kitchenName,
+      },
+
+      userId: user._id,
+
+      remarks,
+    });
+
+    await transaction.save({session});
+
+    await createAccountLog({
+      logType: "Rent Wave Off",
+      action: "Wave Off",
+      description: `₹${waveOffAmount} rent waived for ${user.name}.`,
+      amount: waveOffAmount,
+      propertyId: user.stayDetails?.propertyId,
+      referenceId: transaction._id,
+    });
+
+    await sendRPCRequest(USER_PATTERN.USER.UPDATE_USER, {
+      userId,
+      userData: {
+        financialDetails: user.financialDetails,
+        paymentStatus: user.paymentStatus,
+        isBlocked: user.isBlocked,
+      },
+    });
+
+    await sendRPCRequest(SOCKET_PATTERN.EMIT, {
+      userIds: ["688722e075ee06d71c8fdb02", user._id],
+      event: "next-due-date",
+      data: user,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      status: 201,
+      message: "Rent wave-off recorded successfully.",
+      data: transaction,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+
+    return {
+      success: false,
+      status: 400,
+      message: error.message,
+    };
   } finally {
     session.endSession();
   }
@@ -1542,7 +1794,40 @@ export const recordManualPayment = async (data) => {
     collectedById,
     remarks,
     clientId,
+    isWaveOff = false,
   } = data;
+  console.log(data);
+  // If this is a wave-off, don't validate payment method/transaction
+  if (isWaveOff) {
+    if (!waveOffAmount || Number(waveOffAmount) <= 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "Wave-off amount should be greater than zero.",
+      };
+    }
+
+    if (!waveOffReason) {
+      return {
+        success: false,
+        status: 400,
+        message: "A reason is required when providing a wave-off amount.",
+      };
+    }
+
+    const finalPaymentDate = paymentDate
+      ? paymentDate
+      : new Date().toISOString().split("T")[0];
+
+    return await waveOffRent({
+      userId,
+      waveOffAmount: Number(waveOffAmount),
+      waveOffReason,
+      paymentDate: finalPaymentDate,
+      remarks,
+      clientId,
+    });
+  }
 
   if (!["Cash", "UPI", "Bank Transfer", "Card"].includes(paymentMethod)) {
     return {
@@ -1609,8 +1894,10 @@ export const getAllFeePayments = async (data) => {
       paymentDate,
       search,
     } = data;
-    const filter = {};
-
+    const filter = {
+      isWaveOff: {$ne: true},
+      paymentMethod: {$ne: "WaveOff Only"},
+    };
     // Filter by property
     if (propertyId) {
       filter["property.id"] = new mongoose.Types.ObjectId(propertyId);

@@ -1,11 +1,12 @@
-import { createResponder } from "../../../../libs/common/rabbitMq.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import {createResponder} from "../../../../libs/common/rabbitMq.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
 import {
   addPettyCash,
   getPettyCash,
   getPettyCashByIdService,
   getPettyCashByManager,
   getPettyCashTransactionsByManager,
+  transferPettyCashBetweenManagers,
 } from "../service/pettyCash.service.js";
 
 createResponder(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, async (data) => {
@@ -20,19 +21,23 @@ createResponder(
   CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
   async (data) => {
     return await getPettyCashByManager(data);
-  }
+  },
 );
 
 createResponder(
   CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_DATA_BY_ID,
   async (data) => {
     return await getPettyCashByIdService(data);
-  }
+  },
 );
 
 createResponder(
   CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_TRANSACTIONS_BY_MANAGER,
   async (data) => {
     return await getPettyCashTransactionsByManager(data);
-  }
+  },
 );
+
+createResponder(CLIENT_PATTERN.PETTYCASH.TRANSFER_PETTYCASH, async (data) => {
+  return await transferPettyCashBetweenManagers(data);
+});

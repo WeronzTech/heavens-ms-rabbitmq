@@ -4,10 +4,11 @@ import {
   getPettyCashByManagerController,
   getPettyCashController,
   getPettyCashTransactionsByManagerController,
+  transferPettyCashController,
 } from "../../controllers/client/pettyCash.controller.js";
-import { isAuthenticated } from "../../middleware/isAuthenticated.js";
-import { hasPermission } from "../../middleware/hasPermission.js";
-import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
+import {isAuthenticated} from "../../middleware/isAuthenticated.js";
+import {hasPermission} from "../../middleware/hasPermission.js";
+import {PERMISSIONS} from "../../../../../libs/common/permissions.list.js";
 
 const pettyCashRoutes = express.Router();
 
@@ -17,6 +18,12 @@ pettyCashRoutes.post(
   "/add",
   hasPermission(PERMISSIONS.PETTY_CASH_MANAGE),
   addPettyCashController,
+);
+
+pettyCashRoutes.post(
+  "/transfer",
+  hasPermission(PERMISSIONS.PETTY_CASH_MANAGE),
+  transferPettyCashController,
 );
 
 pettyCashRoutes.get(
