@@ -116,57 +116,70 @@ export const getUserByEmail = async (email) => {
     };
   }
 };
-
-export const vacateUserById = async (userId) => {
+export const vacateUserById = async (userId, roleName) => {
   const session = await mongoose.startSession();
+
   try {
     session.startTransaction();
 
+    console.log("Anwar", userId);
+    console.log("role", roleName);
+
     const user = await User.findById(userId).session(session);
+
     if (!user) {
-      throw {status: 404, message: "Resident not found"};
-    }
-
-    if (user.paymentStatus === "pending") {
       throw {
-        status: 400,
-        message: "Clear payment before vacating!",
+        status: 404,
+        message: "Resident not found",
       };
     }
 
-    if (
-      user.rentType === "monthly" &&
-      user.stayDetails.depositStatus === "pending"
-    ) {
-      throw {
-        status: 400,
-        message: "Clear deposit payment before vacating!",
-      };
+    const isAdmin = roleName === "Admin";
+
+    // Skip payment validation for Admin
+    if (!isAdmin) {
+      if (user.paymentStatus === "pending") {
+        throw {
+          status: 400,
+          message: "Clear payment before vacating!",
+        };
+      }
+
+      if (
+        user.rentType === "monthly" &&
+        user.stayDetails.depositStatus === "pending"
+      ) {
+        throw {
+          status: 400,
+          message: "Clear deposit payment before vacating!",
+        };
+      }
     }
 
     const currentRoomId = user.stayDetails?.roomId;
     const currentPropertyId = user.propertyId;
 
     if (currentRoomId) {
-      await removeFromRoom({userId: user._id, roomId: currentRoomId});
+      await removeFromRoom({
+        userId: user._id,
+        roomId: currentRoomId,
+      });
+      await removeFromRoom({ userId: user._id, roomId: currentRoomId });
     }
-
     user.isVacated = true;
-    user.vacatedAt = new Date();
-    user.currentStatus = "checked_out";
-    user.stayDetails.roomId = null;
-    user.isLoginEnabled = false;
-    await user.save({session});
 
-    // console.log(user);
+    await user.save({ session });
+
+    await user.save({ session });
 
     await session.commitTransaction();
+
     return {
       userId: user._id,
       name: user.name,
       propertyName: user.stayDetails?.propertyName || null,
       propertyId: user.stayDetails?.propertyId || null,
-      kitchenName: user.messDetails.kitchenName || null,
+      kitchenName: user.messDetails?.kitchenName || null,
       kitchenId: user.messDetails?.kitchenId || null,
       vacatedAt: user.vacatedAt,
       previousRoom: currentRoomId
@@ -1887,16 +1900,21 @@ export const getCheckOutedUsersByRentType = async (data) => {
 
 export const vacateUser = async (data) => {
   try {
+<<<<<<< HEAD
     const {adminName, id} = data;
     const result = await vacateUserById(id);
+=======
+    const {roleName, id} = data;
+    const result = await vacateUserById(id, roleName);
+>>>>>>> c92879c0ceffd155fe0b889bec0432a33ef648b5
     console.log(result);
     try {
       await UserLog.create({
         userId: id,
         action: "delete",
-        changedByName: adminName || "Unknown Admin",
+        changedByName: roleName || "Unknown Admin",
         message: `Resident (${result.name}) checked out by ${
-          adminName || "Unknown Admin"
+          roleName || "Unknown Admin"
         } from ${
           result.propertyName || result.kitchenName || "Unknown Property"
         }`,
