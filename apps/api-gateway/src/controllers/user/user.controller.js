@@ -251,16 +251,18 @@ export const getCheckOutedUsersByRentType = async (req, res) => {
     });
   }
 };
-
 export const vacateUser = async (req, res) => {
   try {
     const {id} = req.params;
-    const {adminName} = req.body;
+    const { roleName } = req.query;
+
+    console.log(req.query);
 
     const response = await sendRPCRequest(USER_PATTERN.USER.VACATE_USER, {
       id,
-      adminName,
+      roleName,
     });
+  console.log(roleName,id)
 
     return res
       .status(response?.status || 500)
@@ -275,7 +277,6 @@ export const vacateUser = async (req, res) => {
     });
   }
 };
-
 export const rejoinUser = async (req, res) => {
   try {
     const {id} = req.params;
