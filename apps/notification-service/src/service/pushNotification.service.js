@@ -184,15 +184,13 @@ export const sendPushNotification = async ({data}) => {
       dailyRentOnly,
     } = notification;
 
-    // Build query for user-service
-    const params = new URLSearchParams();
-    if (messOnly) params.append("messOnly", "true");
-    if (studentOnly) params.append("studentOnly", "true");
-    if (workerOnly) params.append("workerOnly", "true");
-    if (dailyRentOnly) params.append("dailyRentOnly", "true");
-
     // Fetch user IDs
-    const userResp = await getUserIds(params.toString());
+    const userResp = await getUserIds(
+      messOnly ? "true" : undefined,
+      studentOnly ? "true" : undefined,
+      dailyRentOnly ? "true" : undefined,
+      workerOnly ? "true" : undefined
+    );
     const userArray = userResp?.body || userResp; // normalize
     console.log("Target user IDs for push notification:", userArray);
 
@@ -221,19 +219,35 @@ export const sendPushNotification = async ({data}) => {
     let sentCount = 0;
     const successfulUserIds = new Set();
 
+    // Flatten token docs to a list of tasks
+    const tasks = [];
     for (const doc of tokenDocs) {
       const tokens = Array.isArray(doc.token) ? doc.token : [doc.token]; // normalize
-      for (const token of tokens) {
-        try {
-          const success = await sendPushNotificationToUser(token, message);
-          if (success) {
-            sentCount++;
-            successfulUserIds.add(doc.userId.toString());
-          }
-        } catch (err) {
-          console.error(`Failed to send push to token ${token}:`, err.message);
+      const userIdStr = doc.userId ? doc.userId.toString() : "";
+      if (userIdStr) {
+        for (const token of tokens) {
+          tasks.push({ token, userId: userIdStr });
         }
       }
+    }
+
+    // Process push notification tasks in parallel chunks of 50
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < tasks.length; i += CHUNK_SIZE) {
+      const chunk = tasks.slice(i, i + CHUNK_SIZE);
+      await Promise.all(
+        chunk.map(async (task) => {
+          try {
+            const success = await sendPushNotificationToUser(task.token, message);
+            if (success) {
+              sentCount++;
+              successfulUserIds.add(task.userId);
+            }
+          } catch (err) {
+            console.error(`Failed to send push to token ${task.token}:`, err.message);
+          }
+        })
+      );
     }
 
     // Save logs
