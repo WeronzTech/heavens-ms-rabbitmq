@@ -80,6 +80,12 @@ export const ACCOUNTS_PATTERN = {
     DELETE_VOUCHER: "delete_voucher",
     GET_VOUCHER_BY_PROPERTY: "get_voucher_by_property",
   },
+  VENDOR: {
+    ADD_VENDOR: "add_vendor",
+    EDIT_VENDOR: "edit_vendor",
+    GET_ALL_VENDORS: "get_all_vendors",
+    GET_VENDOR_SUMMARY: "get_vendor_summary",
+  },
   SALARY: {
     MANUAL_CREATE: "manual_add_salary",
     GET_ALL: "get_all_salary_records",
