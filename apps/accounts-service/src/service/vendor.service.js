@@ -79,6 +79,7 @@ export const editVendor = async (data) => {
 
 export const getAllVendors = async (data) => {
   try {
+    console.log("clientId", data);
     const { clientId } = data;
     if (!clientId) {
       return { success: false, status: 400, message: "Client ID is required" };
@@ -87,6 +88,7 @@ export const getAllVendors = async (data) => {
     const vendors = await Vendor.find({
       clientId: new mongoose.Types.ObjectId(clientId),
     }).sort({ createdAt: -1 });
+    console.log("Vnedors", vendors);
 
     return { success: true, status: 200, data: vendors };
   } catch (error) {
