@@ -336,3 +336,28 @@ export const updateExpenseController = async (req, res) => {
     });
   }
 };
+
+export const payExpenseController = async (req, res) => {
+  try {
+    const {expenseId} = req.params;
+    const handledBy = req.userAuth;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.PAY_EXPENSE,
+      {
+        expenseId,
+        handledBy: req?.body?.handledBy || handledBy,
+        ...req.body,
+      },
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in paying expense:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while paying expense.",
+    });
+  }
+};

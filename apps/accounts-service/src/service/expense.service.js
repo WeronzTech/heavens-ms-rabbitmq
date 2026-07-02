@@ -291,12 +291,19 @@ export const getAllExpenses = async (data) => {
 
     // filter by client
     if (clientId) {
-      query.clientId = new mongoose.Types.ObjectId(clientId);
+      query.$or = [
+        { clientId: new mongoose.Types.ObjectId(clientId) },
+        { clientId: { $exists: false } }
+      ];
     }
 
     // filter by status
     if (status) {
-      query.status = status;
+      if (status === "paid") {
+        query.status = { $ne: "pending" };
+      } else {
+        query.status = status;
+      }
     }
 
     // filter by property
@@ -959,4 +966,188 @@ export const getPettyCashUsage = async (data) => {
     inHand: usageMap[manager].inHand,
     inAccount: usageMap[manager].inAccount,
   }));
+};
+
+export const payExpense = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const {
+      expenseId,
+      handledBy,
+      paymentMethod: newPaymentMethod,
+      pettyCashType: newPettyCashType,
+      transactionId: newTransactionId,
+    } = data;
+
+    if (!expenseId) {
+      return {success: false, status: 400, message: "Expense ID is required"};
+    }
+
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      return {success: false, status: 404, message: "Expense not found"};
+    }
+
+    if (expense.status === "paid") {
+      return {success: false, status: 400, message: "Expense is already paid"};
+    }
+
+    // Update payment details if provided
+    if (newPaymentMethod) expense.paymentMethod = newPaymentMethod;
+    if (newPettyCashType) expense.pettyCashType = newPettyCashType;
+    if (newTransactionId) expense.transactionId = newTransactionId;
+
+    if (!expense.paymentMethod) {
+      return {
+        success: false,
+        status: 400,
+        message: "Payment method is required to mark expense as paid",
+      };
+    }
+
+    // Petty Cash validation & deduction
+    if (expense.paymentMethod === "Petty Cash") {
+      if (!expense.pettyCashType) {
+        return {
+          success: false,
+          status: 400,
+          message: "Petty cash type (inHand/inAccount) is required",
+        };
+      }
+      const pettyCashResponse = await sendRPCRequest(
+        CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
+        {managerId: handledBy},
+      );
+      if (!pettyCashResponse?.success || !pettyCashResponse.data) {
+        return {
+          success: false,
+          status: 400,
+          message: "No petty cash found for this manager",
+        };
+      }
+
+      const pettyCash = pettyCashResponse.data;
+
+      if (expense.pettyCashType === "inHand" && pettyCash.inHandAmount < expense.amount) {
+        return {
+          success: false,
+          status: 400,
+          message:
+            "In-hand petty cash balance too low to process this transaction",
+        };
+      }
+
+      if (expense.pettyCashType === "inAccount" && pettyCash.inAccountAmount < expense.amount) {
+        return {
+          success: false,
+          status: 400,
+          message:
+            "In-account petty cash balance too low to process this transaction",
+        };
+      }
+    }
+
+    expense.status = "paid";
+    if (handledBy) expense.handledBy = handledBy;
+
+    await createAccountLog({
+      logType: "Expense",
+      action: "Create",
+      description: `Expense '${expense.title}' for ₹${expense.amount} marked as paid.`,
+      amount: -expense.amount,
+      propertyId: expense.property.id,
+      performedBy: handledBy || "System",
+      referenceId: expense._id,
+    });
+
+    const {paymentMethod, pettyCashType, amount, clientId} = expense;
+
+    const creditAccount =
+      paymentMethod === "Petty Cash"
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+        : paymentMethod === "Cash" || paymentMethod === "cash"
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+    let debitAccount;
+    if (expense.category === "Rent" || expense.category === "Property Rent") {
+      debitAccount =
+        ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
+        ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+    } else {
+      debitAccount =
+        expense.type === "PG"
+          ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+          : expense.type === "Mess"
+            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+            : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+    }
+
+    let entityType = null;
+    let entityId = null;
+
+    if (expense.property?.id) {
+      entityType = "PROPERTY";
+      entityId = expense.property.id;
+    } else if (expense.kitchenId) {
+      entityType = "KITCHEN";
+      entityId = expense.kitchenId;
+    }
+
+    await createJournalEntry(
+      {
+        date: expense.date,
+        description: `Expense: ${expense.title} - ${expense.category}`,
+        propertyId: expense.property.id,
+        entityType,
+        entityId,
+        clientId,
+        transactions: [
+          {systemName: debitAccount, debit: amount},
+          {systemName: creditAccount, credit: amount},
+        ],
+        referenceId: expense._id,
+        referenceType: "Expense",
+      },
+      {session},
+    );
+
+    if (paymentMethod === "Petty Cash" && pettyCashType === "inHand" && !expense.fromVoucher) {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: expense.handledBy,
+        pettyCashType,
+        inHandAmount: -amount,
+      });
+    }
+
+    if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: expense.handledBy,
+        pettyCashType,
+        inAccountAmount: -amount,
+      });
+    }
+
+    await expense.save({session});
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      status: 200,
+      message: "Expense marked as paid successfully",
+      data: expense,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("[ACCOUNTS] Error in payExpense:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error occurred while paying expense",
+      error: error.message,
+    };
+  } finally {
+    session.endSession();
+  }
 };
