@@ -18,6 +18,7 @@ export const PERMISSIONS = {
   VOUCHER_VIEW: "VOUCHER_VIEW",
   VOUCHER_MANAGE: "VOUCHER_MANAGE",
   ACCOUNTS_MANAGE: "/accounting",
+  ACCOUNTS_VIEW: "/accounting",
   LOGS_ACCOUNTS_VIEW: "LOGS_ACCOUNTS_VIEW",
 
   // ----- AUTH -----

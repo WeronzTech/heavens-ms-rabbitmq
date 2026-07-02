@@ -32,6 +32,7 @@ export const addExpenseController = async (req, res) => {
       pettyCashType,
       fromVoucher,
       voucherId,
+      clientId: req.clientId,
       ...expenseData,
     });
 
@@ -65,12 +66,14 @@ export const getAllExpensesController = async (req, res) => {
       search,
       page = 1,
       limit = 10,
+      status,
     } = req.query;
 
     const expenses = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_ALL_EXPENSES,
       {
         propertyId,
+        clientId: req.clientId,
         type,
         category,
         paymentMethod,
@@ -81,6 +84,7 @@ export const getAllExpensesController = async (req, res) => {
         search,
         page,
         limit,
+        status,
       },
     );
     res.status(expenses.status || 500).json(expenses);

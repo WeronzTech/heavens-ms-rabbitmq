@@ -42,6 +42,16 @@ const expenseSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    vendorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vendor",
+      required: false,
+    },
+    status: {
+      type: String,
+      enum: ["paid", "pending"],
+      default: "paid",
+    },
   },
   {timestamps: true},
 );

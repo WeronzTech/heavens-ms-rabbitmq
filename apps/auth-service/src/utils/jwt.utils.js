@@ -26,6 +26,7 @@ const generateTokens = async (user, deviceId) => {
       id: user._id,
       role: user.userType,
       deviceId,
+      clientId: user.clientId || user._id,
     },
     process.env.JWT_SECRET_KEY,
     // { expiresIn: "30m" }

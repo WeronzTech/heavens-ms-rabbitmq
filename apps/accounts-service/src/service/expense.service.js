@@ -14,6 +14,7 @@ import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 
 export const addExpense = async (data) => {
+  console.log("[ACCOUNTS] addExpense data:", data);
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -44,7 +45,7 @@ export const addExpense = async (data) => {
     if (
       !property?.id ||
       !property?.name ||
-      !paymentMethod ||
+      (!paymentMethod && expenseData.status !== "pending") ||
       !amount ||
       !expenseData.title ||
       !expenseData.type ||
@@ -147,82 +148,72 @@ export const addExpense = async (data) => {
     });
 
     await expense.save({session});
-    await createAccountLog({
-      logType: "Expense",
-      action: "Create",
-      description: `Expense '${expense.title}' for ₹${expense.amount} created.`,
-      amount: -expense.amount, // Negative as it's an outflow
-      propertyId: expense.property.id,
-      performedBy: data.handledBy || "System",
-      referenceId: expense._id,
-    });
-
-    const creditAccount =
-      paymentMethod === "Petty Cash"
-        ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
-        : paymentMethod === "Cash" || paymentMethod === "cash"
-          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
-          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
-
-    // Map expense category to debit account (Example mapping)
-    // You should fetch the account by name from ChartOfAccount for robustness
-    let debitAccount;
-
-    // Prioritize "Rent" category
-    if (expense.category === "Rent" || expense.category === "Property Rent") {
-      // Use RENT specific account if available, otherwise General
-      debitAccount =
-        ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
-        ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
-    } else {
-      // Fallback to existing type-based logic
-      debitAccount =
-        expense.type === "PG"
-          ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
-          : expense.type === "Mess"
-            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
-            : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
-    }
-
-    // Determine Entity
-    // let entityType = null;
-    // let entityId = null;
-
-    // if (expense.property?.id) {
-    //   entityType = "PROPERTY";
-    //   entityId = expense.property.id;
-    // } else if (expense.kitchenId) {
-    //   entityType = "KITCHEN";
-    //   entityId = expense.kitchenId;
-    // }
-
-    await createJournalEntry(
-      {
-        date: expense.date,
-        description: `Expense: ${expense.title} - ${expense.category}`,
+    if (expense.status === "paid") {
+      await createAccountLog({
+        logType: "Expense",
+        action: "Create",
+        description: `Expense '${expense.title}' for ₹${expense.amount} created.`,
+        amount: -expense.amount, // Negative as it's an outflow
         propertyId: expense.property.id,
-        transactions: [
-          {systemName: debitAccount, debit: amount},
-          {systemName: creditAccount, credit: amount},
-        ],
+        performedBy: data.handledBy || "System",
         referenceId: expense._id,
-        referenceType: "Expense",
-      },
-      {session},
-    );
+      });
 
-    if (fromVoucher && voucher) {
-      voucher.totalExpenseAmount += amount;
-      voucher.remainingAmount = voucher.amount - voucher.totalExpenseAmount;
+      const creditAccount =
+        paymentMethod === "Petty Cash"
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+          : paymentMethod === "Cash" || paymentMethod === "cash"
+            ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+            : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
-      if (voucher.remainingAmount <= 0) {
-        voucher.remainingAmount = 0;
-        voucher.status = "Fully Utilized";
+      // Map expense category to debit account (Example mapping)
+      // You should fetch the account by name from ChartOfAccount for robustness
+      let debitAccount;
+
+      // Prioritize "Rent" category
+      if (expense.category === "Rent" || expense.category === "Property Rent") {
+        // Use RENT specific account if available, otherwise General
+        debitAccount =
+          ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
+          ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
       } else {
-        voucher.status = "Pending";
+        // Fallback to existing type-based logic
+        debitAccount =
+          expense.type === "PG"
+            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+            : expense.type === "Mess"
+              ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+              : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
       }
 
-      await voucher.save();
+      await createJournalEntry(
+        {
+          date: expense.date,
+          description: `Expense: ${expense.title} - ${expense.category}`,
+          propertyId: expense.property.id,
+          transactions: [
+            {systemName: debitAccount, debit: amount},
+            {systemName: creditAccount, credit: amount},
+          ],
+          referenceId: expense._id,
+          referenceType: "Expense",
+        },
+        {session},
+      );
+
+      if (fromVoucher && voucher) {
+        voucher.totalExpenseAmount += amount;
+        voucher.remainingAmount = voucher.amount - voucher.totalExpenseAmount;
+
+        if (voucher.remainingAmount <= 0) {
+          voucher.remainingAmount = 0;
+          voucher.status = "Fully Utilized";
+        } else {
+          voucher.status = "Pending";
+        }
+
+        await voucher.save();
+      }
     }
 
     if (billImage) {
@@ -235,24 +226,26 @@ export const addExpense = async (data) => {
         });
     }
 
-    if (
-      paymentMethod === "Petty Cash" &&
-      pettyCashType === "inHand" &&
-      !fromVoucher
-    ) {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: handledBy,
-        pettyCashType,
-        inHandAmount: -amount,
-      });
-    }
+    if (expense.status === "paid") {
+      if (
+        paymentMethod === "Petty Cash" &&
+        pettyCashType === "inHand" &&
+        !fromVoucher
+      ) {
+        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+          manager: handledBy,
+          pettyCashType,
+          inHandAmount: -amount,
+        });
+      }
 
-    if (pettyCashType === "inAccount") {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: handledBy,
-        pettyCashType,
-        inAccountAmount: -amount, // 👈 deduct instead of add
-      });
+      if (pettyCashType === "inAccount") {
+        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+          manager: handledBy,
+          pettyCashType,
+          inAccountAmount: -amount, // 👈 deduct instead of add
+        });
+      }
     }
     await session.commitTransaction();
     return {
@@ -280,6 +273,7 @@ export const getAllExpenses = async (data) => {
   try {
     const {
       propertyId,
+      clientId,
       type,
       category,
       paymentMethod,
@@ -290,9 +284,20 @@ export const getAllExpenses = async (data) => {
       search,
       page,
       limit,
+      status,
     } = data;
 
     const query = {};
+
+    // filter by client
+    if (clientId) {
+      query.clientId = new mongoose.Types.ObjectId(clientId);
+    }
+
+    // filter by status
+    if (status) {
+      query.status = status;
+    }
 
     // filter by property
     if (propertyId) {
@@ -355,13 +360,14 @@ export const getAllExpenses = async (data) => {
     const expenses = await Expense.find(query)
       .sort({date: -1, createdAt: -1})
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate("vendorId");
 
     // count total for frontend
     const total = await Expense.countDocuments(query);
 
     const totalAmountResult = await Expense.aggregate([
-      {$match: query},
+      {$match: {...query, status: "paid"}},
       {$group: {_id: null, totalAmount: {$sum: "$amount"}}},
     ]);
 
@@ -421,7 +427,7 @@ export const getExpenseById = async (data) => {
       return {success: false, status: 400, message: "Expense ID is required"};
     }
 
-    const expense = await Expense.findById(expenseId);
+    const expense = await Expense.findById(expenseId).populate("vendorId");
     if (!expense) {
       return {success: false, status: 404, message: "Expense not found"};
     }

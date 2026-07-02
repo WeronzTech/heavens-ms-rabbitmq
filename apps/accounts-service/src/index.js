@@ -81,6 +81,7 @@ const startServer = async () => {
     console.log("[ACCOUNTS] Setting up RabbitMQ responders...");
     await import("./controllers/feePayment.controller.js");
     await import("./controllers/expense.controller.js");
+    await import("./controllers/vendor.controller.js");
     await import("./controllers/commission.controller.js");
     await import("./controllers/dashboard.controller.js");
     await import("./controllers/depositPayment.controller.js");
