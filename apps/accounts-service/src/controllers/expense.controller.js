@@ -13,6 +13,7 @@ import {
   getPettyCashPaymentsByManager,
   getPettyCashUsage,
   updateExpense,
+  payExpense,
 } from "../service/expense.service.js";
 
 createResponder(ACCOUNTS_PATTERN.EXPENSE.ADD_EXPENSE, async (data) => {
@@ -66,6 +67,10 @@ createResponder(
 
 createResponder(ACCOUNTS_PATTERN.EXPENSE.UPDATE_EXPENSE, async (data) => {
   return await updateExpense(data);
+});
+
+createResponder(ACCOUNTS_PATTERN.EXPENSE.PAY_EXPENSE, async (data) => {
+  return await payExpense(data);
 });
 
 createResponder(ACCOUNTS_PATTERN.EXPENSE.GET_PETTY_CASH_USAGE, async (data) => {

@@ -73,6 +73,7 @@ export const ACCOUNTS_PATTERN = {
     GET_EXPENSE_ANALYTICS: "get_expense_analytics",
     GET_PETTYCASH_PAYMENTS_BY_MANAGER: "get_pettyCash_payments_by_manager",
     UPDATE_EXPENSE: "update_expense",
+    PAY_EXPENSE: "pay_expense",
     GET_PETTY_CASH_USAGE: "get_petty_cash_usage",
   },
   VOUCHER: {

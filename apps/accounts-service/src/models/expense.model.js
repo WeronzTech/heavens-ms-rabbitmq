@@ -6,7 +6,7 @@ const expenseSchema = new mongoose.Schema(
     type: {type: String, required: true},
     category: {type: String, required: true},
     description: {type: String, default: ""},
-    paymentMethod: {type: String, required: true},
+    paymentMethod: {type: String, required: false},
     pettyCashType: {
       type: String,
       enum: ["inHand", "inAccount"],
@@ -31,6 +31,10 @@ const expenseSchema = new mongoose.Schema(
       _id: false,
     },
     kitchenId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
+    clientId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,
     },
