@@ -222,7 +222,9 @@ export const getUsersByRentType = async (req, res) => {
 
 export const getCheckOutedUsersByRentType = async (req, res) => {
   try {
-    const {rentType, propertyId, page = 1, limit = 10, search} = req.query;
+    const {rentType, propertyId, page = 1, limit = 10, search, paymentStatus} = req.query;
+
+    console.log("api gateway",req.query)
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_CHECKOUTED_USERS_BY_RENT_TYPE,
@@ -232,6 +234,7 @@ export const getCheckOutedUsersByRentType = async (req, res) => {
         page,
         limit,
         search,
+        paymentStatus,
       },
     );
 

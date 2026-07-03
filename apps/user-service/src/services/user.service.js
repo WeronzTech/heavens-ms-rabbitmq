@@ -1701,11 +1701,19 @@ export const getUsersByRentType = async (data) => {
 
 export const getCheckOutedUsersByRentType = async (data) => {
   try {
-    const { rentType, propertyId, page, limit, search } = data;
+    const {
+      rentType,
+      propertyId,
+      page,
+      limit,
+      search,
+      paymentStatus,
+    } = data;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
-
+    
+    console.log("backend",data)
     // Validate rentType (if provided)
     const validRentTypes = ["monthly", "daily", "mess"];
     if (rentType && !validRentTypes.includes(rentType)) {
@@ -1714,6 +1722,21 @@ export const getCheckOutedUsersByRentType = async (data) => {
         body: {
           success: false,
           error: "Invalid rentType. Must be monthly, daily, or mess",
+        },
+      };
+    }
+
+    // Validate paymentStatus (if provided)
+    const validPaymentStatuses = ["paid", "pending"];
+    if (
+      paymentStatus &&
+      !validPaymentStatuses.includes(paymentStatus.toLowerCase())
+    ) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: "Invalid paymentStatus. Must be paid or pending",
         },
       };
     }
@@ -1745,6 +1768,7 @@ export const getCheckOutedUsersByRentType = async (data) => {
       isVacated: true,
     };
 
+    // Search filter
     if (search && search.trim() !== "") {
       const regex = new RegExp(search.trim(), "i");
 
@@ -1756,26 +1780,35 @@ export const getCheckOutedUsersByRentType = async (data) => {
       ];
     }
 
-    // Add rentType-specific filters
+    // Payment Status Filter
+    if (paymentStatus) {
+      queryConditions.paymentStatus = paymentStatus.toLowerCase();
+    }
+
+    // Rent Type Filter
     if (rentType === "mess") {
       queryConditions.userType = "messOnly";
     } else if (rentType) {
       queryConditions.rentType = rentType;
-      queryConditions.userType = { $in: ["student", "worker", "dailyRent"] };
+      queryConditions.userType = {
+        $in: ["student", "worker", "dailyRent"],
+      };
     }
 
-    // Property filtering logic
+    // Property Filter
     if (propertyId && propertyId !== "null") {
       if (rentType === "mess") {
         const accessibleKitchens = await getAccessibleKitchens(propertyId);
         const kitchenIds = accessibleKitchens.map((k) => k._id.toString());
-        queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+
+        queryConditions["messDetails.kitchenId"] = {
+          $in: kitchenIds,
+        };
       } else {
         queryConditions["stayDetails.propertyId"] = propertyId;
       }
     }
 
-    // Projection to reduce data transfer
     const projection = {
       name: 1,
       residentId: 1,
@@ -1810,20 +1843,20 @@ export const getCheckOutedUsersByRentType = async (data) => {
       vacatedAt: 1,
     };
 
-    // Get total count for pagination metadata
+    // Pagination
     const totalCount = await User.countDocuments(queryConditions);
 
     const totalPages = Math.ceil(totalCount / limitNumber);
     const skip = (pageNumber - 1) * limitNumber;
 
-    // Fetch users
+    // Fetch Users
     const users = await User.find(queryConditions)
       .select(projection)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNumber)
       .lean();
-    // Format response
+
     const formattedUsers = users.map((user) => {
       const fines = user.financialDetails?.fines || [];
 
@@ -1885,6 +1918,7 @@ export const getCheckOutedUsersByRentType = async (data) => {
     };
   } catch (error) {
     console.error("Error fetching users by rentType:", error);
+
     return {
       status: 500,
       body: {
