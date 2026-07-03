@@ -122,9 +122,6 @@ export const vacateUserById = async (userId, roleName) => {
   try {
     session.startTransaction();
 
-    console.log("Anwar", userId);
-    console.log("role", roleName);
-
     const user = await User.findById(userId).session(session);
 
     if (!user) {
@@ -159,15 +156,16 @@ export const vacateUserById = async (userId, roleName) => {
     const currentRoomId = user.stayDetails?.roomId;
     const currentPropertyId = user.propertyId;
 
-    if (currentRoomId) {
-      await removeFromRoom({
-        userId: user._id,
-        roomId: currentRoomId,
-      });
-      await removeFromRoom({userId: user._id, roomId: currentRoomId});
-    }
-    user.isVacated = true;
+ if (currentRoomId) {
+  await removeFromRoom({
+    userId: user._id,
+    roomId: currentRoomId,
+    session,
+  });
 
+}
+    user.isVacated = true;
+    user.stayDetails.roomId = null;
     await user.save({session});
 
     await user.save({session});
