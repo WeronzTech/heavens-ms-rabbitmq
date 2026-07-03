@@ -285,6 +285,23 @@ export const getPettyCash = async (data = {}) => {
     const managerIds = managers.map((m) => m._id);
 
     // 🔹 1. TOTAL ADDED
+    // const added = await PettyCashTransaction.aggregate([
+    //   {
+    //     $match: {
+    //       manager: {$in: managerIds},
+    //     },
+    //   },
+    //   {
+    //     $group: {
+    //       _id: "$manager",
+    //       managerName: {$first: "$name"},
+    //       inHand: {$sum: "$inHandAmount"},
+    //       inAccount: {$sum: "$inAccountAmount"},
+    //       createdAt: {$min: "$createdAt"},
+    //       updatedAt: {$max: "$updatedAt"},
+    //     },
+    //   },
+    // ]);
     const added = await PettyCashTransaction.aggregate([
       {
         $match: {
@@ -294,15 +311,76 @@ export const getPettyCash = async (data = {}) => {
       {
         $group: {
           _id: "$manager",
-          managerName: {$first: "$name"},
-          inHand: {$sum: "$inHandAmount"},
-          inAccount: {$sum: "$inAccountAmount"},
+
+          managerName: {$first: "$managerName"},
+
+          inHand: {
+            $sum: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $eq: [{$ifNull: ["$type", "ADD_FUNDS"]}, "ADD_FUNDS"],
+                    },
+                    then: "$inHandAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_IN"],
+                    },
+                    then: "$inHandAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_OUT"],
+                    },
+                    then: {
+                      $multiply: ["$inHandAmount", -1],
+                    },
+                  },
+                ],
+                default: 0,
+              },
+            },
+          },
+
+          inAccount: {
+            $sum: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $eq: [{$ifNull: ["$type", "ADD_FUNDS"]}, "ADD_FUNDS"],
+                    },
+                    then: "$inAccountAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_IN"],
+                    },
+                    then: "$inAccountAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_OUT"],
+                    },
+                    then: {
+                      $multiply: ["$inAccountAmount", -1],
+                    },
+                  },
+                ],
+                default: 0,
+              },
+            },
+          },
+
           createdAt: {$min: "$createdAt"},
           updatedAt: {$max: "$updatedAt"},
         },
       },
     ]);
-
+    console.log("herere");
+    console.log(added);
     // 🔹 2. FETCH USAGE FROM ACCOUNTS SERVICE
     let usageData = [];
 
@@ -599,6 +677,7 @@ export const getPettyCashTransactionsByManager = async (data) => {
       inAccountAmount: transaction.inAccountAmount,
       balanceAfter: transaction.balanceAfter,
       paymentMode: transaction.paymentMode,
+      type: transaction.type,
       date: transaction.date,
       transactionId: transaction.transactionId,
       notes: transaction.notes,
@@ -614,22 +693,83 @@ export const getPettyCashTransactionsByManager = async (data) => {
 
     const added = await PettyCashTransaction.aggregate([
       {
-        $match: {manager: managerObjectId},
+        $match: {
+          manager: managerObjectId,
+        },
       },
       {
         $group: {
           _id: "$manager",
-          inHand: {$sum: "$inHandAmount"},
-          inAccount: {$sum: "$inAccountAmount"},
+
+          inHand: {
+            $sum: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $eq: [{$ifNull: ["$type", "ADD_FUNDS"]}, "ADD_FUNDS"],
+                    },
+                    then: "$inHandAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_IN"],
+                    },
+                    then: "$inHandAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_OUT"],
+                    },
+                    then: {
+                      $multiply: ["$inHandAmount", -1],
+                    },
+                  },
+                ],
+                default: 0,
+              },
+            },
+          },
+
+          inAccount: {
+            $sum: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $eq: [{$ifNull: ["$type", "ADD_FUNDS"]}, "ADD_FUNDS"],
+                    },
+                    then: "$inAccountAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_IN"],
+                    },
+                    then: "$inAccountAmount",
+                  },
+                  {
+                    case: {
+                      $eq: ["$type", "TRANSFER_OUT"],
+                    },
+                    then: {
+                      $multiply: ["$inAccountAmount", -1],
+                    },
+                  },
+                ],
+                default: 0,
+              },
+            },
+          },
         },
       },
     ]);
+
+    console.log(added);
 
     const addedData = added[0] || {
       inHand: 0,
       inAccount: 0,
     };
-
     let usage = {
       inHand: 0,
       inAccount: 0,
@@ -655,7 +795,7 @@ export const getPettyCashTransactionsByManager = async (data) => {
     const inHandAmount = addedData.inHand - usage.inHand;
     const inAccountAmount = addedData.inAccount - usage.inAccount;
     const total = inHandAmount + inAccountAmount;
-
+    console.log(inAccountAmount);
     return {
       success: true,
       status: 200,
@@ -682,5 +822,174 @@ export const getPettyCashTransactionsByManager = async (data) => {
       error: error.message,
       data: null,
     };
+  }
+};
+
+export const transferPettyCashBetweenManagers = async (data) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const {
+      fromManagerId,
+      toManagerId,
+      inHandAmount = 0,
+      inAccountAmount = 0,
+      paymentMode,
+      transactionId,
+      date,
+      notes,
+      createdBy,
+    } = data;
+
+    // -----------------------
+    // Validations
+    // -----------------------
+    const isInHandTransfer = inHandAmount > 0 && inAccountAmount === 0;
+    const isInAccountTransfer = inAccountAmount > 0 && inHandAmount === 0;
+
+    if (!fromManagerId || !toManagerId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Both managers are required.",
+      };
+    }
+
+    if (fromManagerId === toManagerId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Cannot transfer to the same manager.",
+      };
+    }
+
+    if (inHandAmount < 0 || inAccountAmount < 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid transfer amount.",
+      };
+    }
+
+    if (inHandAmount === 0 && inAccountAmount === 0) {
+      return {
+        success: false,
+        status: 400,
+        message: "Transfer amount is required.",
+      };
+    }
+
+    const [fromManager, toManager] = await Promise.all([
+      Manager.findById(fromManagerId),
+      Manager.findById(toManagerId),
+    ]);
+
+    if (!fromManager || !toManager) {
+      return {
+        success: false,
+        status: 404,
+        message: "Manager not found.",
+      };
+    }
+
+    const [fromPettyCash, toPettyCash] = await Promise.all([
+      PettyCash.findOne({manager: fromManagerId}),
+      PettyCash.findOne({manager: toManagerId}),
+    ]);
+
+    if (!fromPettyCash || !toPettyCash) {
+      return {
+        success: false,
+        status: 404,
+        message: "Petty cash account not found.",
+      };
+    }
+
+    // -----------------------
+    // Transaction
+    // -----------------------
+
+    session.startTransaction();
+
+    const finalPaymentMode = isInHandTransfer ? "cash" : paymentMode;
+
+    // Sender (TRANSFER_OUT)
+
+    await PettyCashTransaction.create(
+      [
+        {
+          pettyCash: fromPettyCash._id,
+          manager: fromManager._id,
+          managerName: fromManager.name,
+
+          type: "TRANSFER_OUT",
+
+          inHandAmount,
+          inAccountAmount,
+
+          paymentMode: finalPaymentMode,
+          date,
+
+          notes,
+
+          transactionId,
+
+          referenceId: fromPettyCash._id,
+          referenceType: "ManagerTransfer",
+
+          createdBy,
+        },
+      ],
+      {session},
+    );
+
+    // Receiver (TRANSFER_IN)
+
+    await PettyCashTransaction.create(
+      [
+        {
+          pettyCash: toPettyCash._id,
+          manager: toManager._id,
+          managerName: toManager.name,
+
+          type: "TRANSFER_IN",
+
+          inHandAmount,
+          inAccountAmount,
+
+          paymentMode: finalPaymentMode,
+          date,
+
+          notes,
+
+          transactionId,
+
+          referenceId: fromPettyCash._id,
+          referenceType: "ManagerTransfer",
+
+          createdBy,
+        },
+      ],
+      {session},
+    );
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      status: 200,
+      message: "Amount transferred successfully.",
+    };
+  } catch (err) {
+    console.log(err);
+    await session.abortTransaction();
+
+    return {
+      success: false,
+      status: 500,
+      message: err.message,
+    };
+  } finally {
+    session.endSession();
   }
 };

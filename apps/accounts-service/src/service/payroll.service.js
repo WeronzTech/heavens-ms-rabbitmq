@@ -598,15 +598,95 @@ export const generateMissingPayrollBulk = async () => {
 
     const bulkOps = [];
 
+    // for (const emp of employees) {
+    //   const joinDate = new Date(emp.joinDate);
+
+    //   let currentMonth = joinDate.getMonth();
+    //   let currentYear = joinDate.getFullYear();
+
+    //   while (
+    //     currentYear < endYear ||
+    //     (currentYear === endYear && currentMonth <= endMonth)
+    //   ) {
+    //     const key = `${emp._id}_${currentMonth}_${currentYear}`;
+
+    //     if (payrollSet.has(key)) {
+    //       currentMonth++;
+
+    //       if (currentMonth > 11) {
+    //         currentMonth = 0;
+    //         currentYear++;
+    //       }
+
+    //       continue;
+    //     }
+
+    //     const baseSalary = emp.salary;
+
+    //     bulkOps.push({
+    //       insertOne: {
+    //         document: {
+    //           name: emp.name,
+    //           jobTitle: emp.jobTitle,
+    //           employeeId: emp._id,
+    //           employeeType: emp.employeeType,
+
+    //           month: currentMonth,
+    //           year: currentYear,
+
+    //           salary: baseSalary,
+
+    //           leaveDays: 0,
+    //           leaveDeduction: 0,
+
+    //           advanceAdjusted: 0,
+
+    //           netSalary: baseSalary,
+
+    //           paidAmount: 0,
+    //           pendingAmount: baseSalary,
+
+    //           status: "Pending",
+
+    //           propertyId: emp.propertyId,
+    //           kitchenId: emp.kitchenId,
+    //           clientId: emp.clientId,
+    //         },
+    //       },
+    //     });
+
+    //     currentMonth++;
+
+    //     if (currentMonth > 11) {
+    //       currentMonth = 0;
+    //       currentYear++;
+    //     }
+    //   }
+    // }
+
     for (const emp of employees) {
       const joinDate = new Date(emp.joinDate);
 
       let currentMonth = joinDate.getMonth();
       let currentYear = joinDate.getFullYear();
 
+      // Default: generate till previous month
+      let employeeEndMonth = endMonth;
+      let employeeEndYear = endYear;
+
+      // Special case:
+      // If employee joined in current month, create payroll for join month immediately
+      if (
+        joinDate.getMonth() === today.getMonth() &&
+        joinDate.getFullYear() === today.getFullYear()
+      ) {
+        employeeEndMonth = today.getMonth();
+        employeeEndYear = today.getFullYear();
+      }
+
       while (
-        currentYear < endYear ||
-        (currentYear === endYear && currentMonth <= endMonth)
+        currentYear < employeeEndYear ||
+        (currentYear === employeeEndYear && currentMonth <= employeeEndMonth)
       ) {
         const key = `${emp._id}_${currentMonth}_${currentYear}`;
 
@@ -663,7 +743,6 @@ export const generateMissingPayrollBulk = async () => {
         }
       }
     }
-
     /* -------------------------
        Bulk insert
     -------------------------- */

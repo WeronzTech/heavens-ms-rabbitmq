@@ -175,6 +175,7 @@ export const tenantLogin = async (data) => {
         userName: user.name,
         properties: user.propertyId,
         userType, // 👈 CLIENT or MANAGER
+        clientId: user.clientId || user._id,
       },
       process.env.JWT_SECRET_KEY,
       {expiresIn: "7d"},

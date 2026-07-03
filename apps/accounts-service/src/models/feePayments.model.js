@@ -18,7 +18,15 @@ const paymentSchema = new mongoose.Schema(
     remainingBalance: {type: Number, default: 0},
     paymentMethod: {
       type: String,
-      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay", "Easebuzz"],
+      enum: [
+        "Cash",
+        "UPI",
+        "Bank Transfer",
+        "Card",
+        "Razorpay",
+        "Easebuzz",
+        "WaveOff Only",
+      ],
       required: true,
     },
     transactionId: {
@@ -51,8 +59,7 @@ const paymentSchema = new mongoose.Schema(
     },
     receiptNumber: {
       type: String,
-      required: true,
-      unique: true,
+      required: false,
     },
     razorpayOrderId: {type: String}, // Store Razorpay order ID
     razorpayPaymentId: {type: String}, // Store transaction ID
@@ -62,6 +69,10 @@ const paymentSchema = new mongoose.Schema(
       ref: "Client",
       required: false,
     }, // Link to the client
+    isWaveOff: {
+      type: Boolean,
+      default: false,
+    },
     paidBy: {type: mongoose.Schema.Types.ObjectId, required: false},
     userId: {type: mongoose.Schema.Types.ObjectId, required: true},
   },

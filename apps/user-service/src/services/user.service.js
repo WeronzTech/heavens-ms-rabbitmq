@@ -5,10 +5,10 @@ import {
   validateFieldFormats,
   validateRequiredFields,
 } from "../utils/validators.js";
-import { getNextResidentId } from "../utils/getNextResidentId.js";
+import {getNextResidentId} from "../utils/getNextResidentId.js";
 import bcrypt from "bcrypt";
 import UserLog from "../models/userLog.model.js";
-import { calculateProfileCompletion } from "../utils/profileCompletion.js";
+import {calculateProfileCompletion} from "../utils/profileCompletion.js";
 import {
   assignRoomToUser,
   getAccessibleKitchens,
@@ -40,31 +40,31 @@ import {
   deleteFromFirebase,
   uploadToFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import { ACCOUNTS_PATTERN } from "../../../../libs/patterns/accounts/accounts.pattern.js";
-import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
-import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
-import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import {ACCOUNTS_PATTERN} from "../../../../libs/patterns/accounts/accounts.pattern.js";
+import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import {SOCKET_PATTERN} from "../../../../libs/patterns/socket/socket.pattern.js";
+import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
 
 export const fetchUserData = async (data) => {
   try {
-    const { roomId } = data;
+    const {roomId} = data;
 
     if (!roomId) {
       return {
         status: 400,
-        body: { error: "roomId is required" },
+        body: {error: "roomId is required"},
       };
     }
 
     // Find users who are occupying the given roomId
-    const occupants = await User.find({ "stayDetails.roomId": roomId }).select(
+    const occupants = await User.find({"stayDetails.roomId": roomId}).select(
       "name paymentStatus contact userType stayDetails",
     );
 
     if (!occupants || occupants.length === 0) {
       return {
         status: 404,
-        body: { error: "No users found for this room" },
+        body: {error: "No users found for this room"},
       };
     }
 
@@ -76,7 +76,7 @@ export const fetchUserData = async (data) => {
     console.error("Error fetching room occupants:", error);
     return {
       status: 500,
-      body: { error: "Internal server error" },
+      body: {error: "Internal server error"},
     };
   }
 };
@@ -91,7 +91,7 @@ export const getUserByEmail = async (email) => {
       };
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({email});
 
     if (user) {
       return {
@@ -164,13 +164,13 @@ export const vacateUserById = async (userId, roleName) => {
         userId: user._id,
         roomId: currentRoomId,
       });
-      await removeFromRoom({ userId: user._id, roomId: currentRoomId });
+      await removeFromRoom({userId: user._id, roomId: currentRoomId});
     }
     user.isVacated = true;
 
-    await user.save({ session });
+    await user.save({session});
 
-    await user.save({ session });
+    await user.save({session});
 
     await session.commitTransaction();
 
@@ -235,7 +235,7 @@ export const registerUser = async (data) => {
       messDetails,
     );
     if (validationError) {
-      return { statusCode: 400, body: validationError };
+      return {statusCode: 400, body: validationError};
     }
 
     // 2. Format validation
@@ -254,27 +254,37 @@ export const registerUser = async (data) => {
     // 3. Duplicate check
     const existingUserChecks = await checkExistingUsers(email, contact);
     if (existingUserChecks.error) {
-      return { statusCode: 400, body: existingUserChecks };
+      return {statusCode: 400, body: existingUserChecks};
     }
     const joinDate = new Date(stayDetails.joinDate);
 
-    // Get next year
-    const nextYear = joinDate.getFullYear() + 1;
+    // // Get next year
+    // const nextYear = joinDate.getFullYear() + 1;
 
-    // Get previous month (0-based handling)
-    let month = joinDate.getMonth(); // Feb = 1
+    // // Get previous month (0-based handling)
+    // let month = joinDate.getMonth(); // Feb = 1
 
-    // Previous month
-    let prevMonth = month - 1;
-    let year = nextYear;
+    // // Previous month
+    // let prevMonth = month - 1;
+    // let year = nextYear;
 
-    if (prevMonth < 0) {
-      prevMonth = 11; // December
-      year = nextYear - 1;
-    }
+    // if (prevMonth < 0) {
+    //   prevMonth = 11; // December
+    //   year = nextYear - 1;
+    // }
 
-    // Format YYYY-MM
-    const clearedTillMonth = `${year}-${String(prevMonth + 1).padStart(2, "0")}`;
+    // // Format YYYY-MM
+    // const clearedTillMonth = `${year}-${String(prevMonth + 1).padStart(2, "0")}`;
+
+    const previousMonth = new Date(
+      joinDate.getFullYear(),
+      joinDate.getMonth() - 1,
+      1,
+    );
+
+    const clearedTillMonth = `${previousMonth.getFullYear()}-${String(
+      previousMonth.getMonth() + 1,
+    ).padStart(2, "0")}`;
 
     // 4. Resident ID + hash password
     const [residentId, hashedPassword] = await Promise.all([
@@ -299,7 +309,7 @@ export const registerUser = async (data) => {
       isHostel,
       isColiving,
       personalDetails,
-      referralInfo: { referredByCode: referredByCode || null },
+      referralInfo: {referredByCode: referredByCode || null},
       agent,
       clientId,
     };
@@ -327,7 +337,10 @@ export const registerUser = async (data) => {
         monthlyRent: stayDetails.monthlyRent,
         pendingRent: stayDetails.monthlyRent,
         accountBalance: 0,
-        nextDueDate: new Date(stayDetails.joinDate) || new Date(),
+        // nextDueDate: new Date(stayDetails.joinDate) || new Date(),
+        nextDueDate: new Date(
+          Date.UTC(joinDate.getUTCFullYear(), joinDate.getUTCMonth(), 1),
+        ),
         clearedTillMonth,
       };
     } else if (rentType === "daily") {
@@ -383,7 +396,7 @@ export const registerUser = async (data) => {
             residentId: newUser.residentId,
             roomNumber: newUser.stayDetails?.roomNumber,
           }
-        : { kitchenName: newUser.messDetails?.kitchenName }),
+        : {kitchenName: newUser.messDetails?.kitchenName}),
     };
 
     return {
@@ -440,19 +453,19 @@ export const getUnapprovedUsers = async (data) => {
       filter.$or = [
         // Monthly/Daily residents - propertyId in stayDetails
         {
-          userType: { $in: ["student", "worker", "dailyRent"] },
+          userType: {$in: ["student", "worker", "dailyRent"]},
           "stayDetails.propertyId": propertyId,
         },
         // MessOnly users - kitchen must be accessible to this property
         {
           userType: "messOnly",
-          "messDetails.kitchenId": { $exists: true },
+          "messDetails.kitchenId": {$exists: true},
           // Kitchen property check will be done after initial fetch
         },
       ];
     } else {
       // No property filter - get all unapproved residents
-      filter.userType = { $exists: true };
+      filter.userType = {$exists: true};
     }
 
     // First fetch all matching users (except MessOnly property validation)
@@ -461,7 +474,7 @@ export const getUnapprovedUsers = async (data) => {
       .select(
         "name email contact userType stayDetails messDetails propertyId createdAt",
       )
-      .sort({ createdAt: -1 })
+      .sort({createdAt: -1})
       .lean();
 
     // If property filter is active, we need to validate MessOnly users
@@ -474,7 +487,7 @@ export const getUnapprovedUsers = async (data) => {
 
       if (kitchenIds.length > 0) {
         // Call inventory-service to get kitchens accessible to this property
-        const accessibleKitchens = await getAccessibleKitchens({ propertyId });
+        const accessibleKitchens = await getAccessibleKitchens({propertyId});
         const accessibleKitchenIds = accessibleKitchens.map((k) =>
           k._id.toString(),
         );
@@ -571,24 +584,24 @@ export const approveUser = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { error: "User not found" },
+        body: {error: "User not found"},
       };
     }
 
     if (user.isApproved) {
       return {
         status: 400,
-        body: { error: "User already approved" },
+        body: {error: "User already approved"},
       };
     }
 
     // Common updates for all user types
     const updates = {
-      ...(name && { name }),
-      ...(email && { email }),
-      ...(contact && { contact }),
-      ...(userType && { userType }),
-      ...(rentType && { rentType }),
+      ...(name && {name}),
+      ...(email && {email}),
+      ...(contact && {contact}),
+      ...(userType && {userType}),
+      ...(rentType && {rentType}),
       isApproved: true,
       isLoginEnabled: true,
       updatedAt: new Date(),
@@ -622,7 +635,7 @@ export const approveUser = async (data) => {
       if (!kitchenId) {
         return {
           status: 400,
-          body: { error: "Kitchen ID is required for MessOnly users" },
+          body: {error: "Kitchen ID is required for MessOnly users"},
         };
       }
 
@@ -657,7 +670,7 @@ export const approveUser = async (data) => {
       if (!roomId) {
         return {
           status: 400,
-          body: { error: "Room ID is required for approval" },
+          body: {error: "Room ID is required for approval"},
         };
       }
 
@@ -698,11 +711,11 @@ export const approveUser = async (data) => {
         };
 
         updates.financialDetails = {
+          ...user.financialDetails,
           monthlyRent: monthlyRent || user.stayDetails?.monthlyRent,
           pendingRent: monthlyRent || user.stayDetails?.monthlyRent,
           accountBalance: 0,
-          nextDueDate: joinDate || user.stayDetails?.joinDate,
-          paymentDueSince: joinDate || user.stayDetails?.joinDate,
+          paymentDueSince: user.financialDetails?.nextDueDate,
         };
       } else if (user.rentType === "daily") {
         updates.stayDetails = {
@@ -723,13 +736,6 @@ export const approveUser = async (data) => {
             new Date(),
           noOfDays: stayDetails.noOfDays || user.stayDetails?.noOfDays,
         };
-
-        // const days =
-        //   Math.ceil(
-        //     (new Date(updates.stayDetails.checkOutDate) -
-        //       new Date(updates.stayDetails.checkInDate)) /
-        //       (1000 * 60 * 60 * 24)
-        //   ) + 1;
 
         updates.financialDetails = {
           totalAmount:
@@ -752,8 +758,8 @@ export const approveUser = async (data) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { $set: updates },
-      { new: true, lean: true },
+      {$set: updates},
+      {new: true, lean: true},
     );
 
     try {
@@ -832,7 +838,7 @@ export const approveUser = async (data) => {
 
 export const rejectUser = async (data) => {
   try {
-    const { id, updatedBy } = data;
+    const {id, updatedBy} = data;
 
     if (!id) {
       return {
@@ -906,13 +912,13 @@ export const rejectUser = async (data) => {
 };
 
 export const verifyEmail = async (data) => {
-  const { token, email } = data;
+  const {token, email} = data;
 
   try {
     const user = await User.findOne({
       email,
       emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() },
+      emailVerificationExpires: {$gt: Date.now()},
     });
 
     if (!user) {
@@ -951,7 +957,7 @@ export const verifyEmail = async (data) => {
 };
 
 export const updateProfileCompletion = async (data) => {
-  const { id, updateData, files } = data;
+  const {id, updateData, files} = data;
 
   let photoUrl = null;
   let aadharFrontUrl = null;
@@ -1032,7 +1038,7 @@ export const updateProfileCompletion = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { success: false, error: "User not found" },
+        body: {success: false, error: "User not found"},
       };
     }
 
@@ -1082,7 +1088,7 @@ export const updateProfileCompletion = async (data) => {
 };
 
 export const adminUpdateUser = async (data) => {
-  const { id, files, flat } = data;
+  const {id, files, flat} = data;
   const updateData = await rebuildNestedFields(flat);
 
   try {
@@ -1090,7 +1096,7 @@ export const adminUpdateUser = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { success: false, error: "User not found" },
+        body: {success: false, error: "User not found"},
       };
     }
 
@@ -1304,15 +1310,15 @@ export const adminUpdateUser = async (data) => {
 };
 
 export const getHeavensUserById = async (data) => {
-  const { userId } = data;
+  const {userId} = data;
 
   try {
     const user = await User.findById(userId).lean();
-    // console.log("UserData", user, userId);
+    // console.log(user);
     if (!user) {
       return {
         status: 404,
-        body: { success: false, message: "User not found" },
+        body: {success: false, message: "User not found"},
       };
     }
 
@@ -1352,7 +1358,7 @@ export const getHeavensUserById = async (data) => {
 
     const agentResponse = await sendRPCRequest(
       CLIENT_PATTERN.AGENCY.GET_AGENCY_BY_ID,
-      { agencyId: user?.referralInfo?.referredBy },
+      {agencyId: user?.referralInfo?.referredBy},
     );
 
     let referredBy = null;
@@ -1366,13 +1372,13 @@ export const getHeavensUserById = async (data) => {
 
     return {
       status: 200,
-      body: { success: true, data: { ...user, rentReminder, referredBy } },
+      body: {success: true, data: {...user, rentReminder, referredBy}},
     };
   } catch (error) {
     console.error("getHeavensUserById error:", error);
     return {
       status: 500,
-      body: { success: false, message: "Server error" },
+      body: {success: false, message: "Server error"},
     };
   }
 };
@@ -1430,7 +1436,7 @@ export const getUsersByRentType = async (data) => {
         queryConditions.userType = "messOnly";
       } else {
         queryConditions.rentType = rentType;
-        queryConditions.userType = { $in: ["student", "worker", "dailyRent"] };
+        queryConditions.userType = {$in: ["student", "worker", "dailyRent"]};
       }
     }
 
@@ -1448,13 +1454,13 @@ export const getUsersByRentType = async (data) => {
           const kitchenIds = accessibleKitchensResponse.data.map((k) =>
             k._id.toString(),
           );
-          queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+          queryConditions["messDetails.kitchenId"] = {$in: kitchenIds};
         } else {
           console.error(
             "Failed to fetch accessible kitchens:",
             accessibleKitchensResponse.message,
           );
-          queryConditions["messDetails.kitchenId"] = { $in: [] };
+          queryConditions["messDetails.kitchenId"] = {$in: []};
         }
       } else {
         queryConditions["stayDetails.propertyId"] = new mongoose.Types.ObjectId(
@@ -1467,11 +1473,11 @@ export const getUsersByRentType = async (data) => {
     if (search) {
       const searchRegex = new RegExp(search, "i");
       queryConditions.$or = [
-        { name: searchRegex },
-        { email: searchRegex },
-        { contact: searchRegex },
-        { "stayDetails.roomNumber": searchRegex },
-        { "stayDetails.propertyName": searchRegex },
+        {name: searchRegex},
+        {email: searchRegex},
+        {contact: searchRegex},
+        {"stayDetails.roomNumber": searchRegex},
+        {"stayDetails.propertyName": searchRegex},
       ];
     }
 
@@ -1492,7 +1498,7 @@ export const getUsersByRentType = async (data) => {
       } else if (status === "On Leave" || status === "Checked Out") {
         queryConditions.currentStatus = statusMapping[status];
       } else if (status === "Incomplete Profile") {
-        queryConditions.profileCompletion = { $ne: 100 };
+        queryConditions.profileCompletion = {$ne: 100};
       } else if (status === "Students" || status === "Workers") {
         queryConditions.userType = statusMapping[status];
       }
@@ -1505,8 +1511,8 @@ export const getUsersByRentType = async (data) => {
         const endDate = new Date(`${joinDate}T23:59:59.999Z`);
 
         queryConditions.$or = [
-          { createdAt: { $gte: startDate, $lte: endDate } },
-          { "stayDetails.joinDate": { $gte: startDate, $lte: endDate } },
+          {createdAt: {$gte: startDate, $lte: endDate}},
+          {"stayDetails.joinDate": {$gte: startDate, $lte: endDate}},
         ];
       } catch (err) {
         console.error("Error parsing joinDate:", joinDate, err);
@@ -1572,7 +1578,7 @@ export const getUsersByRentType = async (data) => {
     // Fetch users (skip pagination if fetchAll)
     let query = User.find(queryConditions)
       .select(projection)
-      .sort({ createdAt: -1 });
+      .sort({createdAt: -1});
 
     if (!fetchAll) {
       query = query.skip(skip).limit(limitNumber);
@@ -1638,25 +1644,22 @@ export const getUsersByRentType = async (data) => {
 
     // --- Aggregates using $facet ---
     const aggregates = await User.aggregate([
-      { $match: queryConditions },
+      {$match: queryConditions},
       {
         $facet: {
-          totalResidents: [{ $count: "count" }],
-          totalPaid: [
-            { $match: { paymentStatus: "paid" } },
-            { $count: "count" },
-          ],
+          totalResidents: [{$count: "count"}],
+          totalPaid: [{$match: {paymentStatus: "paid"}}, {$count: "count"}],
           totalPending: [
-            { $match: { paymentStatus: "pending" } },
-            { $count: "count" },
+            {$match: {paymentStatus: "pending"}},
+            {$count: "count"},
           ],
           totalCheckedIn: [
-            { $match: { currentStatus: "checked_in" } },
-            { $count: "count" },
+            {$match: {currentStatus: "checked_in"}},
+            {$count: "count"},
           ],
           totalOnLeave: [
-            { $match: { currentStatus: "on_leave" } },
-            { $count: "count" },
+            {$match: {currentStatus: "on_leave"}},
+            {$count: "count"},
           ],
         },
       },
@@ -1773,10 +1776,10 @@ export const getCheckOutedUsersByRentType = async (data) => {
       const regex = new RegExp(search.trim(), "i");
 
       queryConditions.$or = [
-        { name: regex },
-        { contact: regex },
-        { "stayDetails.roomNumber": regex },
-        { "stayDetails.sharingType": regex },
+        {name: regex},
+        {contact: regex},
+        {"stayDetails.roomNumber": regex},
+        {"stayDetails.sharingType": regex},
       ];
     }
 
@@ -1852,7 +1855,7 @@ export const getCheckOutedUsersByRentType = async (data) => {
     // Fetch Users
     const users = await User.find(queryConditions)
       .select(projection)
-      .sort({ createdAt: -1 })
+      .sort({createdAt: -1})
       .skip(skip)
       .limit(limitNumber)
       .lean();
@@ -2010,7 +2013,7 @@ export const rejoinUser = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { success: false, message: "User not found" },
+        body: {success: false, message: "User not found"},
       };
     }
 
@@ -2180,11 +2183,11 @@ export const rejoinUser = async (data) => {
 
 export const getUserIds = async (data) => {
   try {
-    const { messOnly, studentOnly, dailyRentOnly, workerOnly } = data;
+    const {messOnly, studentOnly, dailyRentOnly, workerOnly} = data;
 
     const filters = [];
 
-    const projection = { _id: 1 };
+    const projection = {_id: 1};
 
     // Build filters based on query params
     if (studentOnly === "true") {
@@ -2223,7 +2226,7 @@ export const getUserIds = async (data) => {
 
     if (filters.length > 0) {
       // If any filter is applied, use $or to fetch matching users
-      users = await User.find({ $or: filters }, projection);
+      users = await User.find({$or: filters}, projection);
     } else {
       // No filter: get all non-blocked, non-vacated users
       users = await User.find(
@@ -2245,15 +2248,15 @@ export const getUserIds = async (data) => {
     console.error("Error fetching user IDs:", err);
     return {
       status: 500,
-      body: { message: "Internal server error" },
+      body: {message: "Internal server error"},
     };
   }
 };
 
 export const getUsersForNotification = async (data) => {
   try {
-    const { propertyId } = data;
-    const query = { isHeavens: true };
+    const {propertyId} = data;
+    const query = {isHeavens: true};
     if (propertyId) query.propertyId = propertyId;
 
     const users = await User.find(query).select("_id").lean();
@@ -2279,7 +2282,7 @@ export const getUsersForNotification = async (data) => {
 
 export const getTodayCheckouts = async (data) => {
   try {
-    const { type, propertyId } = data;
+    const {type, propertyId} = data;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -2297,21 +2300,21 @@ export const getTodayCheckouts = async (data) => {
         $or: [
           // Due today (checkout date, no extend date)
           {
-            "stayDetails.checkOutDate": { $gte: todayStart, $lte: todayEnd },
-            "stayDetails.extendDate": { $exists: false },
+            "stayDetails.checkOutDate": {$gte: todayStart, $lte: todayEnd},
+            "stayDetails.extendDate": {$exists: false},
           },
           // Due today (extend date)
           {
-            "stayDetails.extendDate": { $gte: todayStart, $lte: todayEnd },
+            "stayDetails.extendDate": {$gte: todayStart, $lte: todayEnd},
           },
           // Overdue past checkout with no extend date
           {
-            "stayDetails.checkOutDate": { $lt: todayStart },
-            "stayDetails.extendDate": { $exists: false },
+            "stayDetails.checkOutDate": {$lt: todayStart},
+            "stayDetails.extendDate": {$exists: false},
           },
           // Overdue past extend date
           {
-            "stayDetails.extendDate": { $lt: todayStart },
+            "stayDetails.extendDate": {$lt: todayStart},
           },
         ],
       };
@@ -2355,21 +2358,21 @@ export const getTodayCheckouts = async (data) => {
         $or: [
           // Due today (mess end date, no extend date)
           {
-            "messDetails.messEndDate": { $gte: todayStart, $lte: todayEnd },
-            "messDetails.extendDate": { $exists: false },
+            "messDetails.messEndDate": {$gte: todayStart, $lte: todayEnd},
+            "messDetails.extendDate": {$exists: false},
           },
           // Due today (extend date)
           {
-            "messDetails.extendDate": { $gte: todayStart, $lte: todayEnd },
+            "messDetails.extendDate": {$gte: todayStart, $lte: todayEnd},
           },
           // Overdue past mess end date with no extend date
           {
-            "messDetails.messEndDate": { $lt: todayStart },
-            "messDetails.extendDate": { $exists: false },
+            "messDetails.messEndDate": {$lt: todayStart},
+            "messDetails.extendDate": {$exists: false},
           },
           // Overdue past extend date
           {
-            "messDetails.extendDate": { $lt: todayStart },
+            "messDetails.extendDate": {$lt: todayStart},
           },
         ],
       };
@@ -2470,7 +2473,7 @@ export const getTodayCheckouts = async (data) => {
 
 export const extendUserDays = async (data) => {
   try {
-    const { id, extendDate, additionalDays, newRentAmount, adminName } = data;
+    const {id, extendDate, additionalDays, newRentAmount, adminName} = data;
 
     // Validate input
     if (!additionalDays || additionalDays < 1) {
@@ -2518,7 +2521,7 @@ export const extendUserDays = async (data) => {
             paymentStatus: "pending",
           },
         },
-        { new: true },
+        {new: true},
       );
     } else if (user.userType === "messOnly") {
       // For MessOnly users
@@ -2543,7 +2546,7 @@ export const extendUserDays = async (data) => {
             "messDetails.rent": currentMessRate, // Update rate if changed
           },
         },
-        { new: true },
+        {new: true},
       );
     } else {
       return {
@@ -2611,14 +2614,14 @@ export const extendUserDays = async (data) => {
 
 export const createStatusRequest = async (data) => {
   try {
-    const { id, type, reason, isInstantCheckout } = data;
+    const {id, type, reason, isInstantCheckout} = data;
 
     // Validate request type
     const allowedTypes = ["checked_in", "on_leave", "checked_out"];
     if (!allowedTypes.includes(type)) {
       return {
         status: 400,
-        body: { error: "Invalid request type" },
+        body: {error: "Invalid request type"},
       };
     }
 
@@ -2630,7 +2633,7 @@ export const createStatusRequest = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { error: "User not found" },
+        body: {error: "User not found"},
       };
     }
 
@@ -2701,10 +2704,10 @@ export const createStatusRequest = async (data) => {
     const updatedUser = await User.findByIdAndUpdate(
       id,
       {
-        $push: { statusRequests: newRequest },
-        $set: { currentStatusRequest: newRequest },
+        $push: {statusRequests: newRequest},
+        $set: {currentStatusRequest: newRequest},
       },
-      { new: true },
+      {new: true},
     );
 
     return {
@@ -2719,20 +2722,20 @@ export const createStatusRequest = async (data) => {
     console.error("Error creating status request:", error);
     return {
       status: 500,
-      body: { error: "Error submitting request" },
+      body: {error: "Error submitting request"},
     };
   }
 };
 
 export const getPendingStatusRequests = async (data) => {
   try {
-    const { propertyId, type, userType, sortBy, sortOrder } = data;
+    const {propertyId, type, userType, sortBy, sortOrder} = data;
 
     const propertyFilter = propertyId
-      ? { "stayDetails.propertyId": new mongoose.Types.ObjectId(propertyId) }
+      ? {"stayDetails.propertyId": new mongoose.Types.ObjectId(propertyId)}
       : {};
 
-    const userTypeFilter = userType ? { userType } : {};
+    const userTypeFilter = userType ? {userType} : {};
 
     const aggregation = [
       {
@@ -2741,11 +2744,11 @@ export const getPendingStatusRequests = async (data) => {
           ...userTypeFilter,
         },
       },
-      { $unwind: "$statusRequests" },
+      {$unwind: "$statusRequests"},
       {
         $match: {
           "statusRequests.status": "pending",
-          ...(type && { "statusRequests.type": type }),
+          ...(type && {"statusRequests.type": type}),
         },
       },
       {
@@ -2798,7 +2801,7 @@ export const getPendingStatusRequests = async (data) => {
               "statusRequests._id": latestRequest._id,
             },
             {
-              $set: { "statusRequests.$.isRefundEligible": true },
+              $set: {"statusRequests.$.isRefundEligible": true},
             },
           );
 
@@ -2830,12 +2833,12 @@ export const getPendingStatusRequests = async (data) => {
 
 export const respondToStatusRequest = async (data) => {
   try {
-    const { id, requestId, status, comment, adminName } = data;
+    const {id, requestId, status, comment, adminName} = data;
 
     if (!["approved", "rejected"].includes(status)) {
       return {
         status: 400,
-        body: { error: "Invalid status value" },
+        body: {error: "Invalid status value"},
       };
     }
 
@@ -2843,7 +2846,7 @@ export const respondToStatusRequest = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { error: "Request not found" },
+        body: {error: "Request not found"},
       };
     }
 
@@ -2851,7 +2854,7 @@ export const respondToStatusRequest = async (data) => {
     if (!request) {
       return {
         status: 404,
-        body: { error: "Status request not found" },
+        body: {error: "Status request not found"},
       };
     }
 
@@ -2923,14 +2926,14 @@ export const respondToStatusRequest = async (data) => {
 
 export const getUserStatusRequests = async (data) => {
   try {
-    const { id, type, status } = data;
+    const {id, type, status} = data;
 
     const user = await User.findById(id).select("statusRequests");
 
     if (!user) {
       return {
         status: 404,
-        body: { error: "User not found" },
+        body: {error: "User not found"},
       };
     }
 
@@ -2956,14 +2959,14 @@ export const getUserStatusRequests = async (data) => {
     console.error("Error fetching requests:", error);
     return {
       status: 500,
-      body: { error: "Error fetching requests" },
+      body: {error: "Error fetching requests"},
     };
   }
 };
 
 export const handleBlockStatus = async (data) => {
   try {
-    const { id, action, extendDate, adminName } = data;
+    const {id, action, extendDate, adminName} = data;
 
     // Validate input
     if (action === "unblock" && !extendDate) {
@@ -3010,7 +3013,7 @@ export const handleBlockStatus = async (data) => {
       };
     }
 
-    const user = await User.findByIdAndUpdate(id, updates, { new: true });
+    const user = await User.findByIdAndUpdate(id, updates, {new: true});
 
     if (!user) {
       return {
@@ -3082,33 +3085,33 @@ export const handleBlockStatus = async (data) => {
 };
 
 export const setResetToken = async (data) => {
-  const { userId, token, expiry } = data;
+  const {userId, token, expiry} = data;
 
   await User.updateOne(
-    { _id: userId },
-    { resetPasswordToken: token, resetPasswordExpires: expiry },
+    {_id: userId},
+    {resetPasswordToken: token, resetPasswordExpires: expiry},
   );
-  return { success: true };
+  return {success: true};
 };
 
 export const getUserByResetToken = async (data) => {
   const user = await User.findOne({
     resetPasswordToken: data.token,
-    resetPasswordExpires: { $gt: Date.now() },
+    resetPasswordExpires: {$gt: Date.now()},
   });
 
   if (!user) {
-    return { success: false, status: 400, message: "Invalid or expired token" };
+    return {success: false, status: 400, message: "Invalid or expired token"};
   }
 
-  return { success: true, status: 200, data: user };
+  return {success: true, status: 200, data: user};
 };
 
-export const updatePassword = async ({ userId, password }) => {
+export const updatePassword = async ({userId, password}) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   await User.updateOne(
-    { _id: userId },
+    {_id: userId},
     {
       password: hashedPassword,
       resetPasswordToken: null,
@@ -3125,10 +3128,10 @@ export const updatePassword = async ({ userId, password }) => {
 
 export const updateUser = async (data) => {
   try {
-    const { userId, userData } = data;
+    const {userId, userData} = data;
     console.log("userData", userData);
 
-    const user = await User.findByIdAndUpdate(userId, userData, { new: true });
+    const user = await User.findByIdAndUpdate(userId, userData, {new: true});
     if (!user) {
       return {
         status: 404,
@@ -3161,18 +3164,11 @@ export const updateUser = async (data) => {
 
 export const getAllPaymentPendingUsers = async (data) => {
   try {
-    const {
-      propertyId,
-      rentType,
-      userType,
-      search,
-      page = 1,
-      limit = 10,
-    } = data;
+    const {propertyId, rentType, userType, search, page = 1, limit = 10} = data;
 
     const query = {
       paymentStatus: "pending",
-      isVacated: { $ne: true },
+      isVacated: {$ne: true},
     };
 
     if (propertyId) {
@@ -3189,7 +3185,7 @@ export const getAllPaymentPendingUsers = async (data) => {
 
     if (search) {
       const regex = new RegExp(search, "i");
-      query.$or = [{ name: regex }, { contact: regex }];
+      query.$or = [{name: regex}, {contact: regex}];
     }
 
     const pageNum = parseInt(page, 10);
@@ -3230,22 +3226,22 @@ export const getAllPaymentPendingUsers = async (data) => {
     let totalPending = 0;
     if (rentType === "monthly") {
       const agg = await User.aggregate([
-        { $match: query },
+        {$match: query},
         {
           $group: {
             _id: null,
-            totalPending: { $sum: "$financialDetails.pendingRent" },
+            totalPending: {$sum: "$financialDetails.pendingRent"},
           },
         },
       ]);
       totalPending = agg[0]?.totalPending || 0;
     } else if (["daily", "mess"].includes(rentType)) {
       const agg = await User.aggregate([
-        { $match: query },
+        {$match: query},
         {
           $group: {
             _id: null,
-            totalPending: { $sum: "$financialDetails.pendingAmount" },
+            totalPending: {$sum: "$financialDetails.pendingAmount"},
           },
         },
       ]);
@@ -3258,7 +3254,7 @@ export const getAllPaymentPendingUsers = async (data) => {
         status: 200,
         totalPending: 0,
         data: [],
-        pagination: { total: 0, page: pageNum, limit: limitNum, pages: 0 },
+        pagination: {total: 0, page: pageNum, limit: limitNum, pages: 0},
       };
     }
 
@@ -3268,7 +3264,7 @@ export const getAllPaymentPendingUsers = async (data) => {
     // 🔥 Call Accounts service to get latest payments
     const paymentsResponse = await sendRPCRequest(
       ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
-      { userIds },
+      {userIds},
     );
 
     const paymentsMap = {};
@@ -3342,7 +3338,7 @@ export const getAllPaymentPendingUsers = async (data) => {
 
 export const getResidentCounts = async (data) => {
   try {
-    const { propertyId } = data;
+    const {propertyId} = data;
     console.log("herererer");
     const filter = {
       isVacated: false,
@@ -3353,14 +3349,14 @@ export const getResidentCounts = async (data) => {
     }
 
     const [monthlyResidents, dailyRenters] = await Promise.all([
-      User.countDocuments({ ...filter, rentType: "monthly" }),
-      User.countDocuments({ ...filter, rentType: "daily" }),
+      User.countDocuments({...filter, rentType: "monthly"}),
+      User.countDocuments({...filter, rentType: "daily"}),
     ]);
 
-    return { monthlyResidents, dailyRenters };
+    return {monthlyResidents, dailyRenters};
   } catch (error) {
     console.error("Error fetching resident counts:", error);
-    return { error: "Failed to fetch resident counts" };
+    return {error: "Failed to fetch resident counts"};
   }
 };
 
@@ -3374,14 +3370,14 @@ export const getUsersWithBirthdayToday = async () => {
     const users = await User.aggregate([
       {
         $match: {
-          "personalDetails.dob": { $exists: true, $ne: null },
+          "personalDetails.dob": {$exists: true, $ne: null},
         },
       },
       {
         $project: {
           name: 1,
-          month: { $month: "$personalDetails.dob" },
-          day: { $dayOfMonth: "$personalDetails.dob" },
+          month: {$month: "$personalDetails.dob"},
+          day: {$dayOfMonth: "$personalDetails.dob"},
         },
       },
       {
@@ -3417,7 +3413,7 @@ export const getUsersWithBirthdayToday = async () => {
 
 export const getUserStatisticsForAccountDashboard = async (data) => {
   try {
-    const { propertyId } = data;
+    const {propertyId} = data;
 
     const matchCondition = {
       isApproved: true,
@@ -3425,7 +3421,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
     };
     if (propertyId) {
       matchCondition.$or = [
-        { "stayDetails.propertyId": new mongoose.Types.ObjectId(propertyId) },
+        {"stayDetails.propertyId": new mongoose.Types.ObjectId(propertyId)},
       ];
 
       const accessibleKitchensResponse = await getAccessibleKitchens({
@@ -3454,12 +3450,12 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
       {
         $group: {
           _id: "$rentType",
-          userCount: { $sum: 1 },
+          userCount: {$sum: 1},
 
           totalMonthlyRent: {
             $sum: {
               $cond: [
-                { $eq: ["$rentType", "monthly"] },
+                {$eq: ["$rentType", "monthly"]},
                 "$financialDetails.monthlyRent",
                 0,
               ],
@@ -3468,7 +3464,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
           totalMessAmount: {
             $sum: {
               $cond: [
-                { $eq: ["$rentType", "mess"] },
+                {$eq: ["$rentType", "mess"]},
                 "$financialDetails.totalAmount",
                 0,
               ],
@@ -3477,7 +3473,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
           totalDailyAmount: {
             $sum: {
               $cond: [
-                { $eq: ["$rentType", "daily"] },
+                {$eq: ["$rentType", "daily"]},
                 "$financialDetails.totalAmount",
                 0,
               ],
@@ -3492,8 +3488,8 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
                   {
                     case: {
                       $and: [
-                        { $eq: ["$rentType", "monthly"] },
-                        { $eq: ["$paymentStatus", "pending"] },
+                        {$eq: ["$rentType", "monthly"]},
+                        {$eq: ["$paymentStatus", "pending"]},
                       ],
                     },
                     then: "$financialDetails.pendingRent",
@@ -3501,8 +3497,8 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
                   {
                     case: {
                       $and: [
-                        { $eq: ["$rentType", "daily"] },
-                        { $eq: ["$paymentStatus", "pending"] },
+                        {$eq: ["$rentType", "daily"]},
+                        {$eq: ["$paymentStatus", "pending"]},
                       ],
                     },
                     then: "$financialDetails.pendingAmount",
@@ -3510,8 +3506,8 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
                   {
                     case: {
                       $and: [
-                        { $eq: ["$rentType", "mess"] },
-                        { $eq: ["$paymentStatus", "pending"] },
+                        {$eq: ["$rentType", "mess"]},
+                        {$eq: ["$paymentStatus", "pending"]},
                       ],
                     },
                     then: "$financialDetails.pendingAmount",
@@ -3546,7 +3542,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
 
 export const getUsersByAgencyService = async (data) => {
   try {
-    const { agent } = data;
+    const {agent} = data;
     console.log(data);
     if (!agent) {
       return {
@@ -3560,7 +3556,7 @@ export const getUsersByAgencyService = async (data) => {
 
     // Fetch only required fields
     const users = await User.find(
-      { agent: agencyId },
+      {agent: agencyId},
       {
         name: 1,
         contact: 1,
@@ -3609,7 +3605,7 @@ export const getUsersByAgencyService = async (data) => {
 
 export const getUsersForMakingPayment = async (data) => {
   try {
-    const { rentType, propertyId } = data;
+    const {rentType, propertyId} = data;
 
     // Base query conditions
     const queryConditions = {
@@ -3623,7 +3619,7 @@ export const getUsersForMakingPayment = async (data) => {
         queryConditions.userType = "messOnly";
       } else {
         queryConditions.rentType = rentType;
-        queryConditions.userType = { $in: ["student", "worker", "dailyRent"] };
+        queryConditions.userType = {$in: ["student", "worker", "dailyRent"]};
       }
     }
 
@@ -3632,7 +3628,7 @@ export const getUsersForMakingPayment = async (data) => {
       if (rentType === "mess") {
         const accessibleKitchens = await getAccessibleKitchens(propertyId);
         const kitchenIds = accessibleKitchens.map((k) => k._id.toString());
-        queryConditions["messDetails.kitchenId"] = { $in: kitchenIds };
+        queryConditions["messDetails.kitchenId"] = {$in: kitchenIds};
       } else {
         queryConditions["stayDetails.propertyId"] = propertyId;
       }
@@ -3673,7 +3669,7 @@ export const getUsersForMakingPayment = async (data) => {
     // Fetch users
     const users = await User.find(queryConditions)
       .select(projection)
-      .sort({ createdAt: -1 })
+      .sort({createdAt: -1})
       .skip(skip)
       .lean();
 
@@ -3746,7 +3742,7 @@ export const getUsersForMakingPayment = async (data) => {
 
 export const getUserDepositStatisticsForAccountDashboard = async (data) => {
   try {
-    const { propertyId } = data;
+    const {propertyId} = data;
 
     // 🗓️ Current month date range
     const now = new Date();
@@ -3763,7 +3759,7 @@ export const getUserDepositStatisticsForAccountDashboard = async (data) => {
     // 🧮 Base filter (property + current month joinDate)
     const matchCondition = {
       rentType: "monthly",
-      "stayDetails.joinDate": { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
+      "stayDetails.joinDate": {$gte: firstDayOfMonth, $lte: lastDayOfMonth},
     };
 
     if (propertyId) {
@@ -3842,11 +3838,11 @@ export const getUserDepositStatisticsForAccountDashboard = async (data) => {
 
 export const getPendingDepositPayments = async (data) => {
   try {
-    const { propertyId, search, userType, page = 1, limit = 10 } = data;
+    const {propertyId, search, userType, page = 1, limit = 10} = data;
 
     const query = {
       "stayDetails.depositStatus": "pending",
-      isVacated: { $ne: true },
+      isVacated: {$ne: true},
       rentType: "monthly",
     };
 
@@ -3863,7 +3859,7 @@ export const getPendingDepositPayments = async (data) => {
     // Search filter (name or contact)
     if (search) {
       const regex = new RegExp(search, "i");
-      query.$or = [{ name: regex }, { contact: regex }];
+      query.$or = [{name: regex}, {contact: regex}];
     }
 
     // Pagination setup
@@ -3901,12 +3897,12 @@ export const getPendingDepositPayments = async (data) => {
     }
 
     const totals = await User.aggregate([
-      { $match: matchStage },
+      {$match: matchStage},
       {
         $group: {
           _id: null,
-          totalNonRefundable: { $sum: "$stayDetails.nonRefundableDeposit" },
-          totalRefundable: { $sum: "$stayDetails.refundableDeposit" },
+          totalNonRefundable: {$sum: "$stayDetails.nonRefundableDeposit"},
+          totalRefundable: {$sum: "$stayDetails.refundableDeposit"},
         },
       },
     ]);
@@ -3922,7 +3918,7 @@ export const getPendingDepositPayments = async (data) => {
         totalRefundable,
         data: [],
         totalPendingAmount: 0,
-        pagination: { total: 0, page: pageNum, limit: limitNum, pages: 0 },
+        pagination: {total: 0, page: pageNum, limit: limitNum, pages: 0},
       };
     }
 
@@ -3932,7 +3928,7 @@ export const getPendingDepositPayments = async (data) => {
     // 🔥 Call Accounts service to get latest payments
     const depositsResponse = await sendRPCRequest(
       ACCOUNTS_PATTERN.DEPOSIT_PAYMENTS.GET_LATEST_DEPOSIT_PAYMENT_BY_USERID,
-      { userIds },
+      {userIds},
     );
 
     const depositsMap = {};
@@ -4003,7 +3999,7 @@ export const getPendingDepositPayments = async (data) => {
 
 export const allocateUsersToAgent = async (data) => {
   try {
-    const { agentId, userIds } = data;
+    const {agentId, userIds} = data;
 
     if (!agentId || !Array.isArray(userIds) || userIds.length === 0) {
       return {
@@ -4015,8 +4011,8 @@ export const allocateUsersToAgent = async (data) => {
 
     // Bulk update: assign the agent to each user
     const result = await User.updateMany(
-      { _id: { $in: userIds } },
-      { $set: { agent: agentId } },
+      {_id: {$in: userIds}},
+      {$set: {agent: agentId}},
     );
 
     return {
@@ -4038,7 +4034,7 @@ export const allocateUsersToAgent = async (data) => {
 
 export const allocateCommissionToUsers = async (data) => {
   try {
-    const { userIds = [], amountPerUser = 0 } = data;
+    const {userIds = [], amountPerUser = 0} = data;
 
     if (!Array.isArray(userIds) || userIds.length === 0) {
       return {
@@ -4049,8 +4045,8 @@ export const allocateCommissionToUsers = async (data) => {
     }
 
     const result = await User.updateMany(
-      { _id: { $in: userIds } },
-      { $inc: { commissionEarned: amountPerUser } },
+      {_id: {$in: userIds}},
+      {$inc: {commissionEarned: amountPerUser}},
     );
 
     return {
@@ -4101,7 +4097,7 @@ export const registerUserFromPanel = async (data) => {
       messDetails,
     );
     if (validationError) {
-      return { statusCode: 400, body: validationError };
+      return {statusCode: 400, body: validationError};
     }
 
     // 2. Format validation
@@ -4120,7 +4116,7 @@ export const registerUserFromPanel = async (data) => {
     // 3. Duplicate check
     const existingUserChecks = await checkExistingUsers(email, contact);
     if (existingUserChecks.error) {
-      return { statusCode: 400, body: existingUserChecks };
+      return {statusCode: 400, body: existingUserChecks};
     }
 
     // 4. Resident ID + hash password
@@ -4208,7 +4204,7 @@ export const registerUserFromPanel = async (data) => {
             residentId: newUser.residentId,
             roomNumber: newUser.stayDetails?.roomNumber,
           }
-        : { kitchenName: newUser.messDetails?.kitchenName }),
+        : {kitchenName: newUser.messDetails?.kitchenName}),
     };
 
     return {
@@ -4251,7 +4247,7 @@ export const registerUserFromPanel = async (data) => {
 };
 
 export const getBulkHeavensUserById = async (data) => {
-  const { userId, userIds } = data;
+  const {userId, userIds} = data;
   try {
     // ------------------------------------------------------
     // BULK FETCH
@@ -4270,7 +4266,7 @@ export const getBulkHeavensUserById = async (data) => {
         })
         .filter((id) => id !== null);
 
-      const users = await User.find({ _id: { $in: objectIds } }).lean();
+      const users = await User.find({_id: {$in: objectIds}}).lean();
 
       return {
         status: 200,
@@ -4287,7 +4283,7 @@ export const getBulkHeavensUserById = async (data) => {
     if (!userId) {
       return {
         status: 400,
-        body: { success: false, message: "userId is required" },
+        body: {success: false, message: "userId is required"},
       };
     }
 
@@ -4296,7 +4292,7 @@ export const getBulkHeavensUserById = async (data) => {
     if (!user) {
       return {
         status: 404,
-        body: { success: false, message: "User not found" },
+        body: {success: false, message: "User not found"},
       };
     }
 
@@ -4311,7 +4307,7 @@ export const getBulkHeavensUserById = async (data) => {
     console.error("getBulkHeavensUserById error:", error);
     return {
       status: 500,
-      body: { success: false, message: "Server error" },
+      body: {success: false, message: "Server error"},
     };
   }
 };
@@ -4332,11 +4328,11 @@ export const updateRentAndDates = async (data) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return { status: 404, message: "User not found" };
+      return {status: 404, message: "User not found"};
     }
 
     if (!noOfDays || noOfDays <= 0) {
-      return { status: 400, message: "Invalid number of days" };
+      return {status: 400, message: "Invalid number of days"};
     }
 
     let newTotalAmount = 0;
@@ -4346,7 +4342,7 @@ export const updateRentAndDates = async (data) => {
     // =========================
     if (user.rentType === "daily") {
       if (!user.stayDetails) {
-        return { status: 400, message: "Stay details not found" };
+        return {status: 400, message: "Stay details not found"};
       }
 
       // Update only allowed fields
@@ -4366,7 +4362,7 @@ export const updateRentAndDates = async (data) => {
     // =========================
     else if (user.rentType === "mess") {
       if (!user.messDetails) {
-        return { status: 400, message: "Mess details not found" };
+        return {status: 400, message: "Mess details not found"};
       }
 
       if (rent !== undefined) user.messDetails.rent = rent;
@@ -4433,7 +4429,7 @@ export const updateRentAndDates = async (data) => {
 
 export const getUserByContact = async (data) => {
   try {
-    const { contact } = data;
+    const {contact} = data;
 
     // Check if contact is provided
     if (!contact) {
@@ -4466,8 +4462,8 @@ export const getUserByContact = async (data) => {
 
     // Find active (not vacated) user
     const user = await User.findOne({
-      contact: { $regex: contactRegex },
-      isVacated: { $ne: true },
+      contact: {$regex: contactRegex},
+      isVacated: {$ne: true},
     }).select(
       "name contact stayDetails.roomNumber stayDetails.propertyName financialDetails.monthlyRent financialDetails.pendingRent",
     );

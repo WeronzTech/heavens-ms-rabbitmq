@@ -1,5 +1,6 @@
 import admin from "firebase-admin";
 import dotenv from "dotenv";
+import FcmToken from "../models/fcmToken.model.js";
 
 dotenv.config();
 
@@ -49,7 +50,23 @@ export const sendPushNotificationToUser = async (fcmToken, message) => {
     console.log("Push notification sent successfully.");
     return true;
   } catch (error) {
-    console.error("Error sending push notification:", error);
+    const errorCode = error.code || (error.errorInfo && error.errorInfo.code);
+    console.error(`Error sending push notification to token ${fcmToken ? fcmToken.substring(0, 10) : ""}...: ${errorCode || error.message}`);
+    
+    // Clean up invalid/unregistered tokens from the database
+    if (
+      errorCode === "messaging/registration-token-not-registered" ||
+      errorCode === "messaging/invalid-registration-token" ||
+      error.message === "NotRegistered"
+    ) {
+      try {
+        console.log(`Removing unregistered token ${fcmToken ? fcmToken.substring(0, 10) : ""}... from database.`);
+        await FcmToken.updateMany({}, { $pull: { token: fcmToken } });
+        await FcmToken.deleteMany({ token: { $size: 0 } });
+      } catch (dbErr) {
+        console.error("Failed to clean up stale FCM token from database:", dbErr.message);
+      }
+    }
     return false;
   }
 };

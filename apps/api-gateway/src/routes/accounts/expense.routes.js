@@ -11,6 +11,7 @@ import {
   getExpenseByIdController,
   getPettyCashPaymentByManager,
   updateExpenseController,
+  payExpenseController,
 } from "../../controllers/accounts/expense.controller.js";
 import { upload } from "../../../../../libs/common/imageOperation.js";
 import { isAuthenticated } from "../../middleware/isAuthenticated.js";
@@ -62,6 +63,12 @@ expenseRoutes.put(
   "/update/:expenseId",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
   updateExpenseController,
+);
+
+expenseRoutes.put(
+  "/pay/:expenseId",
+  hasPermission(PERMISSIONS.EXPENSE_MANAGE),
+  payExpenseController,
 );
 
 expenseRoutes.delete(

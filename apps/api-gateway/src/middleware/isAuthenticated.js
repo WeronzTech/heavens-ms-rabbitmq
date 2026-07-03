@@ -23,6 +23,8 @@ const isAuthenticated = async (req, res, next) => {
   req.userName = decodedUser?.userName;
   req.roleName = decodedUser?.roleName;
   req.properties = decodedUser?.properties;
+  req.clientId = decodedUser?.clientId;
+  req.user = decodedUser;
 
   if (!decodedUser) {
     res.status(401).json({

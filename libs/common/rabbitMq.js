@@ -189,7 +189,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
+const RABBITMQ_URL =
+  process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
 
 let connection;
 let listenerChannel; // For processing incoming requests (Responder)

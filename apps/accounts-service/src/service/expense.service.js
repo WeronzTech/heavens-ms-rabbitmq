@@ -14,6 +14,7 @@ import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 
 export const addExpense = async (data) => {
+  console.log("[ACCOUNTS] addExpense data:", data);
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -44,7 +45,7 @@ export const addExpense = async (data) => {
     if (
       !property?.id ||
       !property?.name ||
-      !paymentMethod ||
+      (!paymentMethod && expenseData.status !== "pending") ||
       !amount ||
       !expenseData.title ||
       !expenseData.type ||
@@ -147,82 +148,72 @@ export const addExpense = async (data) => {
     });
 
     await expense.save({session});
-    await createAccountLog({
-      logType: "Expense",
-      action: "Create",
-      description: `Expense '${expense.title}' for ₹${expense.amount} created.`,
-      amount: -expense.amount, // Negative as it's an outflow
-      propertyId: expense.property.id,
-      performedBy: data.handledBy || "System",
-      referenceId: expense._id,
-    });
-
-    const creditAccount =
-      paymentMethod === "Petty Cash"
-        ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
-        : paymentMethod === "Cash" || paymentMethod === "cash"
-          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
-          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
-
-    // Map expense category to debit account (Example mapping)
-    // You should fetch the account by name from ChartOfAccount for robustness
-    let debitAccount;
-
-    // Prioritize "Rent" category
-    if (expense.category === "Rent" || expense.category === "Property Rent") {
-      // Use RENT specific account if available, otherwise General
-      debitAccount =
-        ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
-        ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
-    } else {
-      // Fallback to existing type-based logic
-      debitAccount =
-        expense.type === "PG"
-          ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
-          : expense.type === "Mess"
-            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
-            : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
-    }
-
-    // Determine Entity
-    // let entityType = null;
-    // let entityId = null;
-
-    // if (expense.property?.id) {
-    //   entityType = "PROPERTY";
-    //   entityId = expense.property.id;
-    // } else if (expense.kitchenId) {
-    //   entityType = "KITCHEN";
-    //   entityId = expense.kitchenId;
-    // }
-
-    await createJournalEntry(
-      {
-        date: expense.date,
-        description: `Expense: ${expense.title} - ${expense.category}`,
+    if (expense.status === "paid") {
+      await createAccountLog({
+        logType: "Expense",
+        action: "Create",
+        description: `Expense '${expense.title}' for ₹${expense.amount} created.`,
+        amount: -expense.amount, // Negative as it's an outflow
         propertyId: expense.property.id,
-        transactions: [
-          {systemName: debitAccount, debit: amount},
-          {systemName: creditAccount, credit: amount},
-        ],
+        performedBy: data.handledBy || "System",
         referenceId: expense._id,
-        referenceType: "Expense",
-      },
-      {session},
-    );
+      });
 
-    if (fromVoucher && voucher) {
-      voucher.totalExpenseAmount += amount;
-      voucher.remainingAmount = voucher.amount - voucher.totalExpenseAmount;
+      const creditAccount =
+        paymentMethod === "Petty Cash"
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+          : paymentMethod === "Cash" || paymentMethod === "cash"
+            ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+            : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
-      if (voucher.remainingAmount <= 0) {
-        voucher.remainingAmount = 0;
-        voucher.status = "Fully Utilized";
+      // Map expense category to debit account (Example mapping)
+      // You should fetch the account by name from ChartOfAccount for robustness
+      let debitAccount;
+
+      // Prioritize "Rent" category
+      if (expense.category === "Rent" || expense.category === "Property Rent") {
+        // Use RENT specific account if available, otherwise General
+        debitAccount =
+          ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
+          ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
       } else {
-        voucher.status = "Pending";
+        // Fallback to existing type-based logic
+        debitAccount =
+          expense.type === "PG"
+            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+            : expense.type === "Mess"
+              ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+              : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
       }
 
-      await voucher.save();
+      await createJournalEntry(
+        {
+          date: expense.date,
+          description: `Expense: ${expense.title} - ${expense.category}`,
+          propertyId: expense.property.id,
+          transactions: [
+            {systemName: debitAccount, debit: amount},
+            {systemName: creditAccount, credit: amount},
+          ],
+          referenceId: expense._id,
+          referenceType: "Expense",
+        },
+        {session},
+      );
+
+      if (fromVoucher && voucher) {
+        voucher.totalExpenseAmount += amount;
+        voucher.remainingAmount = voucher.amount - voucher.totalExpenseAmount;
+
+        if (voucher.remainingAmount <= 0) {
+          voucher.remainingAmount = 0;
+          voucher.status = "Fully Utilized";
+        } else {
+          voucher.status = "Pending";
+        }
+
+        await voucher.save();
+      }
     }
 
     if (billImage) {
@@ -235,24 +226,26 @@ export const addExpense = async (data) => {
         });
     }
 
-    if (
-      paymentMethod === "Petty Cash" &&
-      pettyCashType === "inHand" &&
-      !fromVoucher
-    ) {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: handledBy,
-        pettyCashType,
-        inHandAmount: -amount,
-      });
-    }
+    if (expense.status === "paid") {
+      if (
+        paymentMethod === "Petty Cash" &&
+        pettyCashType === "inHand" &&
+        !fromVoucher
+      ) {
+        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+          manager: handledBy,
+          pettyCashType,
+          inHandAmount: -amount,
+        });
+      }
 
-    if (pettyCashType === "inAccount") {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: handledBy,
-        pettyCashType,
-        inAccountAmount: -amount, // 👈 deduct instead of add
-      });
+      if (pettyCashType === "inAccount") {
+        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+          manager: handledBy,
+          pettyCashType,
+          inAccountAmount: -amount, // 👈 deduct instead of add
+        });
+      }
     }
     await session.commitTransaction();
     return {
@@ -280,6 +273,7 @@ export const getAllExpenses = async (data) => {
   try {
     const {
       propertyId,
+      clientId,
       type,
       category,
       paymentMethod,
@@ -290,9 +284,27 @@ export const getAllExpenses = async (data) => {
       search,
       page,
       limit,
+      status,
     } = data;
 
     const query = {};
+
+    // filter by client
+    if (clientId) {
+      query.$or = [
+        { clientId: new mongoose.Types.ObjectId(clientId) },
+        { clientId: { $exists: false } }
+      ];
+    }
+
+    // filter by status
+    if (status) {
+      if (status === "paid") {
+        query.status = { $ne: "pending" };
+      } else {
+        query.status = status;
+      }
+    }
 
     // filter by property
     if (propertyId) {
@@ -355,13 +367,14 @@ export const getAllExpenses = async (data) => {
     const expenses = await Expense.find(query)
       .sort({date: -1, createdAt: -1})
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate("vendorId");
 
     // count total for frontend
     const total = await Expense.countDocuments(query);
 
     const totalAmountResult = await Expense.aggregate([
-      {$match: query},
+      {$match: {...query, status: "paid"}},
       {$group: {_id: null, totalAmount: {$sum: "$amount"}}},
     ]);
 
@@ -421,7 +434,7 @@ export const getExpenseById = async (data) => {
       return {success: false, status: 400, message: "Expense ID is required"};
     }
 
-    const expense = await Expense.findById(expenseId);
+    const expense = await Expense.findById(expenseId).populate("vendorId");
     if (!expense) {
       return {success: false, status: 404, message: "Expense not found"};
     }
@@ -731,6 +744,8 @@ export const getPettyCashPaymentsByManager = async ({managerId}) => {
 };
 
 export const updateExpense = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     let {
       expenseId,
@@ -745,6 +760,8 @@ export const updateExpense = async (data) => {
     } = data;
 
     if (!expenseId) {
+      await session.abortTransaction();
+      session.endSession();
       return {
         success: false,
         status: 400,
@@ -752,8 +769,10 @@ export const updateExpense = async (data) => {
       };
     }
 
-    const existingExpense = await Expense.findById(expenseId);
+    const existingExpense = await Expense.findById(expenseId).session(session);
     if (!existingExpense) {
+      await session.abortTransaction();
+      session.endSession();
       return {
         success: false,
         status: 404,
@@ -766,6 +785,8 @@ export const updateExpense = async (data) => {
       try {
         property = JSON.parse(property);
       } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
         return {
           success: false,
           status: 400,
@@ -778,13 +799,15 @@ export const updateExpense = async (data) => {
     if (
       !property?.id ||
       !property?.name ||
-      !paymentMethod ||
+      (!paymentMethod && expenseData.status !== "pending") ||
       !amount ||
       !expenseData.title ||
       !expenseData.type ||
       !expenseData.category ||
       !expenseData.date
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return {
         success: false,
         status: 400,
@@ -793,6 +816,20 @@ export const updateExpense = async (data) => {
     }
 
     amount = Number(amount);
+
+    // If transaction ID is changed and is already taken
+    if (transactionId && transactionId !== existingExpense.transactionId) {
+      const duplicateExpense = await Expense.findOne({ transactionId }).session(session);
+      if (duplicateExpense) {
+        await session.abortTransaction();
+        session.endSession();
+        return {
+          success: false,
+          status: 400,
+          message: `Transaction ID "${transactionId}" already exists`,
+        };
+      }
+    }
 
     // ✅ If new bill image uploaded → delete old one and upload new
     if (billImage) {
@@ -811,46 +848,168 @@ export const updateExpense = async (data) => {
       }
     }
 
-    // ✅ Petty cash adjustment logic
-    if (existingExpense.paymentMethod === "Petty Cash") {
-      const oldAmount = Number(existingExpense.amount);
-      const newAmount = Number(amount);
-      const difference = oldAmount - newAmount; // +ve = refund, -ve = deduct more
+    // Cache status changes
+    const wasPending = existingExpense.status === "pending";
+    const isNowPaid = expenseData.status === "paid";
 
-      if (difference !== 0) {
-        if (existingExpense.pettyCashType === "inHand") {
-          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-            manager: handledBy,
-            pettyCashType: "inHand",
-            inHandAmount: difference, // refund or deduct
-          });
+    // ✅ Petty cash validation & deduction or adjustment
+    if (isNowPaid) {
+      if (wasPending) {
+        // Status transitioning from pending to paid
+        if (paymentMethod === "Petty Cash") {
+          if (!pettyCashType) {
+            await session.abortTransaction();
+            session.endSession();
+            return {
+              success: false,
+              status: 400,
+              message: "Petty cash type (inHand/inAccount) is required",
+            };
+          }
+          const pettyCashResponse = await sendRPCRequest(
+            CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
+            { managerId: handledBy },
+          );
+          if (!pettyCashResponse?.success || !pettyCashResponse.data) {
+            await session.abortTransaction();
+            session.endSession();
+            return {
+              success: false,
+              status: 400,
+              message: "No petty cash found for this manager",
+            };
+          }
+
+          const pettyCash = pettyCashResponse.data;
+
+          if (pettyCashType === "inHand" && pettyCash.inHandAmount < amount) {
+            await session.abortTransaction();
+            session.endSession();
+            return {
+              success: false,
+              status: 400,
+              message: "In-hand petty cash balance too low to process this transaction",
+            };
+          }
+
+          if (pettyCashType === "inAccount" && pettyCash.inAccountAmount < amount) {
+            await session.abortTransaction();
+            session.endSession();
+            return {
+              success: false,
+              status: 400,
+              message: "In-account petty cash balance too low to process this transaction",
+            };
+          }
+
+          // Deduct from petty cash
+          if (pettyCashType === "inHand") {
+            await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+              manager: handledBy,
+              pettyCashType,
+              inHandAmount: -amount,
+            });
+          } else if (pettyCashType === "inAccount") {
+            await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+              manager: handledBy,
+              pettyCashType,
+              inAccountAmount: -amount,
+            });
+          }
         }
 
-        if (existingExpense.pettyCashType === "inAccount") {
-          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-            manager: handledBy,
-            pettyCashType: "inAccount",
-            inAccountAmount: difference, // refund or deduct
-          });
+        // Account logs & Journal entry for pending -> paid transition
+        await createAccountLog({
+          logType: "Expense",
+          action: "Create",
+          description: `Expense '${existingExpense.title}' for ₹${amount} marked as paid.`,
+          amount: -amount,
+          propertyId: property.id,
+          performedBy: data.handledBy || "System",
+          referenceId: existingExpense._id,
+        });
+
+        const creditAccount =
+          paymentMethod === "Petty Cash"
+            ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+            : paymentMethod === "Cash" || paymentMethod === "cash"
+              ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+              : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+        let debitAccount;
+        if (existingExpense.category === "Rent" || existingExpense.category === "Property Rent") {
+          debitAccount =
+            ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
+            ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+        } else {
+          debitAccount =
+            existingExpense.type === "PG"
+              ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+              : existingExpense.type === "Mess"
+                ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+                : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+        }
+
+        await createJournalEntry(
+          {
+            date: existingExpense.date,
+            description: `Expense: ${existingExpense.title} - ${existingExpense.category}`,
+            propertyId: property.id,
+            transactions: [
+              { systemName: debitAccount, debit: amount },
+              { systemName: creditAccount, credit: amount },
+            ],
+            referenceId: existingExpense._id,
+            referenceType: "Expense",
+          },
+          { session },
+        );
+
+      } else {
+        // Status remains paid -> run adjustment difference logic
+        if (existingExpense.paymentMethod === "Petty Cash") {
+          const oldAmount = Number(existingExpense.amount);
+          const newAmount = Number(amount);
+          const difference = oldAmount - newAmount; // +ve = refund, -ve = deduct more
+
+          if (difference !== 0) {
+            if (existingExpense.pettyCashType === "inHand") {
+              await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+                manager: handledBy || existingExpense.handledBy,
+                pettyCashType: "inHand",
+                inHandAmount: difference,
+              });
+            }
+
+            if (existingExpense.pettyCashType === "inAccount") {
+              await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+                manager: handledBy || existingExpense.handledBy,
+                pettyCashType: "inAccount",
+                inAccountAmount: difference,
+              });
+            }
+          }
         }
       }
     }
 
     // ✅ Update fields
     existingExpense.transactionId =
-      transactionId || existingExpense.transactionId;
+      expenseData.status === "paid" ? transactionId : undefined;
     existingExpense.property = property || existingExpense.property;
     existingExpense.paymentMethod =
-      paymentMethod || existingExpense.paymentMethod;
+      expenseData.status === "paid" ? paymentMethod : undefined;
     existingExpense.amount = amount || existingExpense.amount;
-    existingExpense.handledBy = handledBy || existingExpense.handledBy;
+    existingExpense.handledBy =
+      expenseData.status === "paid" ? handledBy : undefined;
     existingExpense.pettyCashType =
-      paymentMethod === "Petty Cash" ? pettyCashType : undefined;
+      expenseData.status === "paid" && paymentMethod === "Petty Cash" ? pettyCashType : undefined;
 
     Object.assign(existingExpense, expenseData);
 
-    await existingExpense.save();
+    await existingExpense.save({ session });
 
+    // Account Log for updating details
     await createAccountLog({
       logType: "Expense",
       action: "Update",
@@ -861,13 +1020,15 @@ export const updateExpense = async (data) => {
       referenceId: existingExpense._id,
     });
 
+    await session.commitTransaction();
     return {
       success: true,
       status: 200,
-      message: "Expense updated successfully with petty cash adjustment",
+      message: "Expense updated successfully",
       data: existingExpense,
     };
   } catch (error) {
+    await session.abortTransaction();
     console.error("[ACCOUNTS] Error in updateExpense:", error);
     return {
       success: false,
@@ -875,6 +1036,8 @@ export const updateExpense = async (data) => {
       message: "An internal server error occurred while updating expense.",
       error: error.message,
     };
+  } finally {
+    session.endSession();
   }
 };
 
@@ -953,4 +1116,188 @@ export const getPettyCashUsage = async (data) => {
     inHand: usageMap[manager].inHand,
     inAccount: usageMap[manager].inAccount,
   }));
+};
+
+export const payExpense = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const {
+      expenseId,
+      handledBy,
+      paymentMethod: newPaymentMethod,
+      pettyCashType: newPettyCashType,
+      transactionId: newTransactionId,
+    } = data;
+
+    if (!expenseId) {
+      return {success: false, status: 400, message: "Expense ID is required"};
+    }
+
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      return {success: false, status: 404, message: "Expense not found"};
+    }
+
+    if (expense.status === "paid") {
+      return {success: false, status: 400, message: "Expense is already paid"};
+    }
+
+    // Update payment details if provided
+    if (newPaymentMethod) expense.paymentMethod = newPaymentMethod;
+    if (newPettyCashType) expense.pettyCashType = newPettyCashType;
+    if (newTransactionId) expense.transactionId = newTransactionId;
+
+    if (!expense.paymentMethod) {
+      return {
+        success: false,
+        status: 400,
+        message: "Payment method is required to mark expense as paid",
+      };
+    }
+
+    // Petty Cash validation & deduction
+    if (expense.paymentMethod === "Petty Cash") {
+      if (!expense.pettyCashType) {
+        return {
+          success: false,
+          status: 400,
+          message: "Petty cash type (inHand/inAccount) is required",
+        };
+      }
+      const pettyCashResponse = await sendRPCRequest(
+        CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
+        {managerId: handledBy},
+      );
+      if (!pettyCashResponse?.success || !pettyCashResponse.data) {
+        return {
+          success: false,
+          status: 400,
+          message: "No petty cash found for this manager",
+        };
+      }
+
+      const pettyCash = pettyCashResponse.data;
+
+      if (expense.pettyCashType === "inHand" && pettyCash.inHandAmount < expense.amount) {
+        return {
+          success: false,
+          status: 400,
+          message:
+            "In-hand petty cash balance too low to process this transaction",
+        };
+      }
+
+      if (expense.pettyCashType === "inAccount" && pettyCash.inAccountAmount < expense.amount) {
+        return {
+          success: false,
+          status: 400,
+          message:
+            "In-account petty cash balance too low to process this transaction",
+        };
+      }
+    }
+
+    expense.status = "paid";
+    if (handledBy) expense.handledBy = handledBy;
+
+    await createAccountLog({
+      logType: "Expense",
+      action: "Create",
+      description: `Expense '${expense.title}' for ₹${expense.amount} marked as paid.`,
+      amount: -expense.amount,
+      propertyId: expense.property.id,
+      performedBy: handledBy || "System",
+      referenceId: expense._id,
+    });
+
+    const {paymentMethod, pettyCashType, amount, clientId} = expense;
+
+    const creditAccount =
+      paymentMethod === "Petty Cash"
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+        : paymentMethod === "Cash" || paymentMethod === "cash"
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+
+    let debitAccount;
+    if (expense.category === "Rent" || expense.category === "Property Rent") {
+      debitAccount =
+        ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
+        ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+    } else {
+      debitAccount =
+        expense.type === "PG"
+          ? ACCOUNT_SYSTEM_NAMES.EXPENSE_UTILITIES
+          : expense.type === "Mess"
+            ? ACCOUNT_SYSTEM_NAMES.EXPENSE_MESS_SUPPLIES
+            : ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
+    }
+
+    let entityType = null;
+    let entityId = null;
+
+    if (expense.property?.id) {
+      entityType = "PROPERTY";
+      entityId = expense.property.id;
+    } else if (expense.kitchenId) {
+      entityType = "KITCHEN";
+      entityId = expense.kitchenId;
+    }
+
+    await createJournalEntry(
+      {
+        date: expense.date,
+        description: `Expense: ${expense.title} - ${expense.category}`,
+        propertyId: expense.property.id,
+        entityType,
+        entityId,
+        clientId,
+        transactions: [
+          {systemName: debitAccount, debit: amount},
+          {systemName: creditAccount, credit: amount},
+        ],
+        referenceId: expense._id,
+        referenceType: "Expense",
+      },
+      {session},
+    );
+
+    if (paymentMethod === "Petty Cash" && pettyCashType === "inHand" && !expense.fromVoucher) {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: expense.handledBy,
+        pettyCashType,
+        inHandAmount: -amount,
+      });
+    }
+
+    if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
+      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+        manager: expense.handledBy,
+        pettyCashType,
+        inAccountAmount: -amount,
+      });
+    }
+
+    await expense.save({session});
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      status: 200,
+      message: "Expense marked as paid successfully",
+      data: expense,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("[ACCOUNTS] Error in payExpense:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error occurred while paying expense",
+      error: error.message,
+    };
+  } finally {
+    session.endSession();
+  }
 };

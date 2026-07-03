@@ -32,6 +32,7 @@ export const addExpenseController = async (req, res) => {
       pettyCashType,
       fromVoucher,
       voucherId,
+      clientId: req.clientId,
       ...expenseData,
     });
 
@@ -65,12 +66,14 @@ export const getAllExpensesController = async (req, res) => {
       search,
       page = 1,
       limit = 10,
+      status,
     } = req.query;
 
     const expenses = await sendRPCRequest(
       ACCOUNTS_PATTERN.EXPENSE.GET_ALL_EXPENSES,
       {
         propertyId,
+        clientId: req.clientId,
         type,
         category,
         paymentMethod,
@@ -81,6 +84,7 @@ export const getAllExpensesController = async (req, res) => {
         search,
         page,
         limit,
+        status,
       },
     );
     res.status(expenses.status || 500).json(expenses);
@@ -329,6 +333,31 @@ export const updateExpenseController = async (req, res) => {
       success: false,
       status: 500,
       message: "An internal server error occurred while updating expense.",
+    });
+  }
+};
+
+export const payExpenseController = async (req, res) => {
+  try {
+    const {expenseId} = req.params;
+    const handledBy = req.userAuth;
+
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.EXPENSE.PAY_EXPENSE,
+      {
+        expenseId,
+        handledBy: req?.body?.handledBy || handledBy,
+        ...req.body,
+      },
+    );
+
+    res.status(response?.status || 500).json(response);
+  } catch (error) {
+    console.error("Error in paying expense:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while paying expense.",
     });
   }
 };

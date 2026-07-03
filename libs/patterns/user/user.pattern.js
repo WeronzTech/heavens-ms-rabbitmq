@@ -13,6 +13,7 @@ export const USER_PATTERN = {
     GET_USERS_BY_RENT_TYPE: "get_users_by_rent_type",
     GET_CHECKOUTED_USERS_BY_RENT_TYPE: "get_checkouted_users_by_rent_type",
     VACATE_USER: "vacate_user",
+    VACATE_USER_BY_ID: "vacate_user_by_id",
     REJOIN_USER: "rejoin_user",
     GET_USER_IDS: "get_user_ids",
     GET_USERS_FOR_NOTIFICATION: "get_users_for_notification",
