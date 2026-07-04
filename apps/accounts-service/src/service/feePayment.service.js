@@ -990,7 +990,6 @@ const processAndRecordPayment = async ({
   remarks = "",
   processAndRecordPayment,
 }) => {
-  console.log(paymentDate);
   const session = await mongoose.startSession();
   session.startTransaction();
   // console.log({collectedBy, collectedById});
@@ -1149,7 +1148,7 @@ const processAndRecordPayment = async ({
       user.stayDetails,
       session,
     );
-    const payment = new Date(paymentDate);
+    // const payment = new Date(paymentDate);
 
     const newPayment = new Payments({
       name: user.name,
@@ -1165,13 +1164,14 @@ const processAndRecordPayment = async ({
       accountBalance: user.financialDetails?.accountBalance || 0,
       dueAmount,
       paymentMethod,
-      paymentDate: new Date(
-        Date.UTC(
-          payment.getUTCFullYear(),
-          payment.getUTCMonth(),
-          payment.getUTCDate(),
-        ),
-      ),
+      paymentDate,
+      // paymentDate: new Date(
+      //   Date.UTC(
+      //     payment.getUTCFullYear(),
+      //     payment.getUTCMonth(),
+      //     payment.getUTCDate(),
+      //   ),
+      // ),
       transactionId,
       referralAmountUsed,
       paymentForMonths,
@@ -1925,14 +1925,24 @@ export const getAllFeePayments = async (data) => {
       filter.paymentDate = {$gte: startDate, $lte: endDate};
     }
 
+    // if (paymentDate) {
+    //   const date = new Date(data.paymentDate);
+    //   const nextDate = new Date(date);
+    //   nextDate.setDate(date.getDate() + 1);
+
+    //   filter.paymentDate = {
+    //     $gte: date,
+    //     $lt: nextDate,
+    //   };
+    // }
     if (paymentDate) {
-      const date = new Date(data.paymentDate);
-      const nextDate = new Date(date);
-      nextDate.setDate(date.getDate() + 1);
+      const start = moment(`${paymentDate}T00:00:00+05:30`).utc().toDate();
+
+      const end = moment(`${paymentDate}T23:59:59.999+05:30`).utc().toDate();
 
       filter.paymentDate = {
-        $gte: date,
-        $lt: nextDate,
+        $gte: start,
+        $lte: end,
       };
     }
 
