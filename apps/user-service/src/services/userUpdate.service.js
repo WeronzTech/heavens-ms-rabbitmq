@@ -1,10 +1,11 @@
+import mongoose from "mongoose";
 import User from "../models/user.model.js";
-import {calculateProfileCompletion} from "../utils/profileCompletion.js";
-import {validateContact, validateEmail} from "../utils/validators.js";
-import {assignRoomToUser, updatePropertyCounts} from "./internal.service.js";
+import { calculateProfileCompletion } from "../utils/profileCompletion.js";
+import { validateContact, validateEmail } from "../utils/validators.js";
+import { assignRoomToUser, updatePropertyCounts } from "./internal.service.js";
 
 export const validateUserUpdate = async (user, updateData) => {
-  const {userType, contact: currentContact, email: currentEmail} = user;
+  const { userType, contact: currentContact, email: currentEmail } = user;
 
   const REQUIRED_SECTIONS = {
     Student: ["personalDetails", "parentsDetails", "studyDetails"],
@@ -26,7 +27,7 @@ export const validateUserUpdate = async (user, updateData) => {
 
   // Student-specific validations
   if (userType === "student" && updateData.parentsDetails) {
-    const {email, contact} = updateData.parentsDetails;
+    const { email, contact } = updateData.parentsDetails;
 
     if (email && !validateEmail(email)) {
       throw new Error("Invalid parent email format");
@@ -43,7 +44,7 @@ export const validateUserUpdate = async (user, updateData) => {
 
       const existingUser = await User.findOne({
         contact,
-        _id: {$ne: user._id},
+        _id: { $ne: user._id },
       });
 
       if (existingUser) {
@@ -56,7 +57,7 @@ export const validateUserUpdate = async (user, updateData) => {
   if (updateData.email && updateData.email !== currentEmail) {
     const existingUser = await User.findOne({
       email: updateData.email,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Email is already registered");
@@ -67,7 +68,7 @@ export const validateUserUpdate = async (user, updateData) => {
   if (updateData.contact && updateData.contact !== currentContact) {
     const existingUser = await User.findOne({
       contact: updateData.contact,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Contact number is already registered");
@@ -81,7 +82,7 @@ export const validateUserUpdate = async (user, updateData) => {
     if (partner.email) {
       const existingPartnerEmail = await User.findOne({
         email: partner.email,
-        _id: {$ne: user._id},
+        _id: { $ne: user._id },
       });
       if (existingPartnerEmail) {
         throw new Error("Coliving partner's email is already registered");
@@ -91,7 +92,7 @@ export const validateUserUpdate = async (user, updateData) => {
     if (partner.contact) {
       const existingPartnerContact = await User.findOne({
         contact: partner.contact,
-        _id: {$ne: user._id},
+        _id: { $ne: user._id },
       });
       if (existingPartnerContact) {
         throw new Error("Coliving partner's contact is already registered");
@@ -242,7 +243,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
   if (cleanedData.contact && cleanedData.contact !== user.contact) {
     const existingUser = await User.findOne({
       contact: cleanedData.contact,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Contact number already in use by another user");
@@ -253,7 +254,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
   if (cleanedData.email && cleanedData.email !== user.email) {
     const existingUser = await User.findOne({
       email: cleanedData.email,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error("Email already in use by another user");
@@ -271,7 +272,7 @@ export const validateAdminUpdates = async (user, cleanedData) => {
 
     const existingUser = await User.findOne({
       contact: parentContact,
-      _id: {$ne: user._id},
+      _id: { $ne: user._id },
     });
     if (existingUser) {
       throw new Error(
@@ -437,7 +438,7 @@ export const handleRoomChange = async (user, newRoomId, newPropertyId) => {
         user.rentType === "monthly" ? "longTermResident" : "dailyRenter";
 
       // Add to new room
-      await assignRoomToUser({userId, roomId, userType});
+      await assignRoomToUser({ userId, roomId, userType });
     }
 
     // If property is being changed (without room change)
@@ -455,15 +456,21 @@ export const updateRoomNumberForOccupants = async (data) => {
   try {
     const { roomId, newRoomNumber } = data;
     if (!roomId || !newRoomNumber) {
-      return { status: 400, success: false, message: "roomId and newRoomNumber are required" };
+      return {
+        status: 400,
+        success: false,
+        message: "roomId and newRoomNumber are required",
+      };
     }
 
     const result = await User.updateMany(
-      { "stayDetails.roomId": new mongoose.Types.ObjectId(roomId) },
-      { $set: { "stayDetails.roomNumber": newRoomNumber } }
+      { "stayDetails.roomId": roomId },
+      { $set: { "stayDetails.roomNumber": newRoomNumber } },
     );
 
-    console.log(`Updated roomNumber to ${newRoomNumber} for ${result.modifiedCount} occupants.`);
+    console.log(
+      `Updated roomNumber to ${newRoomNumber} for ${result.modifiedCount} occupants.`,
+    );
 
     return {
       status: 200,
@@ -475,7 +482,9 @@ export const updateRoomNumberForOccupants = async (data) => {
     return {
       status: 500,
       success: false,
-      message: error.message || "Server error while updating room number for occupants",
+      message:
+        error.message ||
+        "Server error while updating room number for occupants",
     };
   }
 };
