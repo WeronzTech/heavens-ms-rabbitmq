@@ -79,6 +79,7 @@ const startServer = async () => {
     await import("./controllers/inventory.controller.js");
     await import("./controllers/internal.controller.js");
     await import("./controllers/category.controller.js");
+    await import("./controllers/subCategory.controller.js");
     await import("./controllers/addonBooking.controller.js");
     await import("./controllers/addon.controller.js");
     await import("./controllers/dailyInventoryRequirement.controller.js");

@@ -26,6 +26,7 @@ export const addInventory = async (data) => {
       lowStockQuantity,
       kitchenId,
       categoryId,
+      subCategoryId,
       pricePerUnit,
       userAuth,
     } = data;
@@ -123,6 +124,7 @@ export const addInventory = async (data) => {
       lowStockQuantity,
       kitchenId,
       categoryId,
+      subCategoryId,
       pricePerUnit,
       totalCost,
     });
@@ -210,6 +212,7 @@ export const getInventory = async (data) => {
     const total = await Inventory.countDocuments(query);
     const inventoryData = await Inventory.find(query)
       .populate("categoryId")
+      .populate("subCategoryId")
       .skip((page - 1) * limit)
       .limit(+limit)
       .sort({ createdAt: -1 });
@@ -231,6 +234,7 @@ export const editInventory = async (data) => {
       inventoryId,
       productName,
       categoryId,
+      subCategoryId,
       kitchenId,
       stockQuantity,
       quantityType,
@@ -280,6 +284,20 @@ export const editInventory = async (data) => {
     if (categoryId && item.categoryId.toString() !== categoryId) {
       createLog("categoryId", item.categoryId, categoryId, "Category changed.");
       item.categoryId = categoryId;
+    }
+
+    if (
+      subCategoryId &&
+      item.subCategoryId?.toString() !== subCategoryId
+    ) {
+      createLog(
+        "subCategoryId",
+        item.subCategoryId,
+        subCategoryId,
+        "Sub Category changed."
+      );
+
+      item.subCategoryId = subCategoryId;
     }
     // Similar checks for other fields...
 

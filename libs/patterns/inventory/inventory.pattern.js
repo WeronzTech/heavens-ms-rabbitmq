@@ -95,4 +95,8 @@ export const INVENTORY_PATTERN = {
     UPDATE_RECIPE_CATEGORY: "inventory_update_recipe_category",
     DELETE_RECIPE_CATEGORY: "inventory_delete_recipe_category",
   },
+  SUB_CATEGORY: {
+    ADD_SUB_CATEGORY: "inventory_subcategory_add",
+    GET_SUB_CATEGORIES: "inventory_subcategory_get",
+},
 };

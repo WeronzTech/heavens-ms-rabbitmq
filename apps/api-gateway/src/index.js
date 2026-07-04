@@ -65,6 +65,7 @@ import dailyInventoryRoutes from "./routes/inventory/dailyInventoryRequirement.r
 import salesReportRoutes from "./routes/order/dailySalesReport.routes.js";
 import busPaymentRoutes from "./routes/accounts/busPayment.routes.js";
 import payrollRoutes from "./routes/accounts/payroll.routes.js";
+import subCategoryRoutes from './routes/inventory/subCategory.routes.js';
 
 dotenv.config();
 const app = express();
@@ -123,6 +124,7 @@ app.use("/api/v2/inventory/inventorylogs", inventoryLogRoutes);
 app.use("/api/v2/inventory", inventoryRoutes);
 app.use("/api/v2/inventory/daily-requirement", dailyInventoryRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
+app.use("/api/v2/inventory/subcategory", subCategoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
 app.use("/api/v2/property/floor", floorRoutes);
