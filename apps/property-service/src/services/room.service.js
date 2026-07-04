@@ -1,7 +1,7 @@
 import Property from "../models/property.model.js";
 import Room from "../models/room.model.js";
 import mongoose from "mongoose";
-import {fetchUserData} from "./internal.service.js";
+import { fetchUserData } from "./internal.service.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import Floor from "../models/floor.model.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
@@ -30,13 +30,13 @@ export const addRoom = async (data) => {
     !propertyName ||
     !sharingType
   ) {
-    return {status: 400, message: "Missing required fields"};
+    return { status: 400, message: "Missing required fields" };
   }
 
   // ✅ Fetch property
   const property = await Property.findById(propertyId);
   if (!property) {
-    return {status: 404, message: "Property not found"};
+    return { status: 404, message: "Property not found" };
   }
 
   // ✅ Validate sharing type availability (if property has sharingPrices)
@@ -52,7 +52,7 @@ export const addRoom = async (data) => {
   }
 
   // ✅ Check if room number already exists under this property
-  const existingRoom = await Room.findOne({propertyId, roomNo});
+  const existingRoom = await Room.findOne({ propertyId, roomNo });
   if (existingRoom) {
     return {
       status: 409,
@@ -81,23 +81,23 @@ export const addRoom = async (data) => {
       description,
     });
 
-    const savedRoom = await newRoom.save({session});
+    const savedRoom = await newRoom.save({ session });
 
     // ✅ Add the new room ID to the floor (if floorId provided)
     if (floorId) {
       const Floor = mongoose.model("Floor"); // dynamically get Floor model
       await Floor.findByIdAndUpdate(
         floorId,
-        {$addToSet: {roomIds: savedRoom._id}},
-        {new: true, session},
+        { $addToSet: { roomIds: savedRoom._id } },
+        { new: true, session },
       );
     }
 
     // ✅ Update totalBeds in property
     const updatedProperty = await Property.findByIdAndUpdate(
       propertyId,
-      {$inc: {totalBeds: roomCapacity}},
-      {new: true, session},
+      { $inc: { totalBeds: roomCapacity } },
+      { new: true, session },
     );
 
     if (!updatedProperty) {
@@ -141,7 +141,7 @@ export const addRoom = async (data) => {
 };
 
 export const confirmRoomAssignment = async (data) => {
-  const {userId, roomId, userType} = data;
+  const { userId, roomId, userType } = data;
   console.log("rooooooooooooooooooomm");
   console.log(data);
 
@@ -149,12 +149,12 @@ export const confirmRoomAssignment = async (data) => {
   if (!userId || !roomId || !userType) {
     return {
       status: 400,
-      body: {error: "Missing userId, roomId, or userType"},
+      body: { error: "Missing userId, roomId, or userType" },
     };
   }
 
   if (!["longTermResident", "dailyRenter"].includes(userType)) {
-    return {status: 400, body: {error: "Invalid userType"}};
+    return { status: 400, body: { error: "Invalid userType" } };
   }
 
   const session = await mongoose.startSession();
@@ -164,12 +164,12 @@ export const confirmRoomAssignment = async (data) => {
     const room = await Room.findById(roomId).session(session);
     if (!room) {
       await session.abortTransaction();
-      return {status: 404, body: {error: "Room not found"}};
+      return { status: 404, body: { error: "Room not found" } };
     }
 
     if (room.vacantSlot <= 0) {
       await session.abortTransaction();
-      return {status: 400, body: {error: "Room is full"}};
+      return { status: 400, body: { error: "Room is full" } };
     }
 
     // Check if already assigned to this specific room
@@ -180,7 +180,7 @@ export const confirmRoomAssignment = async (data) => {
       await session.abortTransaction();
       return {
         status: 400,
-        body: {error: "User already assigned to this room"},
+        body: { error: "User already assigned to this room" },
       };
     }
 
@@ -201,14 +201,14 @@ export const confirmRoomAssignment = async (data) => {
         existingAssignment.roomOccupants.filter(
           (occ) => !(occ.userId.equals(userId) && occ.userType === userType),
         );
-      await existingAssignment.save({session});
+      await existingAssignment.save({ session });
 
       // If property is different, update the property occupiedBeds count
       if (!existingAssignment.propertyId.equals(room.propertyId)) {
         await Property.findByIdAndUpdate(
           existingAssignment.propertyId,
-          {$inc: {occupiedBeds: -1}},
-          {session},
+          { $inc: { occupiedBeds: -1 } },
+          { session },
         );
       }
     }
@@ -217,8 +217,8 @@ export const confirmRoomAssignment = async (data) => {
     room.occupant += 1;
     room.vacantSlot -= 1;
     if (!room.roomOccupants) room.roomOccupants = [];
-    room.roomOccupants.push({userId, userType});
-    await room.save({session});
+    room.roomOccupants.push({ userId, userType });
+    await room.save({ session });
 
     // Update property count if property changed
     if (
@@ -227,8 +227,8 @@ export const confirmRoomAssignment = async (data) => {
     ) {
       await Property.findByIdAndUpdate(
         room.propertyId,
-        {$inc: {occupiedBeds: 1}},
-        {session},
+        { $inc: { occupiedBeds: 1 } },
+        { session },
       );
     }
 
@@ -252,7 +252,7 @@ export const confirmRoomAssignment = async (data) => {
   } catch (err) {
     await session.abortTransaction();
     console.error("Error in confirming room assignment:", err);
-    return {status: 500, body: {error: "Internal server error"}};
+    return { status: 500, body: { error: "Internal server error" } };
   }
 };
 
@@ -310,7 +310,7 @@ export const confirmRoomAssignment = async (data) => {
 //   }
 // };
 export const handleRemoveAssignment = async (data) => {
-  const {userId, roomId} = data;
+  const { userId, roomId } = data;
   console.log(data);
   let session;
   try {
@@ -323,7 +323,7 @@ export const handleRemoveAssignment = async (data) => {
       await session.abortTransaction();
       return {
         status: 404,
-        body: {error: "Room not found"},
+        body: { error: "Room not found" },
       };
     }
 
@@ -337,7 +337,7 @@ export const handleRemoveAssignment = async (data) => {
       await session.abortTransaction();
       return {
         status: 400,
-        body: {error: "User is not assigned to this room."},
+        body: { error: "User is not assigned to this room." },
       };
     }
 
@@ -348,22 +348,22 @@ export const handleRemoveAssignment = async (data) => {
     room.occupant = Math.max(0, room.occupant - 1); // Prevent negative
     room.vacantSlot += 1;
 
-    await room.save({session});
+    await room.save({ session });
 
     // 4. Safe Update for Property Counts
     // We use a query filter to ensure we don't decrement if it's already 0
     // OR we rely on the fact that we confirmed the user existed above.
     // Ideally, if a user existed, occupiedBeds *should* be > 0.
     await Property.findOneAndUpdate(
-      {_id: room.propertyId, occupiedBeds: {$gt: 0}}, // Safety check query
-      {$inc: {occupiedBeds: -1}},
-      {session},
+      { _id: room.propertyId, occupiedBeds: { $gt: 0 } }, // Safety check query
+      { $inc: { occupiedBeds: -1 } },
+      { session },
     );
 
     await session.commitTransaction();
     return {
       status: 200,
-      body: {success: true},
+      body: { success: true },
     };
   } catch (error) {
     if (session) {
@@ -372,7 +372,7 @@ export const handleRemoveAssignment = async (data) => {
     console.error("Error removing room assignment:", error);
     return {
       status: 500,
-      body: {error: "Failed to remove room assignment"},
+      body: { error: "Failed to remove room assignment" },
     };
   } finally {
     if (session) {
@@ -397,7 +397,7 @@ export const updateRoom = async (data) => {
     // ✅ Find existing room
     const room = await Room.findById(id);
     if (!room) {
-      return {status: 404, message: "Room not found"};
+      return { status: 404, message: "Room not found" };
     }
 
     const isRoomNoChanged = roomNo && roomNo !== room.roomNo;
@@ -420,7 +420,7 @@ export const updateRoom = async (data) => {
     // ✅ Fetch property details
     const property = await Property.findById(room.propertyId);
     if (!property) {
-      return {status: 404, message: "Property not found"};
+      return { status: 404, message: "Property not found" };
     }
 
     // ✅ Validate sharing type in property’s sharingPrices map
@@ -470,10 +470,13 @@ export const updateRoom = async (data) => {
       try {
         await sendRPCRequest(
           USER_PATTERN.USER.UPDATE_ROOM_NUMBER_FOR_OCCUPANTS,
-          { roomId: room._id.toString(), newRoomNumber: room.roomNo }
+          { roomId: room._id.toString(), newRoomNumber: room.roomNo },
         );
       } catch (rpcError) {
-        console.error("❌ Failed to update room number for occupants via RPC:", rpcError);
+        console.error(
+          "❌ Failed to update room number for occupants via RPC:",
+          rpcError,
+        );
       }
     }
 
@@ -485,14 +488,14 @@ export const updateRoom = async (data) => {
       // If room moved to another floor → remove from old floor
       if (oldFloorId && oldFloorId !== newFloorId) {
         await Floor.findByIdAndUpdate(oldFloorId, {
-          $pull: {roomIds: room._id},
+          $pull: { roomIds: room._id },
         });
       }
 
       // Add to new floor (avoid duplicates)
       await Floor.findByIdAndUpdate(
         newFloorId,
-        {$addToSet: {roomIds: room._id}}, // prevents duplicates
+        { $addToSet: { roomIds: room._id } }, // prevents duplicates
       );
     }
 
@@ -524,13 +527,13 @@ export const updateRoom = async (data) => {
 
 export const deleteRoom = async (data) => {
   try {
-    const {id, adminName} = data;
+    const { id, adminName } = data;
 
     // ✅ Find and delete the room
     const deletedRoom = await Room.findByIdAndDelete(id);
 
     if (!deletedRoom) {
-      return {status: 404, message: "Room not found"};
+      return { status: 404, message: "Room not found" };
     }
 
     // ✅ Fetch the property for logging
@@ -565,13 +568,13 @@ export const deleteRoom = async (data) => {
 
 export const getRoomsByPropertyId = async (data) => {
   try {
-    const {propertyId} = data;
+    const { propertyId } = data;
 
     if (!propertyId) {
-      return {status: 400, message: "PropertyId is required"};
+      return { status: 400, message: "PropertyId is required" };
     }
 
-    const rooms = await Room.find({propertyId});
+    const rooms = await Room.find({ propertyId });
 
     if (!rooms || rooms.length === 0) {
       return {
@@ -595,15 +598,15 @@ export const getRoomsByPropertyId = async (data) => {
 
 export const getRoomOccupants = async (data) => {
   try {
-    const {roomId} = data;
+    const { roomId } = data;
 
     if (!roomId) {
-      return {status: 400, message: "roomId is required"};
+      return { status: 400, message: "roomId is required" };
     }
 
     const room = await Room.findById(roomId);
     if (!room) {
-      return {status: 404, message: "Room not found"};
+      return { status: 404, message: "Room not found" };
     }
 
     const occupants = [];
@@ -615,6 +618,7 @@ export const getRoomOccupants = async (data) => {
       for (const user of userData.body) {
         occupants.push({
           occupantDetails: {
+            _id: user._id,
             name: user.name,
             contact: user.contact,
             userType: user.userType,
@@ -650,16 +654,16 @@ export const getRoomOccupants = async (data) => {
 
 export const getAvailableRoomsByProperty = async (data) => {
   try {
-    const {propertyId, gender} = data;
+    const { propertyId, gender } = data;
 
     if (!propertyId) {
-      return {status: 400, message: "propertyId is required"};
+      return { status: 400, message: "propertyId is required" };
     }
 
     const roomFilter = {
       propertyId,
       status: "available",
-      vacantSlot: {$ne: 0},
+      vacantSlot: { $ne: 0 },
     };
 
     let rooms = await Room.find(roomFilter);
@@ -688,23 +692,34 @@ export const getAvailableRoomsByProperty = async (data) => {
         try {
           const usersResponse = await sendRPCRequest(
             USER_PATTERN.USER.GET_BULK_USER_BY_ID,
-            { userIds: occupantUserIds }
+            { userIds: occupantUserIds },
           );
 
-          if (usersResponse && usersResponse.status === 200 && usersResponse.body?.success) {
+          if (
+            usersResponse &&
+            usersResponse.status === 200 &&
+            usersResponse.body?.success
+          ) {
             const users = usersResponse.body.data || [];
             const isMatch = users.every(
-              (u) => u.personalDetails?.gender?.toLowerCase() === gender.toLowerCase()
+              (u) =>
+                u.personalDetails?.gender?.toLowerCase() ===
+                gender.toLowerCase(),
             );
 
             if (isMatch) {
               filteredRooms.push(room);
             }
           } else {
-            console.warn(`Could not verify genders for room ${room.roomNo} occupants`);
+            console.warn(
+              `Could not verify genders for room ${room.roomNo} occupants`,
+            );
           }
         } catch (rpcError) {
-          console.error("Error fetching bulk users for gender validation:", rpcError);
+          console.error(
+            "Error fetching bulk users for gender validation:",
+            rpcError,
+          );
         }
       }
 
@@ -716,7 +731,7 @@ export const getAvailableRoomsByProperty = async (data) => {
     );
 
     if (!property) {
-      return {status: 404, message: "Property not found"};
+      return { status: 404, message: "Property not found" };
     }
 
     if (!rooms.length) {
@@ -747,17 +762,17 @@ export const getAvailableRoomsByProperty = async (data) => {
 
 export const getAllHeavensRooms = async (data) => {
   try {
-    const query = {isHeavens: true};
+    const query = { isHeavens: true };
     if (data.propertyId && data.propertyId !== "null") {
       query.propertyId = data.propertyId;
     }
 
     const rooms = await Room.find(query);
     if (!rooms || rooms.length === 0) {
-      return {status: 404, message: "No Heavens rooms found"};
+      return { status: 404, message: "No Heavens rooms found" };
     }
 
-    return {status: 200, data: rooms};
+    return { status: 200, data: rooms };
   } catch (error) {
     console.error("Error in getAllHeavensRooms service:", error);
     return {
@@ -768,7 +783,7 @@ export const getAllHeavensRooms = async (data) => {
 };
 
 export const getRoomsByFloorId = async (data) => {
-  const {floorId} = data;
+  const { floorId } = data;
 
   if (!floorId) {
     return {
@@ -793,9 +808,9 @@ export const getRoomsByFloorId = async (data) => {
     }
 
     // ✅ Fetch rooms belonging to this floor
-    const rooms = await Room.find({floorId})
+    const rooms = await Room.find({ floorId })
       .populate("propertyId", "propertyName propertyId")
-      .sort({roomNo: 1}); // Sort by room number
+      .sort({ roomNo: 1 }); // Sort by room number
 
     if (!rooms || rooms.length === 0) {
       return {
@@ -852,7 +867,10 @@ export const getAvailableRoomsForChange = async (data) => {
   try {
     const { propertyId, sharingType, gender, currentRoomId } = data;
     if (!propertyId || !sharingType) {
-      return { status: 400, message: "propertyId and sharingType are required" };
+      return {
+        status: 400,
+        message: "propertyId and sharingType are required",
+      };
     }
 
     const roomFilter = {
@@ -892,23 +910,34 @@ export const getAvailableRoomsForChange = async (data) => {
         try {
           const usersResponse = await sendRPCRequest(
             USER_PATTERN.USER.GET_BULK_USER_BY_ID,
-            { userIds: occupantUserIds }
+            { userIds: occupantUserIds },
           );
 
-          if (usersResponse && usersResponse.status === 200 && usersResponse.body?.success) {
+          if (
+            usersResponse &&
+            usersResponse.status === 200 &&
+            usersResponse.body?.success
+          ) {
             const users = usersResponse.body.data || [];
             const isMatch = users.every(
-              (u) => u.personalDetails?.gender?.toLowerCase() === gender.toLowerCase()
+              (u) =>
+                u.personalDetails?.gender?.toLowerCase() ===
+                gender.toLowerCase(),
             );
 
             if (isMatch) {
               filteredRooms.push(room);
             }
           } else {
-            console.warn(`Could not verify genders for room ${room.roomNo} occupants`);
+            console.warn(
+              `Could not verify genders for room ${room.roomNo} occupants`,
+            );
           }
         } catch (rpcError) {
-          console.error("Error fetching bulk users for gender validation:", rpcError);
+          console.error(
+            "Error fetching bulk users for gender validation:",
+            rpcError,
+          );
         }
       }
 
