@@ -156,18 +156,15 @@ export const vacateUserById = async (userId, roleName) => {
     const currentRoomId = user.stayDetails?.roomId;
     const currentPropertyId = user.propertyId;
 
- if (currentRoomId) {
-  await removeFromRoom({
-    userId: user._id,
-    roomId: currentRoomId,
-    session,
-  });
-
-}
+    if (currentRoomId) {
+      await removeFromRoom({
+        userId: user._id,
+        roomId: currentRoomId,
+        session,
+      });
+    }
     user.isVacated = true;
     user.stayDetails.roomId = null;
-    await user.save({session});
-
     await user.save({session});
 
     await session.commitTransaction();
@@ -573,6 +570,7 @@ export const approveUser = async (data) => {
     kitchenName,
     busFee,
     updatedBy,
+    // firstMonthRent,
   } = data;
   console.log(data);
   try {
@@ -712,6 +710,10 @@ export const approveUser = async (data) => {
           ...user.financialDetails,
           monthlyRent: monthlyRent || user.stayDetails?.monthlyRent,
           pendingRent: monthlyRent || user.stayDetails?.monthlyRent,
+          // pendingRent:
+          //   firstMonthRent > 0
+          //     ? firstMonthRent
+          //     : monthlyRent || user.stayDetails?.monthlyRent,
           accountBalance: 0,
           paymentDueSince: user.financialDetails?.nextDueDate,
         };
@@ -1702,19 +1704,12 @@ export const getUsersByRentType = async (data) => {
 
 export const getCheckOutedUsersByRentType = async (data) => {
   try {
-    const {
-      rentType,
-      propertyId,
-      page,
-      limit,
-      search,
-      paymentStatus,
-    } = data;
+    const {rentType, propertyId, page, limit, search, paymentStatus} = data;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
-    
-    console.log("backend",data)
+
+    console.log("backend", data);
     // Validate rentType (if provided)
     const validRentTypes = ["monthly", "daily", "mess"];
     if (rentType && !validRentTypes.includes(rentType)) {

@@ -83,6 +83,7 @@ export const addPettyCash = async (data) => {
       createdBy,
       createdByName,
       paymentMode,
+      type: "ADD_FUNDS",
     });
 
     const transactions = [];

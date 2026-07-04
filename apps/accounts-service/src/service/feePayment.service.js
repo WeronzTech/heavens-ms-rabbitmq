@@ -990,6 +990,7 @@ const processAndRecordPayment = async ({
   remarks = "",
   processAndRecordPayment,
 }) => {
+  console.log(paymentDate);
   const session = await mongoose.startSession();
   session.startTransaction();
   // console.log({collectedBy, collectedById});

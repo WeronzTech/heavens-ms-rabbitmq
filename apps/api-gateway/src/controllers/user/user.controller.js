@@ -63,7 +63,9 @@ export const approveUser = async (req, res) => {
     kitchenName,
     busFee,
     updatedBy,
+    firstMonthRent,
   } = req.body;
+  console.log(req.body);
   const response = await sendRPCRequest(USER_PATTERN.USER.APPROVE_USER, {
     id,
     name,
@@ -84,6 +86,7 @@ export const approveUser = async (req, res) => {
     kitchenName,
     busFee,
     updatedBy,
+    // firstMonthRent,
   });
 
   return res.status(response.status).json(response.body);
@@ -222,9 +225,16 @@ export const getUsersByRentType = async (req, res) => {
 
 export const getCheckOutedUsersByRentType = async (req, res) => {
   try {
-    const {rentType, propertyId, page = 1, limit = 10, search, paymentStatus} = req.query;
+    const {
+      rentType,
+      propertyId,
+      page = 1,
+      limit = 10,
+      search,
+      paymentStatus,
+    } = req.query;
 
-    console.log("api gateway",req.query)
+    console.log("api gateway", req.query);
 
     const response = await sendRPCRequest(
       USER_PATTERN.USER.GET_CHECKOUTED_USERS_BY_RENT_TYPE,
@@ -257,7 +267,7 @@ export const getCheckOutedUsersByRentType = async (req, res) => {
 export const vacateUser = async (req, res) => {
   try {
     const {id} = req.params;
-    const { roleName } = req.query;
+    const {roleName} = req.query;
 
     console.log(req.query);
 
@@ -265,7 +275,7 @@ export const vacateUser = async (req, res) => {
       id,
       roleName,
     });
-  console.log(roleName,id)
+    console.log(roleName, id);
 
     return res
       .status(response?.status || 500)
