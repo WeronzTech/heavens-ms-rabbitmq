@@ -71,25 +71,75 @@ export const addSubCategory = async (data) => {
     }
 };
 
+// export const getSubCategories = async (data) => {
+//   try {
+//     const { propertyId, categoryId } = data;
+
+//     const filter = {};
+
+//     // Always filter by selected category
+//     if (categoryId) {
+//       filter.categoryId = categoryId;
+//     }
+
+//     // Only filter by property when one is selected
+//     if (propertyId) {
+//       filter.propertyId = propertyId;
+//     }
+
+//     const subCategories = await SubCategory.find(filter)
+//       .populate("categoryId", "name")
+//       .sort({ name: 1 });
+
+//     return {
+//       success: true,
+//       status: 200,
+//       data: subCategories,
+//     };
+//   } catch (error) {
+//     console.log(error);
+
+//     return {
+//       success: false,
+//       status: 500,
+//       message: "Server Error",
+//     };
+//   }
+// };
 export const getSubCategories = async (data) => {
-    try {
-        const { propertyId } = data;
-        console.log(data)
+  try {
+    const { propertyId, categoryId } = data;
 
-        const subCategories = await SubCategory.find({ propertyId })
-            .populate("categoryId", "name")
-            .sort({ name: 1 });
+    console.log("Incoming:", data);
 
-        return {
-            success: true,
-            status: 200,
-            data: subCategories,
-        };
-    } catch (error) {
-        return {
-            success: false,
-            status: 500,
-            message: "Server Error",
-        };
+    const filter = {};
+
+    if (categoryId) {
+      filter.categoryId = categoryId;
     }
+
+    if (propertyId) {
+      filter.propertyId = propertyId;
+    }
+
+    console.log("Filter:", filter);
+
+    const subCategories = await SubCategory.find(filter)
+      .populate("categoryId", "name")
+      .sort({ name: 1 });
+
+    return {
+      success: true,
+      status: 200,
+      data: subCategories,
+    };
+  } catch (error) {
+    console.log(error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "Server Error",
+    };
+  }
 };
