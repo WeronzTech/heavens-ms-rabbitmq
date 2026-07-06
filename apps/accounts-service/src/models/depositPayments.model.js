@@ -20,7 +20,7 @@ const depositSchema = new mongoose.Schema(
     dueAmount: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
-      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay"],
+      enum: ["Cash", "UPI", "Bank Transfer", "Card", "Razorpay", "Easebuzz"],
     },
     transactionId: {
       type: String,
@@ -58,7 +58,7 @@ const depositSchema = new mongoose.Schema(
       unique: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Deposits = mongoose.model("Deposits", depositSchema);
