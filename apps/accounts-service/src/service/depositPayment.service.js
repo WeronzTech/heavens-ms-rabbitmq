@@ -716,6 +716,7 @@ export const verifyAndRecordOnlineDepositPayment = async (data) => {
     },
     keySecret,
   );
+  console.log("Is verified", isVerified, status, keySecret);
   if (!isVerified || status !== "success") {
     return {
       success: false,
