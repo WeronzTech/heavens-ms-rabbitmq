@@ -47,11 +47,17 @@ const inventorySchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // subCategoryId: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "SubCategory",
+    //   required: true,
+    //   index: true,
+    // },
     subCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SubCategory",
-      required: true,
-      index: true,
+      required: false,
+      default: null,
     },
     pricePerUnit: {
       type: Number,
