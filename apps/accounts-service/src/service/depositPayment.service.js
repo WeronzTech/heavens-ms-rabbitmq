@@ -712,6 +712,7 @@ export const verifyAndRecordOnlineDepositPayment = async (data) => {
       easepayid,
       hash,
       status,
+      amount,
       ...rest,
     },
     keySecret,
