@@ -210,7 +210,7 @@ export const registerUser = async (data) => {
       agent,
       clientId,
     } = data;
-    console.log(data);
+    // console.log(data);
     let rentType;
     if (userType === "student" || userType === "worker") {
       rentType = "monthly";
@@ -332,10 +332,10 @@ export const registerUser = async (data) => {
         monthlyRent: stayDetails.monthlyRent,
         pendingRent: stayDetails.monthlyRent,
         accountBalance: 0,
-        // nextDueDate: new Date(stayDetails.joinDate) || new Date(),
-        nextDueDate: new Date(
-          Date.UTC(joinDate.getUTCFullYear(), joinDate.getUTCMonth(), 1),
-        ),
+        nextDueDate: new Date(stayDetails.joinDate) || new Date(),
+        // nextDueDate: new Date(
+        //   Date.UTC(joinDate.getUTCFullYear(), joinDate.getUTCMonth(), 1),
+        // ),
         clearedTillMonth,
       };
     } else if (rentType === "daily") {
@@ -570,12 +570,11 @@ export const approveUser = async (data) => {
     kitchenName,
     busFee,
     updatedBy,
-    // firstMonthRent,
+    firstMonthRent,
   } = data;
-  console.log(data);
+
   try {
     const user = await User.findById(id).lean();
-    // console.log(user);
 
     if (!user) {
       return {
@@ -710,11 +709,8 @@ export const approveUser = async (data) => {
           ...user.financialDetails,
           monthlyRent: monthlyRent || user.stayDetails?.monthlyRent,
           pendingRent: monthlyRent || user.stayDetails?.monthlyRent,
-          // pendingRent:
-          //   firstMonthRent > 0
-          //     ? firstMonthRent
-          //     : monthlyRent || user.stayDetails?.monthlyRent,
           accountBalance: 0,
+          nextDueDate: joinDate ? new Date(joinDate) : new Date(),
           paymentDueSince: user.financialDetails?.nextDueDate,
         };
       } else if (user.rentType === "daily") {
@@ -762,6 +758,33 @@ export const approveUser = async (data) => {
       {new: true, lean: true},
     );
 
+    // Wave off the remaining first month's rent after approval
+    if (
+      updatedUser.rentType === "monthly" &&
+      Number(firstMonthRent) > 0 &&
+      Number(firstMonthRent) < Number(updatedUser.financialDetails.monthlyRent)
+    ) {
+      const waveOffAmount =
+        Number(updatedUser.financialDetails.monthlyRent) -
+        Number(firstMonthRent);
+      const waveOffResponse = await sendRPCRequest(
+        ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_WAVEOFF_ONLY_PAYMENT,
+        {
+          userId: updatedUser._id,
+          waveOffAmount,
+          waveOffReason: "First month rent difference",
+          paymentDate: updatedUser.stayDetails.joinDate,
+          remarks: "Auto wave-off during user approval.",
+        },
+      );
+
+      if (!waveOffResponse.success) {
+        throw new Error(
+          waveOffResponse.message ||
+            "Failed to record first month rent wave-off.",
+        );
+      }
+    }
     try {
       await UserLog.create({
         userId: updatedUser._id,
@@ -1709,7 +1732,7 @@ export const getCheckOutedUsersByRentType = async (data) => {
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
 
-    console.log("backend", data);
+    // console.log("backend", data);
     // Validate rentType (if provided)
     const validRentTypes = ["monthly", "daily", "mess"];
     if (rentType && !validRentTypes.includes(rentType)) {
@@ -1929,7 +1952,7 @@ export const vacateUser = async (data) => {
   try {
     const {roleName, id} = data;
     const result = await vacateUserById(id, roleName);
-    console.log(result);
+    // console.log(result);
     try {
       await UserLog.create({
         userId: id,
@@ -1997,9 +2020,8 @@ export const rejoinUser = async (data) => {
       financialDetails,
       noOfDays,
       updatedBy,
+      firstMonthRent,
     } = data;
-    console.log("hererereer");
-    console.log(data);
 
     const user = await User.findById(id);
 
@@ -2022,6 +2044,7 @@ export const rejoinUser = async (data) => {
     user.isLoginEnabled = true;
     user.vacatedAt = null;
     user.paymentDueSince = joinDate ? new Date(joinDate) : new Date();
+    user.nextDueDate = joinDate ? new Date(joinDate) : new Date();
     user.currentStatus = "checked_in";
     user.paymentStatus = "pending";
     user.stayDetails.depositAmountPaid = 0;
@@ -2036,9 +2059,6 @@ export const rejoinUser = async (data) => {
         roomId,
         userType: rentType === "monthly" ? "longTermResident" : "dailyRenter",
       });
-      console.log("roommmmmmm");
-      console.log(roomAssignment);
-      console.log("roommmmmmm");
     }
 
     // Update type-specific details
@@ -2114,9 +2134,34 @@ export const rejoinUser = async (data) => {
         };
       }
     }
-    console.log(user);
     await user.save();
+    // Wave off the remaining first month's rent after approval
+    if (
+      user.rentType === "monthly" &&
+      Number(firstMonthRent) > 0 &&
+      Number(firstMonthRent) < Number(user.financialDetails.monthlyRent)
+    ) {
+      const waveOffAmount =
+        Number(user.financialDetails.monthlyRent) - Number(firstMonthRent);
 
+      const waveOffResponse = await sendRPCRequest(
+        ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_WAVEOFF_ONLY_PAYMENT,
+        {
+          userId: user._id,
+          waveOffAmount,
+          waveOffReason: "First month rent difference",
+          paymentDate: user.stayDetails.joinDate,
+          remarks: "Auto wave-off during user approval.",
+        },
+      );
+
+      if (!waveOffResponse.success) {
+        throw new Error(
+          waveOffResponse.message ||
+            "Failed to record first month rent wave-off.",
+        );
+      }
+    }
     try {
       await UserLog.create({
         userId: user._id,
@@ -2884,7 +2929,7 @@ export const respondToStatusRequest = async (data) => {
     const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
 
     userIdsToNotify.push(user._id);
-    console.log(userIdsToNotify);
+    // console.log(userIdsToNotify);
     const socket = await sendRPCRequest(SOCKET_PATTERN.EMIT, {
       userIds: userIdsToNotify,
       event: "current-status",
@@ -3122,7 +3167,7 @@ export const updatePassword = async ({userId, password}) => {
 export const updateUser = async (data) => {
   try {
     const {userId, userData} = data;
-    console.log("userData", userData);
+    // console.log("userData", userData);
 
     const user = await User.findByIdAndUpdate(userId, userData, {new: true});
     if (!user) {
@@ -3332,7 +3377,6 @@ export const getAllPaymentPendingUsers = async (data) => {
 export const getResidentCounts = async (data) => {
   try {
     const {propertyId} = data;
-    console.log("herererer");
     const filter = {
       isVacated: false,
     };
@@ -3355,7 +3399,6 @@ export const getResidentCounts = async (data) => {
 
 export const getUsersWithBirthdayToday = async () => {
   try {
-    console.log("Here");
     const today = new Date();
     const currentMonth = today.getMonth() + 1; // getMonth() is 0-indexed
     const currentDay = today.getDate();
@@ -3536,7 +3579,7 @@ export const getUserStatisticsForAccountDashboard = async (data) => {
 export const getUsersByAgencyService = async (data) => {
   try {
     const {agent} = data;
-    console.log(data);
+    // console.log(data);
     if (!agent) {
       return {
         success: false,
@@ -4071,7 +4114,7 @@ export const registerUserFromPanel = async (data) => {
       messDetails,
       personalDetails,
     } = data;
-    console.log(data);
+    // console.log(data);
     let rentType;
 
     if (userType === "dailyRent") {
@@ -4253,7 +4296,6 @@ export const getBulkHeavensUserById = async (data) => {
           try {
             return new mongoose.Types.ObjectId(id);
           } catch {
-            console.log("Invalid userId:", id);
             return null;
           }
         })
@@ -4317,7 +4359,7 @@ export const updateRentAndDates = async (data) => {
       messEndDate,
       noOfDays,
     } = data;
-    console.log(data);
+    // console.log(data);
     const user = await User.findById(userId);
 
     if (!user) {
@@ -4411,7 +4453,6 @@ export const updateRentAndDates = async (data) => {
       },
     };
   } catch (error) {
-    console.log(error);
     console.error("Error updating rent and dates:", error);
     return {
       status: 500,

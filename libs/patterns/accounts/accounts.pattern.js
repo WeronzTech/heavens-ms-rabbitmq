@@ -21,6 +21,7 @@ export const ACCOUNTS_PATTERN = {
     GET_TRANSACTIONS_BY_USERID: "get_transactions_by_userId",
     GET_PAYMENTS_BY_PAIDBYID: "get_payments_by_paidById",
     GET_MONTHS_PAID_PENDING: "get_months_paid_pending",
+    ADD_WAVEOFF_ONLY_PAYMENT: "add_waveoff_only_payment",
   },
   DEPOSIT_PAYMENTS: {
     INITIATE_ONLINE_DEPOSIT: "deposit_payment_initiate_online",

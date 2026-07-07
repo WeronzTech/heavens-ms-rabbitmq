@@ -41,6 +41,12 @@ export const USER_PATTERN = {
     CHECK_PENDING_ROOM_CHANGE_REQUEST: "check_pending_room_change_request",
     UPDATE_ROOM_NUMBER_FOR_OCCUPANTS: "update_room_number_for_occupants",
   },
+  SETTINGS: {
+    CREATE_APP_SETTINGS: "create_app_settings",
+    UPDATE_APP_SETTINGS: "update_app_settings",
+    GET_APP_SETTINGS: "get_app_settings",
+    GET_APP_SETTINGS_ADMIN: "get_app_settings_admin",
+  },
   PASSWORD: {
     SET_RESET_TOKEN: "set_reset_token",
     GET_USER_BY_RESET_TOKEN: "get_user_by_reset_token",

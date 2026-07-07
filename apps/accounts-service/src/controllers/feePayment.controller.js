@@ -22,6 +22,7 @@ import {
   getTransactionHistoryByUserId,
   getSponsoredPayments,
   getUserPaidAndPendingMonths,
+  waveOffRent,
 } from "../service/feePayment.service.js";
 
 createResponder(
@@ -156,5 +157,12 @@ createResponder(
   ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_MONTHS_PAID_PENDING,
   async (data) => {
     return await getUserPaidAndPendingMonths(data);
+  },
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.ADD_WAVEOFF_ONLY_PAYMENT,
+  async (data) => {
+    return await waveOffRent(data);
   },
 );
