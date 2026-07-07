@@ -5,11 +5,11 @@ import {
 import AlertNotification from "../models/alertNotification.model.js";
 import FcmToken from "../models/fcmToken.model.js";
 import NotificationLog from "../models/notificationLog.model.js";
-import { sendPushNotificationToUser } from "../utils/sendNotificationHelper.js";
+import {sendPushNotificationToUser} from "../utils/sendNotificationHelper.js";
 
-export const addAlertNotification = async ({ data }) => {
+export const addAlertNotification = async ({data}) => {
   try {
-    const { title, description, userId, file } = data;
+    const {title, description, userId, file} = data;
 
     let imageUrl = "";
     if (file.alertNotificationImage && file.alertNotificationImage[0].buffer) {
@@ -31,16 +31,16 @@ export const addAlertNotification = async ({ data }) => {
     };
 
     // Send push notification if FCM token exists
-    const tokenRecord = await FcmToken.findOne({ userId: formattedId });
+    const tokenRecord = await FcmToken.findOne({userId: formattedId});
     let isNotificationSent = false;
 
     if (tokenRecord?.token?.length) {
-      const notificationMessage = { title, body: description, image: imageUrl };
+      const notificationMessage = {title, body: description, image: imageUrl};
 
       for (const token of tokenRecord.token) {
         const success = await sendPushNotificationToUser(
           token,
-          notificationMessage
+          notificationMessage,
         );
         if (success) isNotificationSent = true;
       }
@@ -48,7 +48,7 @@ export const addAlertNotification = async ({ data }) => {
 
     // Save alert notification
     const newAlertNotification = await AlertNotification.create(
-      alertNotificationData
+      alertNotificationData,
     );
 
     // Save notification log if sent
@@ -77,20 +77,20 @@ export const addAlertNotification = async ({ data }) => {
   }
 };
 
-export const deleteAlertNotification = async ({ data }) => {
+export const deleteAlertNotification = async ({data}) => {
   try {
-    const { id } = data;
+    const {id} = data;
 
     const deletedNotification = await AlertNotification.findByIdAndDelete(id);
     await deleteFromFirebase(deletedNotification.imageUrl);
 
     if (!deletedNotification) {
-      return { status: 404, message: "Alert notification not found" };
+      return {status: 404, message: "Alert notification not found"};
     }
 
     return {
       status: 200,
-      data: { message: "Alert notification deleted successfully" },
+      data: {message: "Alert notification deleted successfully"},
     };
   } catch (error) {
     console.error("RPC Delete Alert Notification Error:", error);
@@ -101,9 +101,9 @@ export const deleteAlertNotification = async ({ data }) => {
   }
 };
 
-export const getAlertNotifications = async ({ data }) => {
+export const getAlertNotifications = async ({data}) => {
   try {
-    const { userId } = data;
+    const {userId} = data;
     const filter = {};
 
     if (userId) {
@@ -114,7 +114,7 @@ export const getAlertNotifications = async ({ data }) => {
       createdAt: -1,
     });
 
-    return { status: 200, data: { notifications } };
+    return {status: 200, data: {notifications}};
   } catch (error) {
     console.error("RPC Get Alert Notifications Error:", error);
     return {
