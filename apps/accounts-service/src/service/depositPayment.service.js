@@ -712,10 +712,12 @@ export const verifyAndRecordOnlineDepositPayment = async (data) => {
       easepayid,
       hash,
       status,
+      amount,
       ...rest,
     },
     keySecret,
   );
+  console.log("Is verified", isVerified, status, keySecret);
   if (!isVerified || status !== "success") {
     return {
       success: false,

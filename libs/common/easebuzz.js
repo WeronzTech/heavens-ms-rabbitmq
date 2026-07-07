@@ -17,14 +17,56 @@ const generateHash = (data, salt) => {
   return crypto.createHash("sha512").update(hashString).digest("hex");
 };
 
+// const verifyHash = (data, salt) => {
+//   // Response hash formula: salt|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
+//   const hashString = `${salt}|${data.status}|${data.udf10 || ""}|${data.udf9 || ""}|${data.udf8 || ""}|${data.udf7 || ""}|${data.udf6 || ""}|${data.udf5 || ""}|${data.udf4 || ""}|${data.udf3 || ""}|${data.udf2 || ""}|${data.udf1 || ""}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
+//   const generatedHash = crypto
+//     .createHash("sha512")
+//     .update(hashString)
+//     .digest("hex");
+//   console.log("Generated Hash", generatedHash, data.hash);
+//   return generatedHash === data.hash;
+// };
+
 const verifyHash = (data, salt) => {
-  // Response hash formula: salt|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
-  const hashString = `${salt}|${data.status}|${data.udf10 || ""}|${data.udf9 || ""}|${data.udf8 || ""}|${data.udf7 || ""}|${data.udf6 || ""}|${data.udf5 || ""}|${data.udf4 || ""}|${data.udf3 || ""}|${data.udf2 || ""}|${data.udf1 || ""}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
+  // 1. Trim salt to prevent accidental whitespace from .env files
+  const cleanSalt = salt.trim();
+
+  // 2. Format the amount exactly as it was initiated (2 decimal places)
+  // Easebuzz returns '1.0', but their server calculated the hash using '1.00'
+  const formattedAmount = parseFloat(data.amount).toFixed(2);
+
+  // 3. Response hash formula
+  let hashString = `${cleanSalt}|${data.status}|${data.udf10 || ""}|${data.udf9 || ""}|${data.udf8 || ""}|${data.udf7 || ""}|${data.udf6 || ""}|${data.udf5 || ""}|${data.udf4 || ""}|${data.udf3 || ""}|${data.udf2 || ""}|${data.udf1 || ""}|${data.email || ""}|${data.firstname || ""}|${data.productinfo || ""}|${formattedAmount}|${data.txnid}|${data.key}`;
+
+  // 4. Handle extra charges (Easebuzz silently adds this for some payment methods)
+  // If present, the formula changes to: additionalCharges|salt|status|...
+  if (data.additionalCharges) {
+    hashString = `${data.additionalCharges}|${hashString}`;
+  }
+
+  // Generate the hash with formatted amount
   const generatedHash = crypto
     .createHash("sha512")
     .update(hashString)
     .digest("hex");
-  return generatedHash === data.hash;
+
+  // Fallback: Just in case Easebuzz actually hashed it using the raw unformatted string ('1.0')
+  const fallbackHashString = data.additionalCharges
+    ? `${data.additionalCharges}|${cleanSalt}|${data.status}|${data.udf10 || ""}|${data.udf9 || ""}|${data.udf8 || ""}|${data.udf7 || ""}|${data.udf6 || ""}|${data.udf5 || ""}|${data.udf4 || ""}|${data.udf3 || ""}|${data.udf2 || ""}|${data.udf1 || ""}|${data.email || ""}|${data.firstname || ""}|${data.productinfo || ""}|${data.amount}|${data.txnid}|${data.key}`
+    : `${cleanSalt}|${data.status}|${data.udf10 || ""}|${data.udf9 || ""}|${data.udf8 || ""}|${data.udf7 || ""}|${data.udf6 || ""}|${data.udf5 || ""}|${data.udf4 || ""}|${data.udf3 || ""}|${data.udf2 || ""}|${data.udf1 || ""}|${data.email || ""}|${data.firstname || ""}|${data.productinfo || ""}|${data.amount}|${data.txnid}|${data.key}`;
+
+  const fallbackHash = crypto
+    .createHash("sha512")
+    .update(fallbackHashString)
+    .digest("hex");
+
+  console.log("Formatted Hash:", generatedHash);
+  console.log("Fallback Hash:", fallbackHash);
+  console.log("Easebuzz Hash:", data.hash);
+
+  // Return true if either hash matches
+  return generatedHash === data.hash || fallbackHash === data.hash;
 };
 
 const initiateEasebuzzPayment = async ({

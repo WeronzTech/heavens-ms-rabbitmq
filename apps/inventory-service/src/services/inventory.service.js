@@ -286,18 +286,30 @@ export const editInventory = async (data) => {
       item.categoryId = categoryId;
     }
 
-    if (
-      subCategoryId &&
-      item.subCategoryId?.toString() !== subCategoryId
-    ) {
+    // if (
+    //   subCategoryId &&
+    //   item.subCategoryId?.toString() !== subCategoryId
+    // ) {
+    //   createLog(
+    //     "subCategoryId",
+    //     item.subCategoryId,
+    //     subCategoryId,
+    //     "Sub Category changed."
+    //   );
+
+    //   item.subCategoryId = subCategoryId;
+    // }
+    const oldSubCategory = item.subCategoryId?.toString() || null;
+    const newSubCategory = subCategoryId || null;
+    if (oldSubCategory !== newSubCategory) {
       createLog(
         "subCategoryId",
-        item.subCategoryId,
-        subCategoryId,
+        oldSubCategory,
+        newSubCategory,
         "Sub Category changed."
       );
 
-      item.subCategoryId = subCategoryId;
+      item.subCategoryId = newSubCategory;
     }
     // Similar checks for other fields...
 
