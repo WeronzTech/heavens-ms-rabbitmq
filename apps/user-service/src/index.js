@@ -55,6 +55,8 @@ const startServer = async () => {
     await import("./controllers/internal.controller.js");
     await import("./controllers/gaming.controller.js");
     await import("./controllers/roomChangeRequest.controller.js");
+    await import("./controllers/appSettings.controller.js");
+
     console.log("[USER] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.

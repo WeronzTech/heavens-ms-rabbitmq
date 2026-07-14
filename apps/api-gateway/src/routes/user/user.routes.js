@@ -199,32 +199,32 @@ userRoutes.put(
 userRoutes.post(
   "/room-change-requests",
   hasPermission(PERMISSIONS.USER_MANAGE),
-  createRoomChangeRequest
+  createRoomChangeRequest,
 );
 userRoutes.get(
   "/room-change-requests/pending",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getPendingRoomChangeRequests
+  getPendingRoomChangeRequests,
 );
 userRoutes.put(
   "/:id/room-change-requests/:requestId/respond",
   hasPermission(PERMISSIONS.USER_MANAGE),
-  respondToRoomChangeRequest
+  respondToRoomChangeRequest,
 );
 userRoutes.get(
   "/room-change-requests/available-rooms",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getAvailableRoomsForMobile
+  getAvailableRoomsForMobile,
 );
 userRoutes.get(
   "/room-change-requests/check-pending",
   hasPermission(PERMISSIONS.USER_VIEW),
-  checkPendingRoomChangeRequest
+  checkPendingRoomChangeRequest,
 );
 userRoutes.get(
   "/:id/room-change-requests",
   hasPermission(PERMISSIONS.USER_VIEW),
-  getUserRoomChangeRequests
+  getUserRoomChangeRequests,
 );
 
 export default userRoutes;

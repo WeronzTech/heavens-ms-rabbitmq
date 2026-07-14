@@ -1310,7 +1310,7 @@ const processAndRecordPayment = async ({
   }
 };
 
-const waveOffRent = async ({
+export const waveOffRent = async ({
   userId,
   waveOffAmount,
   waveOffReason,
@@ -1797,7 +1797,7 @@ export const recordManualPayment = async (data) => {
     clientId,
     isWaveOff = false,
   } = data;
-  console.log(data);
+
   // If this is a wave-off, don't validate payment method/transaction
   if (isWaveOff) {
     if (!waveOffAmount || Number(waveOffAmount) <= 0) {

@@ -65,7 +65,7 @@ export const approveUser = async (req, res) => {
     updatedBy,
     firstMonthRent,
   } = req.body;
-  console.log(req.body);
+
   const response = await sendRPCRequest(USER_PATTERN.USER.APPROVE_USER, {
     id,
     name,
@@ -86,7 +86,7 @@ export const approveUser = async (req, res) => {
     kitchenName,
     busFee,
     updatedBy,
-    // firstMonthRent,
+    firstMonthRent,
   });
 
   return res.status(response.status).json(response.body);
@@ -318,8 +318,8 @@ export const rejoinUser = async (req, res) => {
       messDetails,
       noOfDays,
       updatedBy,
+      firstMonthRent,
     } = req.body;
-    console.log(req.body);
     const response = await sendRPCRequest(USER_PATTERN.USER.REJOIN_USER, {
       id,
       userType,
@@ -339,6 +339,7 @@ export const rejoinUser = async (req, res) => {
       messDetails,
       noOfDays,
       updatedBy,
+      firstMonthRent,
     });
 
     return res

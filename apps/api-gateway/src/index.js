@@ -66,6 +66,7 @@ import salesReportRoutes from "./routes/order/dailySalesReport.routes.js";
 import busPaymentRoutes from "./routes/accounts/busPayment.routes.js";
 import payrollRoutes from "./routes/accounts/payroll.routes.js";
 import subCategoryRoutes from "./routes/inventory/subCategory.routes.js";
+import appSettingsRoutes from "./routes/user/appSettings.route.js";
 
 dotenv.config();
 const app = express();
@@ -87,7 +88,7 @@ app.use(
       "http://localhost:8082",
       "http://localhost:8083",
       "http://192.168.1.70:8082",
-      "http://192.168.1.69:8082",
+      "http://192.168.1.68:8082",
     ],
     credentials: true,
   }),
@@ -124,7 +125,6 @@ app.use("/api/v2/inventory/inventorylogs", inventoryLogRoutes);
 app.use("/api/v2/inventory", inventoryRoutes);
 app.use("/api/v2/inventory/daily-requirement", dailyInventoryRoutes);
 app.use("/api/v2/inventory/category", categoryRoutes);
-app.use("/api/v2/inventory/subcategory", subCategoryRoutes);
 app.use("/api/v2/inventory/addon-booking", addonBookingRoutes);
 app.use("/api/v2/inventory/addon", addonRoutes);
 app.use("/api/v2/property/floor", floorRoutes);
@@ -171,6 +171,8 @@ app.use("/api/v2/order/discount/product", productDiscountRoutes);
 app.use("/api/v2/order/delivery-charge", deliveryChargeRoutes);
 app.use("/api/v2/order", orderRoutes);
 app.use("/api/v2/order/sales", salesReportRoutes);
+app.use("/api/v2/app/settings", appSettingsRoutes);
+
 // ----- Health Check ----- //
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK CI/CD is working fine and running." });
