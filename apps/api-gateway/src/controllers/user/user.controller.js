@@ -115,11 +115,14 @@ export const verifyEmail = async (req, res) => {
     email,
   });
 
-  if (response.isHtml) {
-    return res.status(response.status).send(response.body);
+  if (response?.isHtml) {
+    return res
+      .setHeader("Content-Type", "text/html")
+      .status(response.status || 200)
+      .send(response.body);
   }
 
-  return res.status(response.status).json(response.body);
+  return res.status(response?.status || 200).json(response?.body || response);
 };
 
 export const updateProfileCompletion = async (req, res) => {
@@ -750,6 +753,29 @@ export const getUserByContact = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch user details",
+    });
+  }
+};
+
+
+
+export const resendVerificationEmail = async (req, res) => {
+  try {
+    const {id} = req.params;
+
+    const response = await sendRPCRequest(
+      USER_PATTERN.USER.RESEND_VERIFICATION_EMAIL,
+      {id},
+    );
+
+    return res
+      .status(response?.status || response?.statusCode || 500)
+      .json(response?.body || response);
+  } catch (error) {
+    console.error("[API-GATEWAY] resendVerificationEmail error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to resend verification email",
     });
   }
 };
