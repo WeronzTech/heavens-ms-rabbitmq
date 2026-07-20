@@ -289,6 +289,11 @@ export const registerUser = async (data) => {
 
     const isColiving = stayDetails?.sharingType === "Coliving";
 
+    let verificationToken = null;
+    if (email) {
+      verificationToken = crypto.randomBytes(32).toString("hex");
+    }
+
     // 5. Build base user
     const userData = {
       name,
@@ -307,6 +312,10 @@ export const registerUser = async (data) => {
       referralInfo: {referredByCode: referredByCode || null},
       agent,
       clientId,
+      ...(verificationToken && {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      }),
     };
 
     // 6. Type-specific logic
@@ -358,6 +367,15 @@ export const registerUser = async (data) => {
     // 7. Save user
     const newUser = new User(userData);
     await newUser.save();
+    if (email && verificationToken) {
+      setImmediate(async () => {
+        try {
+          await emailService.sendApprovalEmail(newUser, verificationToken);
+        } catch (err) {
+          console.error("Registration verification email send error:", err);
+        }
+      });
+    }
     if (userType === "messOnly") {
       await assignRoomToUser({
         userId: newUser._id,
@@ -975,6 +993,88 @@ export const verifyEmail = async (data) => {
       status: 500,
       body: html,
       isHtml: true,
+    };
+  }
+};
+
+export const resendVerificationEmail = async (data) => {
+  try {
+    const {id} = data;
+
+    if (!id) {
+      return {
+        status: 400,
+        body: {success: false, message: "User ID is required"},
+      };
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return {
+        status: 404,
+        body: {success: false, message: "User not found"},
+      };
+    }
+
+    if (!user.email) {
+      return {
+        status: 400,
+        body: {success: false, message: "User does not have an email address"},
+      };
+    }
+
+    if (user.isVerified) {
+      return {
+        status: 400,
+        body: {success: false, message: "User email is already verified"},
+      };
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await user.save();
+
+    setImmediate(async () => {
+      try {
+        await emailService.sendApprovalEmail(user, verificationToken);
+      } catch (err) {
+        console.error("Resend verification email send error:", err);
+      }
+    });
+
+    try {
+      await UserLog.create({
+        userId: user._id,
+        action: "update",
+        changedByName: "system",
+        message: `Resent email verification link to ${user.email}`,
+        propertyId: user.stayDetails?.propertyId || null,
+        kitchenId:
+          user.stayDetails?.kitchenId || user.messDetails?.kitchenId || null,
+        timestamp: new Date(),
+      });
+    } catch (logError) {
+      console.error("Failed to log resend verification email:", logError);
+    }
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        message: "Verification email sent successfully",
+      },
+    };
+  } catch (error) {
+    console.error("resendVerificationEmail error:", error);
+    return {
+      status: 500,
+      body: {
+        success: false,
+        message: "Internal server error while resending verification email",
+      },
     };
   }
 };
@@ -4161,6 +4261,11 @@ export const registerUserFromPanel = async (data) => {
       password ? bcrypt.hash(password, 10) : Promise.resolve(null),
     ]);
 
+    let verificationToken = null;
+    if (email) {
+      verificationToken = crypto.randomBytes(32).toString("hex");
+    }
+
     // 5. Build base user
     const userData = {
       name,
@@ -4173,6 +4278,10 @@ export const registerUserFromPanel = async (data) => {
       isApproved: true,
       isHeavens: true,
       personalDetails,
+      ...(verificationToken && {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      }),
     };
 
     // 6. Type-specific logic
@@ -4207,6 +4316,15 @@ export const registerUserFromPanel = async (data) => {
     // 7. Save user
     const newUser = new User(userData);
     await newUser.save();
+    if (email && verificationToken) {
+      setImmediate(async () => {
+        try {
+          await emailService.sendApprovalEmail(newUser, verificationToken);
+        } catch (err) {
+          console.error("Panel registration verification email send error:", err);
+        }
+      });
+    }
     if (userType === "dailyRent") {
       await assignRoomToUser({
         userId: newUser._id,

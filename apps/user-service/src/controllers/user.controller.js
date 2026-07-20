@@ -22,6 +22,7 @@ import {
   updateProfileCompletion,
   vacateUser,
   verifyEmail,
+  resendVerificationEmail,
   setResetToken,
   getUserByResetToken,
   updateUser,
@@ -70,6 +71,10 @@ createResponder(USER_PATTERN.USER.REJECT_USER, async (data) => {
 
 createResponder(USER_PATTERN.USER.VERIFY_EMAIL, async (data) => {
   return await verifyEmail(data);
+});
+
+createResponder(USER_PATTERN.USER.RESEND_VERIFICATION_EMAIL, async (data) => {
+  return await resendVerificationEmail(data);
 });
 
 createResponder(USER_PATTERN.USER.UPDATE_PROFILE, async (data) => {

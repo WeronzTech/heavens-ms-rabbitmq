@@ -6,6 +6,7 @@ export const USER_PATTERN = {
     APPROVE_USER: "approve_user",
     REJECT_USER: "reject_user",
     VERIFY_EMAIL: "verify_email",
+    RESEND_VERIFICATION_EMAIL: "resend_verification_email",
     UPDATE_PROFILE: "update_profile",
     UPDATE_USER: "update_user",
     ADMIN_UPDATE_PROFILE: "admin_update_profile",

@@ -23,6 +23,7 @@ import {
   registerUserFromPanel,
   rejectUser,
   rejoinUser,
+  resendVerificationEmail,
   respondToStatusRequest,
   updateProfileCompletion,
   updateRentAndDates,
@@ -37,10 +38,10 @@ import {
   getUserRoomChangeRequests,
   checkPendingRoomChangeRequest,
 } from "../../controllers/user/roomChangeRequest.controller.js";
-import {upload} from "../../../../../libs/common/imageOperation.js";
-import {isAuthenticated} from "../../middleware/isAuthenticated.js";
-import {hasPermission} from "../../middleware/hasPermission.js";
-import {PERMISSIONS} from "../../../../../libs/common/permissions.list.js";
+import { upload } from "../../../../../libs/common/imageOperation.js";
+import { isAuthenticated } from "../../middleware/isAuthenticated.js";
+import { hasPermission } from "../../middleware/hasPermission.js";
+import { PERMISSIONS } from "../../../../../libs/common/permissions.list.js";
 
 const userRoutes = express.Router();
 
@@ -62,6 +63,7 @@ userRoutes.get(
 userRoutes.post("/register", registerUser);
 userRoutes.post("/registerFromPanel", registerUserFromPanel);
 userRoutes.get("/email/verify", verifyEmail);
+userRoutes.post("/:id/resend-verification-email", resendVerificationEmail);
 
 userRoutes.use(isAuthenticated);
 
@@ -164,12 +166,12 @@ userRoutes
   .put(
     hasPermission(PERMISSIONS.USER_MANAGE),
     upload.fields([
-      {name: "profileImg", maxCount: 1},
-      {name: "aadharFront", maxCount: 1},
-      {name: "aadharBack", maxCount: 1},
-      {name: "partnerProfileImg", maxCount: 1},
-      {name: "partnerAadharFront", maxCount: 1},
-      {name: "partnerAadharBack", maxCount: 1},
+      { name: "profileImg", maxCount: 1 },
+      { name: "aadharFront", maxCount: 1 },
+      { name: "aadharBack", maxCount: 1 },
+      { name: "partnerProfileImg", maxCount: 1 },
+      { name: "partnerAadharFront", maxCount: 1 },
+      { name: "partnerAadharBack", maxCount: 1 },
     ]),
     adminUpdateUser,
   );
