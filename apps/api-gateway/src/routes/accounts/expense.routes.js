@@ -62,6 +62,7 @@ expenseRoutes.get(
 expenseRoutes.put(
   "/update/:expenseId",
   hasPermission(PERMISSIONS.EXPENSE_MANAGE),
+  upload.fields([{ name: "billImage", maxCount: 1 }]),
   updateExpenseController,
 );
 

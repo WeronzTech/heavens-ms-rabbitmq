@@ -3,14 +3,14 @@ import {
   deleteFromFirebase,
   uploadToFirebase,
 } from "../../../../libs/common/imageOperation.js";
-import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
-import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 import Expense from "../models/expense.model.js";
 import ExpenseCategory from "../models/expenseCategory.model.js";
-import {createAccountLog} from "./accountsLog.service.js";
+import { createAccountLog } from "./accountsLog.service.js";
 import Voucher from "../models/voucher.model.js";
-import {createJournalEntry} from "./accounting.service.js";
-import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 
 export const addExpense = async (data) => {
@@ -60,7 +60,7 @@ export const addExpense = async (data) => {
     }
 
     if (transactionId) {
-      const existingExpense = await Expense.findOne({transactionId});
+      const existingExpense = await Expense.findOne({ transactionId });
       if (existingExpense) {
         return {
           success: false,
@@ -104,7 +104,7 @@ export const addExpense = async (data) => {
     if (paymentMethod === "Petty Cash") {
       const pettyCashResponse = await sendRPCRequest(
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-        {managerId: handledBy},
+        { managerId: handledBy },
       );
       // console.log(pettyCashResponse);
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
@@ -147,7 +147,7 @@ export const addExpense = async (data) => {
       ...expenseData,
     });
 
-    await expense.save({session});
+    await expense.save({ session });
     if (expense.status === "paid") {
       await createAccountLog({
         logType: "Expense",
@@ -192,13 +192,13 @@ export const addExpense = async (data) => {
           description: `Expense: ${expense.title} - ${expense.category}`,
           propertyId: expense.property.id,
           transactions: [
-            {systemName: debitAccount, debit: amount},
-            {systemName: creditAccount, credit: amount},
+            { systemName: debitAccount, debit: amount },
+            { systemName: creditAccount, credit: amount },
           ],
           referenceId: expense._id,
           referenceType: "Expense",
         },
-        {session},
+        { session },
       );
 
       if (fromVoucher && voucher) {
@@ -219,7 +219,7 @@ export const addExpense = async (data) => {
     if (billImage) {
       uploadToFirebase(billImage, "expense-images", false)
         .then(async (url) => {
-          await Expense.findByIdAndUpdate(expense._id, {imageUrl: url});
+          await Expense.findByIdAndUpdate(expense._id, { imageUrl: url });
         })
         .catch((err) => {
           console.error("Image upload failed:", err);
@@ -293,7 +293,7 @@ export const getAllExpenses = async (data) => {
     if (clientId) {
       query.$or = [
         { clientId: new mongoose.Types.ObjectId(clientId) },
-        { clientId: { $exists: false } }
+        { clientId: { $exists: false } },
       ];
     }
 
@@ -336,8 +336,8 @@ export const getAllExpenses = async (data) => {
 
     if (search) {
       query.$or = [
-        {title: {$regex: search, $options: "i"}},
-        {transactionId: {$regex: search, $options: "i"}},
+        { title: { $regex: search, $options: "i" } },
+        { transactionId: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -365,7 +365,7 @@ export const getAllExpenses = async (data) => {
 
     // fetch data
     const expenses = await Expense.find(query)
-      .sort({date: -1, createdAt: -1})
+      .sort({ date: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("vendorId");
@@ -374,8 +374,8 @@ export const getAllExpenses = async (data) => {
     const total = await Expense.countDocuments(query);
 
     const totalAmountResult = await Expense.aggregate([
-      {$match: {...query, status: "paid"}},
-      {$group: {_id: null, totalAmount: {$sum: "$amount"}}},
+      { $match: { ...query, status: "paid" } },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
     ]);
 
     const totalAmount = totalAmountResult[0]?.totalAmount || 0;
@@ -386,13 +386,13 @@ export const getAllExpenses = async (data) => {
     }
 
     const availableYears = await Expense.aggregate([
-      {$match: yearQuery},
+      { $match: yearQuery },
       {
         $group: {
-          _id: {$year: "$date"},
+          _id: { $year: "$date" },
         },
       },
-      {$sort: {_id: 1}},
+      { $sort: { _id: 1 } },
       {
         $project: {
           year: "$_id",
@@ -428,18 +428,18 @@ export const getAllExpenses = async (data) => {
 // Get Expense by ID
 export const getExpenseById = async (data) => {
   try {
-    const {expenseId} = data;
+    const { expenseId } = data;
 
     if (!expenseId) {
-      return {success: false, status: 400, message: "Expense ID is required"};
+      return { success: false, status: 400, message: "Expense ID is required" };
     }
 
     const expense = await Expense.findById(expenseId).populate("vendorId");
     if (!expense) {
-      return {success: false, status: 404, message: "Expense not found"};
+      return { success: false, status: 404, message: "Expense not found" };
     }
 
-    return {success: true, status: 200, data: expense};
+    return { success: true, status: 200, data: expense };
   } catch (error) {
     console.error("[ACCOUNTS] Error in getExpenseById:", error);
     return {
@@ -454,17 +454,17 @@ export const getExpenseById = async (data) => {
 // Delete Expense
 export const deleteExpense = async (data) => {
   try {
-    const {expenseId} = data;
+    const { expenseId } = data;
 
     if (!expenseId) {
-      return {success: false, status: 400, message: "Expense ID is required"};
+      return { success: false, status: 400, message: "Expense ID is required" };
     }
 
     // 1️⃣ Fetch existing expense FIRST
     const existingExpense = await Expense.findById(expenseId);
 
     if (!existingExpense) {
-      return {success: false, status: 404, message: "Expense not found"};
+      return { success: false, status: 404, message: "Expense not found" };
     }
 
     // ✅ Delete bill image from Firebase if exists
@@ -504,7 +504,7 @@ export const deleteExpense = async (data) => {
 
     const expense = await Expense.findByIdAndDelete(expenseId);
     if (!expense) {
-      return {success: false, status: 404, message: "Expense not found"};
+      return { success: false, status: 404, message: "Expense not found" };
     }
 
     await createAccountLog({
@@ -536,10 +536,10 @@ export const deleteExpense = async (data) => {
 
 export const addExpenseCategory = async (data) => {
   try {
-    const {mainCategory, subCategory} = data;
+    const { mainCategory, subCategory } = data;
 
     const existing = await ExpenseCategory.findOne({
-      subCategory: {$regex: new RegExp(`^${subCategory}$`, "i")},
+      subCategory: { $regex: new RegExp(`^${subCategory}$`, "i") },
     });
 
     if (existing) {
@@ -574,7 +574,7 @@ export const addExpenseCategory = async (data) => {
 
 export const getCategoryByMainCategory = async (data) => {
   try {
-    const {mainCategory} = data;
+    const { mainCategory } = data;
 
     let query = {};
 
@@ -623,7 +623,7 @@ export const getAllCategories = async () => {
 
 export const deleteCategory = async (data) => {
   try {
-    const {categoryId} = data;
+    const { categoryId } = data;
 
     await ExpenseCategory.findByIdAndDelete(categoryId);
 
@@ -645,7 +645,7 @@ export const deleteCategory = async (data) => {
 
 export const getExpenseAnalytics = async (data) => {
   try {
-    const {propertyId, year} = data;
+    const { propertyId, year } = data;
 
     const targetYear = year || new Date().getFullYear();
 
@@ -661,21 +661,21 @@ export const getExpenseAnalytics = async (data) => {
     }
 
     const analytics = await Expense.aggregate([
-      {$match: match},
+      { $match: match },
       {
         $group: {
-          _id: {month: {$month: "$date"}, type: "$type"},
-          totalAmount: {$sum: "$amount"},
+          _id: { month: { $month: "$date" }, type: "$type" },
+          totalAmount: { $sum: "$amount" },
         },
       },
       {
         $group: {
           _id: "$_id.month",
-          totalExpense: {$sum: "$totalAmount"},
-          types: {$push: {type: "$_id.type", totalAmount: "$totalAmount"}},
+          totalExpense: { $sum: "$totalAmount" },
+          types: { $push: { type: "$_id.type", totalAmount: "$totalAmount" } },
         },
       },
-      {$sort: {_id: 1}},
+      { $sort: { _id: 1 } },
     ]);
 
     const formatted = analytics.map((monthData) => {
@@ -684,7 +684,7 @@ export const getExpenseAnalytics = async (data) => {
           acc[t.type] = t.totalAmount;
           return acc;
         },
-        {PG: 0, Mess: 0, Others: 0},
+        { PG: 0, Mess: 0, Others: 0 },
       );
 
       const monthName = new Date(0, monthData._id - 1).toLocaleString("en", {
@@ -715,14 +715,14 @@ export const getExpenseAnalytics = async (data) => {
   }
 };
 
-export const getPettyCashPaymentsByManager = async ({managerId}) => {
+export const getPettyCashPaymentsByManager = async ({ managerId }) => {
   try {
     console.log("managerId received in service:", managerId);
 
     const pettyCashPayments = await Expense.find({
       handledBy: new mongoose.Types.ObjectId(managerId), // cast properly
       paymentMethod: "Petty Cash",
-    }).sort({createdAt: -1});
+    }).sort({ createdAt: -1 });
 
     // console.log("Fetched pettyCashPayments:", pettyCashPayments);
 
@@ -819,7 +819,9 @@ export const updateExpense = async (data) => {
 
     // If transaction ID is changed and is already taken
     if (transactionId && transactionId !== existingExpense.transactionId) {
-      const duplicateExpense = await Expense.findOne({ transactionId }).session(session);
+      const duplicateExpense = await Expense.findOne({ transactionId }).session(
+        session,
+      );
       if (duplicateExpense) {
         await session.abortTransaction();
         session.endSession();
@@ -836,12 +838,19 @@ export const updateExpense = async (data) => {
       if (existingExpense.imageUrl) {
         await deleteFromFirebase(existingExpense.imageUrl);
       }
+
       try {
+        const imageFile = {
+          ...billImage,
+          buffer: Buffer.from(billImage.buffer, "base64"),
+        };
+
         const imageUrl = await uploadToFirebase(
-          billImage,
+          imageFile,
           "expense-images",
           true,
         );
+
         existingExpense.imageUrl = imageUrl;
       } catch (err) {
         console.error("Image upload failed:", err);
@@ -888,17 +897,22 @@ export const updateExpense = async (data) => {
             return {
               success: false,
               status: 400,
-              message: "In-hand petty cash balance too low to process this transaction",
+              message:
+                "In-hand petty cash balance too low to process this transaction",
             };
           }
 
-          if (pettyCashType === "inAccount" && pettyCash.inAccountAmount < amount) {
+          if (
+            pettyCashType === "inAccount" &&
+            pettyCash.inAccountAmount < amount
+          ) {
             await session.abortTransaction();
             session.endSession();
             return {
               success: false,
               status: 400,
-              message: "In-account petty cash balance too low to process this transaction",
+              message:
+                "In-account petty cash balance too low to process this transaction",
             };
           }
 
@@ -937,7 +951,10 @@ export const updateExpense = async (data) => {
               : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
         let debitAccount;
-        if (existingExpense.category === "Rent" || existingExpense.category === "Property Rent") {
+        if (
+          existingExpense.category === "Rent" ||
+          existingExpense.category === "Property Rent"
+        ) {
           debitAccount =
             ACCOUNT_SYSTEM_NAMES.EXPENSE_RENT ||
             ACCOUNT_SYSTEM_NAMES.EXPENSE_GENERAL;
@@ -964,7 +981,6 @@ export const updateExpense = async (data) => {
           },
           { session },
         );
-
       } else {
         // Status remains paid -> run adjustment difference logic
         if (existingExpense.paymentMethod === "Petty Cash") {
@@ -1003,7 +1019,9 @@ export const updateExpense = async (data) => {
     existingExpense.handledBy =
       expenseData.status === "paid" ? handledBy : undefined;
     existingExpense.pettyCashType =
-      expenseData.status === "paid" && paymentMethod === "Petty Cash" ? pettyCashType : undefined;
+      expenseData.status === "paid" && paymentMethod === "Petty Cash"
+        ? pettyCashType
+        : undefined;
 
     Object.assign(existingExpense, expenseData);
 
@@ -1042,7 +1060,7 @@ export const updateExpense = async (data) => {
 };
 
 export const getPettyCashUsage = async (data) => {
-  const {managerId, managerIds} = data;
+  const { managerId, managerIds } = data;
 
   let match = {
     paymentMethod: "Petty Cash",
@@ -1059,28 +1077,28 @@ export const getPettyCashUsage = async (data) => {
 
   // 🔹 Expense
   const expense = await Expense.aggregate([
-    {$match: match},
+    { $match: match },
     {
       $group: {
         _id: {
           manager: "$handledBy",
           type: "$pettyCashType",
         },
-        total: {$sum: "$amount"},
+        total: { $sum: "$amount" },
       },
     },
   ]);
 
   // 🔹 Salary
   const salary = await StaffSalaryHistory.aggregate([
-    {$match: match},
+    { $match: match },
     {
       $group: {
         _id: {
           manager: "$handledBy",
           type: "$pettyCashType",
         },
-        total: {$sum: "$paidAmount"},
+        total: { $sum: "$paidAmount" },
       },
     },
   ]);
@@ -1131,16 +1149,20 @@ export const payExpense = async (data) => {
     } = data;
 
     if (!expenseId) {
-      return {success: false, status: 400, message: "Expense ID is required"};
+      return { success: false, status: 400, message: "Expense ID is required" };
     }
 
     const expense = await Expense.findById(expenseId);
     if (!expense) {
-      return {success: false, status: 404, message: "Expense not found"};
+      return { success: false, status: 404, message: "Expense not found" };
     }
 
     if (expense.status === "paid") {
-      return {success: false, status: 400, message: "Expense is already paid"};
+      return {
+        success: false,
+        status: 400,
+        message: "Expense is already paid",
+      };
     }
 
     // Update payment details if provided
@@ -1167,7 +1189,7 @@ export const payExpense = async (data) => {
       }
       const pettyCashResponse = await sendRPCRequest(
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-        {managerId: handledBy},
+        { managerId: handledBy },
       );
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
         return {
@@ -1179,7 +1201,10 @@ export const payExpense = async (data) => {
 
       const pettyCash = pettyCashResponse.data;
 
-      if (expense.pettyCashType === "inHand" && pettyCash.inHandAmount < expense.amount) {
+      if (
+        expense.pettyCashType === "inHand" &&
+        pettyCash.inHandAmount < expense.amount
+      ) {
         return {
           success: false,
           status: 400,
@@ -1188,7 +1213,10 @@ export const payExpense = async (data) => {
         };
       }
 
-      if (expense.pettyCashType === "inAccount" && pettyCash.inAccountAmount < expense.amount) {
+      if (
+        expense.pettyCashType === "inAccount" &&
+        pettyCash.inAccountAmount < expense.amount
+      ) {
         return {
           success: false,
           status: 400,
@@ -1211,7 +1239,7 @@ export const payExpense = async (data) => {
       referenceId: expense._id,
     });
 
-    const {paymentMethod, pettyCashType, amount, clientId} = expense;
+    const { paymentMethod, pettyCashType, amount, clientId } = expense;
 
     const creditAccount =
       paymentMethod === "Petty Cash"
@@ -1254,16 +1282,20 @@ export const payExpense = async (data) => {
         entityId,
         clientId,
         transactions: [
-          {systemName: debitAccount, debit: amount},
-          {systemName: creditAccount, credit: amount},
+          { systemName: debitAccount, debit: amount },
+          { systemName: creditAccount, credit: amount },
         ],
         referenceId: expense._id,
         referenceType: "Expense",
       },
-      {session},
+      { session },
     );
 
-    if (paymentMethod === "Petty Cash" && pettyCashType === "inHand" && !expense.fromVoucher) {
+    if (
+      paymentMethod === "Petty Cash" &&
+      pettyCashType === "inHand" &&
+      !expense.fromVoucher
+    ) {
       await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
         manager: expense.handledBy,
         pettyCashType,
@@ -1279,7 +1311,7 @@ export const payExpense = async (data) => {
       });
     }
 
-    await expense.save({session});
+    await expense.save({ session });
     await session.commitTransaction();
 
     return {
