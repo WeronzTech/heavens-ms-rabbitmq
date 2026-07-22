@@ -667,6 +667,7 @@ export const getAvailableRoomsByProperty = async (data) => {
     };
 
     let rooms = await Room.find(roomFilter);
+    // console.log("rooms", rooms);
 
     // If gender is provided, filter rooms by occupants' gender
     if (gender) {
@@ -701,11 +702,14 @@ export const getAvailableRoomsByProperty = async (data) => {
             usersResponse.body?.success
           ) {
             const users = usersResponse.body.data || [];
-            const isMatch = users.every(
-              (u) =>
-                u.personalDetails?.gender?.toLowerCase() ===
-                gender.toLowerCase(),
-            );
+            const isMatch =
+              users.length > 0 &&
+              users.every(
+                (u) =>
+                  u.personalDetails?.gender?.toLowerCase() ===
+                  gender.toLowerCase(),
+              );
+            console.log(`[Room ${room.roomNo}] isMatch:`, isMatch);
 
             if (isMatch) {
               filteredRooms.push(room);
@@ -725,6 +729,7 @@ export const getAvailableRoomsByProperty = async (data) => {
 
       rooms = filteredRooms;
     }
+    // console.log("rooms1", rooms);
 
     const property = await Property.findById(propertyId).select(
       "sharingPrices deposit",
