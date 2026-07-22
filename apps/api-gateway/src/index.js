@@ -67,6 +67,7 @@ import busPaymentRoutes from "./routes/accounts/busPayment.routes.js";
 import payrollRoutes from "./routes/accounts/payroll.routes.js";
 import subCategoryRoutes from "./routes/inventory/subCategory.routes.js";
 import appSettingsRoutes from "./routes/user/appSettings.route.js";
+import vendorRoutes from "./routes/accounts/vendor.routes.js";
 
 dotenv.config();
 const app = express();
@@ -154,6 +155,7 @@ app.use("/api/v2/voucher", voucherRoutes);
 app.use("/api/v2/referral", referralRoutes);
 app.use("/api/v2/reminder", reminderRoutes);
 app.use("/api/v2/accounts-log", logRoutes);
+app.use("/api/v2/vendor", vendorRoutes);
 app.use("/api/v2/gaming", gamingRoutes);
 app.use("/api/v2/website", websiteRoutes);
 app.use("/api/v2/accounting", accountingRoutes);
