@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
-import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
-import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import Payroll from "../models/payroll.model.js";
-import {createJournalEntry} from "./accounting.service.js";
+import { createJournalEntry } from "./accounting.service.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
-import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 export const processSalaryPayment = async (data) => {
   const {
     payrollId,
@@ -84,7 +84,7 @@ export const processSalaryPayment = async (data) => {
     if (paymentMethod === "Petty Cash") {
       const pettyCashResponse = await sendRPCRequest(
         CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-        {managerId},
+        { managerId },
       );
 
       if (!pettyCashResponse?.success || !pettyCashResponse.data) {
@@ -146,7 +146,7 @@ export const processSalaryPayment = async (data) => {
           clientId: payroll.clientId,
         },
       ],
-      {session},
+      { session },
     );
 
     /* ------------------------------
@@ -159,7 +159,7 @@ export const processSalaryPayment = async (data) => {
       payroll.status = "Pending";
     }
 
-    await payroll.save({session});
+    await payroll.save({ session });
     /* ------------------------------
        Accounting Journal Entry
     ------------------------------ */
@@ -312,7 +312,7 @@ export const createSalaryAdvance = async (data) => {
     {
       $group: {
         _id: null,
-        paidAmount: {$sum: "$paidAmount"},
+        paidAmount: { $sum: "$paidAmount" },
       },
     },
   ]);
@@ -348,7 +348,7 @@ export const createSalaryAdvance = async (data) => {
   if (paymentMethod === "Petty Cash") {
     const pettyCashResponse = await sendRPCRequest(
       CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
-      {managerId},
+      { managerId },
     );
     if (!pettyCashResponse?.success || !pettyCashResponse.data) {
       return {
@@ -517,7 +517,7 @@ export const updatePayrollLeave = async ({
 
     payroll.status = payroll.pendingAmount === 0 ? "Paid" : "Pending";
 
-    await payroll.save({session});
+    await payroll.save({ session });
 
     await session.commitTransaction();
 
@@ -585,7 +585,7 @@ export const generateMissingPayrollBulk = async () => {
     -------------------------- */
 
     const existingPayrolls = await Payroll.find({
-      employeeId: {$in: employeeIds},
+      employeeId: { $in: employeeIds },
     });
 
     const payrollSet = new Set(
@@ -770,8 +770,16 @@ export const generateMissingPayrollBulk = async () => {
 
 export const getPayrolls = async (data) => {
   try {
-    const {search, month, year, status, propertyId, kitchenId, clientId, type} =
-      data;
+    const {
+      search,
+      month,
+      year,
+      status,
+      propertyId,
+      kitchenId,
+      clientId,
+      type,
+    } = data;
 
     console.log("Received data:", data);
 
@@ -781,7 +789,7 @@ export const getPayrolls = async (data) => {
        Search by employee name
     -------------------------- */
     if (search) {
-      filter.name = {$regex: search, $options: "i"};
+      filter.name = { $regex: search, $options: "i" };
     }
 
     /* -------------------------
@@ -813,9 +821,9 @@ export const getPayrolls = async (data) => {
     /* -------------------------
        Client filter (always apply if provided)
     -------------------------- */
-    if (clientId && clientId !== "undefined" && clientId !== "null") {
-      filter.clientId = clientId;
-    }
+    // if (clientId && clientId !== "undefined" && clientId !== "null") {
+    //   // filter.clientId = clientId;
+    // }
 
     /* -------------------------
        Handle property/kitchen filtering based on type and provided IDs
@@ -829,7 +837,7 @@ export const getPayrolls = async (data) => {
       propertyId !== "null"
     ) {
       // Check if propertyId exists in the propertyId array
-      filter.propertyId = {$in: [propertyId]};
+      filter.propertyId = { $in: [propertyId] };
     }
     // CASE 2: Specific kitchenId provided
     else if (
@@ -839,16 +847,16 @@ export const getPayrolls = async (data) => {
       kitchenId !== "null"
     ) {
       // Check if kitchenId exists in the kitchenId array
-      filter.kitchenId = {$in: [kitchenId]};
+      filter.kitchenId = { $in: [kitchenId] };
     }
     // CASE 3: No specific ID provided, but type is specified
     else if (type) {
       if (type === "PROPERTY") {
         // For PROPERTY type with no specific propertyId, get all records that have at least one propertyId
-        filter.propertyId = {$exists: true, $ne: []};
+        filter.propertyId = { $exists: true, $ne: [] };
       } else if (type === "KITCHEN") {
         // For KITCHEN type with no specific kitchenId, get all records that have at least one kitchenId
-        filter.kitchenId = {$exists: true, $ne: []};
+        filter.kitchenId = { $exists: true, $ne: [] };
       }
     }
 
@@ -858,6 +866,8 @@ export const getPayrolls = async (data) => {
        Fetch payrolls
     -------------------------- */
     const payrolls = await Payroll.find(filter).lean();
+
+    // console.log("Payrolls fetched successfully", payrolls);
 
     return {
       success: true,
@@ -877,7 +887,7 @@ export const getPayrolls = async (data) => {
 
 export const getEmployeeTransactionHistory = async (filters = {}) => {
   try {
-    const {employeeId, month, year, paymentMethod} = filters;
+    const { employeeId, month, year, paymentMethod } = filters;
 
     // Build the query
     const query = {};
@@ -934,7 +944,7 @@ export const getEmployeeTransactionHistory = async (filters = {}) => {
 };
 
 export const getEmployeeAdvanceForMonth = async (data) => {
-  const {employeeId} = data;
+  const { employeeId } = data;
 
   const month = Number(data.month);
   const year = Number(data.year);
@@ -944,7 +954,7 @@ export const getEmployeeAdvanceForMonth = async (data) => {
     month: month,
     year: year,
     isAdvance: true,
-  }).sort({paymentDate: -1});
+  }).sort({ paymentDate: -1 });
 
   const totalAdvance = transactions.reduce(
     (sum, t) => sum + (t.paidAmount || 0),
@@ -963,10 +973,14 @@ export const getEmployeeAdvanceForMonth = async (data) => {
 
 export const editPayrollSalary = async (data) => {
   try {
-    const {payrollId, salary} = data;
+    const { payrollId, salary } = data;
     const payroll = await Payroll.findById(payrollId);
     if (!payroll) {
-      return {success: false, status: 404, message: "Payroll record not found"};
+      return {
+        success: false,
+        status: 404,
+        message: "Payroll record not found",
+      };
     }
     const newSalary = Number(salary);
     if (newSalary <= 0) {
@@ -1011,6 +1025,6 @@ export const editPayrollSalary = async (data) => {
     };
   } catch (error) {
     console.error("Edit payroll error:", error);
-    return {success: false, status: 500, message: "Internal server error"};
+    return { success: false, status: 500, message: "Internal server error" };
   }
 };
