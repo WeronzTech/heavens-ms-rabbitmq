@@ -4,6 +4,7 @@ import {
   approveClient,
   forgotPassword,
   getClientByEmail,
+  getClientById,
   registerAdmin,
   registerClient,
   resetPassword,
@@ -13,6 +14,10 @@ import {
 
 createResponder(CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_EMAIL, async (data) => {
   return await getClientByEmail(data?.email);
+});
+
+createResponder(CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_ID, async (data) => {
+  return await getClientById(data?.id);
 });
 
 createResponder(CLIENT_PATTERN.CLIENT.VALIDATE_CREDENTIALS, async (data) => {

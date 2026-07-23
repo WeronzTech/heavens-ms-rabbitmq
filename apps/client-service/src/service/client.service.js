@@ -42,6 +42,42 @@ export const getClientByEmail = async (email) => {
   }
 };
 
+export const getClientById = async (id) => {
+  try {
+    if (!id) {
+      return {
+        success: false,
+        status: 400,
+        message: "ID is required.",
+      };
+    }
+
+    const client = await Client.findOne({ _id: id, isDeleted: false });
+
+    if (client) {
+      return {
+        success: true,
+        status: 200,
+        message: "Client found successfully.",
+        data: client,
+      };
+    } else {
+      return {
+        success: false,
+        status: 404,
+        message: "Client does not exist.",
+      };
+    }
+  } catch (error) {
+    console.error("Error in getClientById service:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "An internal server error occurred while fetching the client.",
+    };
+  }
+};
+
 export const validateClientCredentials = async (data) => {
   const { email, password } = data;
   try {
