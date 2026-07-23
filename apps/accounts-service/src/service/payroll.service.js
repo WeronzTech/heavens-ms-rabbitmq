@@ -885,6 +885,69 @@ export const getPayrolls = async (data) => {
   }
 };
 
+const populateHandledByNames = async (transactions) => {
+  if (!transactions || transactions.length === 0) return transactions;
+
+  const handledByIds = [
+    ...new Set(
+      transactions
+        .map((t) => t.handledBy)
+        .filter((id) => !!id)
+        .map((id) => id.toString()),
+    ),
+  ];
+
+  if (handledByIds.length === 0) {
+    return transactions.map((t) => ({
+      ...t,
+      handledByName: "-",
+    }));
+  }
+
+  const nameMap = {};
+  await Promise.all(
+    handledByIds.map(async (idStr) => {
+      try {
+        const managerRes = await sendRPCRequest(
+          CLIENT_PATTERN.MANAGER.GET_MANAGER_BY_ID,
+          { id: idStr },
+        );
+        if (managerRes?.success && managerRes?.data) {
+          nameMap[idStr] = managerRes.data.name || "Manager";
+          return;
+        }
+      } catch (err) {
+        console.error(`Error resolving manager name for ${idStr}:`, err);
+      }
+
+      try {
+        const clientRes = await sendRPCRequest(
+          CLIENT_PATTERN.CLIENT.GET_CLIENT_BY_ID,
+          { id: idStr },
+        );
+        if (clientRes?.success && clientRes?.data) {
+          nameMap[idStr] = clientRes.data.name || "Admin";
+          return;
+        }
+      } catch (err) {
+        console.error(`Error resolving client name for ${idStr}:`, err);
+      }
+
+      nameMap[idStr] = "Unknown";
+    }),
+  );
+
+  return transactions.map((t) => {
+    if (t.handledBy) {
+      const idStr = t.handledBy.toString();
+      t.handledByName = nameMap[idStr] || "Unknown";
+    } else {
+      t.handledByName = "-";
+    }
+    return t;
+  });
+};
+
 export const getEmployeeTransactionHistory = async (filters = {}) => {
   try {
     const { employeeId, month, year, paymentMethod } = filters;
@@ -921,9 +984,11 @@ export const getEmployeeTransactionHistory = async (filters = {}) => {
     console.log("Transaction history query:", JSON.stringify(query, null, 2));
 
     // Execute queries
-    const [transactions] = await Promise.all([
+    const [rawTransactions] = await Promise.all([
       StaffSalaryHistory.find(query).lean(),
     ]);
+
+    const transactions = await populateHandledByNames(rawTransactions);
 
     return {
       success: true,
@@ -944,17 +1009,27 @@ export const getEmployeeTransactionHistory = async (filters = {}) => {
 };
 
 export const getEmployeeAdvanceForMonth = async (data) => {
-  const { employeeId } = data;
+  const { employeeId, month, year } = data;
 
-  const month = Number(data.month);
-  const year = Number(data.year);
-  console.log(month, year);
-  const transactions = await StaffSalaryHistory.find({
+  const query = {
     employeeId: new mongoose.Types.ObjectId(employeeId),
-    month: month,
-    year: year,
     isAdvance: true,
-  }).sort({ paymentDate: -1 });
+  };
+
+  if (month !== undefined && month !== null && !isNaN(Number(month))) {
+    query.month = Number(month);
+  }
+  if (year !== undefined && year !== null && !isNaN(Number(year))) {
+    query.year = Number(year);
+  }
+
+  console.log("Advance transaction query:", query);
+
+  const rawTransactions = await StaffSalaryHistory.find(query)
+    .sort({ paymentDate: -1 })
+    .lean();
+
+  const transactions = await populateHandledByNames(rawTransactions);
 
   const totalAdvance = transactions.reduce(
     (sum, t) => sum + (t.paidAmount || 0),

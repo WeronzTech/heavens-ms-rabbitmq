@@ -8,6 +8,7 @@ export const CLIENT_PATTERN = {
     FORGOT_PASSWORD: "client_forgot_password",
     RESET_PASSWORD: "client_reset_password",
     APPROVE_CLIENT: "client_approve_client",
+    GET_CLIENT_BY_ID: "client_get_client_by_id",
   },
   MANAGER: {
     REGISTER_MANAGER: "client_register_manager",
