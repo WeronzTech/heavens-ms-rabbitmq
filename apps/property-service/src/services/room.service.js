@@ -393,10 +393,16 @@ export const updateRoom = async (data) => {
     sharingType,
   } = data;
   console.log(data);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     // ✅ Find existing room
-    const room = await Room.findById(id);
+    const room = await Room.findById(id).session(session);
     if (!room) {
+      await session.abortTransaction();
+      session.endSession();
       return { status: 404, message: "Room not found" };
     }
 
@@ -407,8 +413,10 @@ export const updateRoom = async (data) => {
       const existingRoom = await Room.findOne({
         propertyId: room.propertyId,
         roomNo,
-      });
+      }).session(session);
       if (existingRoom) {
+        await session.abortTransaction();
+        session.endSession();
         return {
           status: 409,
           message: "Room number already exists under this property",
@@ -418,23 +426,26 @@ export const updateRoom = async (data) => {
     }
 
     // ✅ Fetch property details
-    const property = await Property.findById(room.propertyId);
+    const property = await Property.findById(room.propertyId).session(session);
     if (!property) {
+      await session.abortTransaction();
+      session.endSession();
       return { status: 404, message: "Property not found" };
     }
 
-    // ✅ Validate sharing type in property’s sharingPrices map
-    // const sharingTypeKey = `${roomCapacity} Sharing`;
+    const finalCapacity = roomCapacity !== undefined ? roomCapacity : room.roomCapacity;
+    const finalSharingType = sharingType !== undefined ? sharingType : room.sharingType;
     const sharingTypeKey =
-      sharingType === "Coliving" ? "Coliving" : `${roomCapacity} Sharing`;
+      finalSharingType === "Coliving" ? "Coliving" : `${finalCapacity} Sharing`;
 
+    // ✅ Validate sharing type in property’s sharingPrices map
     if (
-      roomCapacity &&
-      !(
-        property.sharingPrices instanceof Map &&
-        property.sharingPrices.has(sharingTypeKey)
-      )
+      property.sharingPrices &&
+      property.sharingPrices instanceof Map &&
+      !property.sharingPrices.has(sharingTypeKey)
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return {
         status: 400,
         message: `${sharingTypeKey} is not defined in this property's sharing prices.`,
@@ -442,28 +453,41 @@ export const updateRoom = async (data) => {
     }
 
     // ✅ Prevent capacity lower than current occupants
-    if (roomCapacity && roomCapacity < room.occupant) {
+    if (finalCapacity < room.occupant) {
+      await session.abortTransaction();
+      session.endSession();
       return {
         status: 400,
         message: `Room capacity cannot be less than current occupants (${room.occupant})`,
       };
     }
 
+    const bedDifference = finalCapacity - room.roomCapacity;
+
     // ✅ Update main fields
-    if (roomCapacity) {
-      room.roomCapacity = roomCapacity;
-      room.sharingType = sharingTypeKey;
-      room.vacantSlot = roomCapacity - room.occupant;
-    }
+    room.roomCapacity = finalCapacity;
+    room.sharingType = sharingTypeKey;
+    room.vacantSlot = finalCapacity - room.occupant;
 
     if (status) room.status = status;
     if (revenueGeneration !== undefined)
       room.revenueGeneration = revenueGeneration;
-    if (floorId) room.floorId = floorId; // ✅ set new floor
+    
+    const oldFloorId = room.floorId?.toString();
+    if (floorId) room.floorId = floorId;
     room.adminName = adminName || room.adminName;
 
     // ✅ Save changes
-    const updatedRoom = await room.save();
+    const updatedRoom = await room.save({ session });
+
+    // ✅ Update totalBeds in property if capacity changed
+    if (bedDifference !== 0) {
+      await Property.findByIdAndUpdate(
+        room.propertyId,
+        { $inc: { totalBeds: bedDifference } },
+        { session }
+      );
+    }
 
     // ✅ If room number changed, update occupants in user service
     if (isRoomNoChanged) {
@@ -481,25 +505,29 @@ export const updateRoom = async (data) => {
     }
 
     if (floorId) {
-      // Find the previous floor (if room was already on a floor)
-      const oldFloorId = room.floorId?.toString();
       const newFloorId = floorId.toString();
 
       // If room moved to another floor → remove from old floor
       if (oldFloorId && oldFloorId !== newFloorId) {
-        await Floor.findByIdAndUpdate(oldFloorId, {
-          $pull: { roomIds: room._id },
-        });
+        await Floor.findByIdAndUpdate(
+          oldFloorId,
+          { $pull: { roomIds: room._id } },
+          { session }
+        );
       }
 
       // Add to new floor (avoid duplicates)
       await Floor.findByIdAndUpdate(
         newFloorId,
         { $addToSet: { roomIds: room._id } }, // prevents duplicates
+        { session }
       );
     }
 
-    // ✅ Log update action
+    await session.commitTransaction();
+    session.endSession();
+
+    // ✅ Log update action (non-blocking)
     try {
       await PropertyLog.create({
         propertyId: room.propertyId,
@@ -517,6 +545,8 @@ export const updateRoom = async (data) => {
       data: updatedRoom,
     };
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("❌ Error in updateRoom service:", error);
     return {
       status: 500,
@@ -526,26 +556,59 @@ export const updateRoom = async (data) => {
 };
 
 export const deleteRoom = async (data) => {
-  try {
-    const { id, adminName } = data;
+  const { id, adminName } = data;
+  if (!id) {
+    return { status: 400, message: "Room ID is required" };
+  }
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
     // ✅ Find and delete the room
-    const deletedRoom = await Room.findByIdAndDelete(id);
+    const deletedRoom = await Room.findByIdAndDelete(id).session(session);
 
     if (!deletedRoom) {
+      await session.abortTransaction();
+      session.endSession();
       return { status: 404, message: "Room not found" };
     }
 
-    // ✅ Fetch the property for logging
-    const property = await Property.findById(deletedRoom.propertyId);
-    if (property) {
+    // ✅ Update property counts: decrement totalBeds and occupiedBeds
+    const propertyUpdate = {
+      $inc: {
+        totalBeds: -deletedRoom.roomCapacity,
+        occupiedBeds: -deletedRoom.occupant,
+      }
+    };
+
+    const updatedProperty = await Property.findByIdAndUpdate(
+      deletedRoom.propertyId,
+      propertyUpdate,
+      { new: true, session }
+    );
+
+    // ✅ Pull the room ID from the floor if assigned
+    if (deletedRoom.floorId) {
+      await Floor.findByIdAndUpdate(
+        deletedRoom.floorId,
+        { $pull: { roomIds: deletedRoom._id } },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // ✅ Log delete action (non-blocking, outside of transaction)
+    if (updatedProperty) {
       try {
         await PropertyLog.create({
-          propertyId: property._id,
+          propertyId: updatedProperty._id,
           action: "delete",
           category: "property",
           changedByName: adminName,
-          message: `Room ${deletedRoom.roomNo} deleted from property "${property.propertyName}" by ${adminName}`,
+          message: `Room ${deletedRoom.roomNo} deleted from property "${updatedProperty.propertyName}" by ${adminName}`,
         });
       } catch (logError) {
         console.error("Failed to save property log (deleteRoom):", logError);
@@ -558,6 +621,8 @@ export const deleteRoom = async (data) => {
       data: deletedRoom,
     };
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Error deleting room:", error);
     return {
       status: 500,
