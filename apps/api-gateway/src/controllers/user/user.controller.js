@@ -677,6 +677,7 @@ export const registerUserFromPanel = async (req, res) => {
     stayDetails,
     messDetails,
     personalDetails,
+    isApproved,
   } = req.body;
   const response = await sendRPCRequest(
     USER_PATTERN.USER.REGISTER_USER_FROM_PANEL,
@@ -689,6 +690,7 @@ export const registerUserFromPanel = async (req, res) => {
       stayDetails,
       messDetails,
       personalDetails,
+      isApproved,
     },
   );
 
