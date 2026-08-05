@@ -54,10 +54,10 @@ export const addCommission = async (data) => {
         propertyId: newCommission.property[0], // Assuming at least one property
         transactions: [
           {
-            accountName: ACCOUNT_SYSTEM_NAMES.EXPENSE_COMMISSION,
+            systemName: ACCOUNT_SYSTEM_NAMES.EXPENSE_COMMISSION,
             debit: newCommission.amount,
           },
-          { accountName: paymentAccount, credit: newCommission.amount },
+          { systemName: paymentAccount, credit: newCommission.amount },
         ],
         referenceId: newCommission._id,
         referenceType: "Commission",
