@@ -54,7 +54,7 @@ const depositSchema = new mongoose.Schema(
     propertyName: { type: String },
     receiptNumber: {
       type: String,
-      required: true,
+      // required: true,
       unique: true,
     },
   },

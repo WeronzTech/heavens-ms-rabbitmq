@@ -127,11 +127,12 @@ export const createJournalEntry = async (entryData, options = {}) => {
   // 1. Find account IDs and validate amounts
   for (const trans of transactions) {
     // const { accountName: systemName, debit = 0, credit = 0 } = trans;
-    const { systemName, debit = 0, credit = 0 } = trans;
+    const { systemName: sysName, accountName, debit = 0, credit = 0 } = trans;
+    const systemName = sysName || accountName;
 
     if (!systemName || (debit === 0 && credit === 0)) {
       throw new Error(
-        `Invalid transaction for account: ${systemName}. Must have systemName and non-zero debit/credit.`
+        `Invalid transaction for account: ${systemName}. Must have systemName/accountName and non-zero debit/credit.`
       );
     }
 
