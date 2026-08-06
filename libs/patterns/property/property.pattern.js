@@ -24,6 +24,13 @@ export const PROPERTY_PATTERN = {
     GET_ROOM_BY_ID: "get_room_by_id",
     GET_AVAILABLE_ROOMS_FOR_CHANGE: "get_available_rooms_for_change",
   },
+  TEMPORARY_ROOM: {
+    CREATE: "create_temporary_room",
+    UPDATE: "update_temporary_room",
+    DELETE: "delete_temporary_room",
+    GET_ALL: "get_all_temporary_rooms",
+    GET_BY_ID: "get_temporary_room_by_id",
+  },
   STAFF: {
     GET_ALL_STAFF: "get_all_staff",
     GET_STAFF_BY_ID: "get_staff_by_id",
