@@ -90,6 +90,7 @@ const startServer = async () => {
     await import("./controllers/attendance.controller.js");
     await import("./controllers/carousal.controller.js");
     await import("./controllers/website.controller.js");
+    await import("./controllers/temporaryRoom.controller.js");
     console.log("[PROPERTY] Responders are ready.");
 
     // ✅ STEP 3: Connect to your database.
