@@ -55,7 +55,7 @@ const depositSchema = new mongoose.Schema(
     receiptNumber: {
       type: String,
       // required: true,
-      unique: true,
+      // unique: true,
     },
   },
   { timestamps: true },
