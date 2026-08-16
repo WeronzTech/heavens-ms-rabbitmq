@@ -405,6 +405,10 @@ export const processAdminUpdates = async (user, updateData) => {
     "colivingPartner", // ✅ added partner section
   ];
 
+  if (resolvedUpdateData.referralInfo && resolvedUpdateData.referralInfo.referredBy === "") {
+    resolvedUpdateData.referralInfo.referredBy = null;
+  }
+
   NESTED_SECTIONS.forEach((section) => {
     if (section in resolvedUpdateData) {
       user[section] = {
