@@ -29,7 +29,7 @@ export function validateRequiredFields(
   name,
   contact,
   stayDetails,
-  messDetails
+  messDetails,
 ) {
   // Common required fields
   if (!name || !contact || !userType) {
@@ -87,7 +87,7 @@ export function validateFieldFormats(email, password, contact) {
   // Always validate contact
   if (!validateContact(contact)) {
     errors.push(
-      "Invalid contact number (must be 10 digits, starting with 6-9)"
+      "Invalid contact number (must be 10 digits, starting with 6-9)",
     );
   }
 
@@ -98,7 +98,7 @@ export async function checkExistingUsers(
   email,
   contact,
   userType,
-  colivingPartner = null
+  colivingPartner = null,
 ) {
   try {
     // Normalize inputs into arrays (for unified checking)
@@ -116,6 +116,7 @@ export async function checkExistingUsers(
 
     // Build dynamic query
     const query = {
+      rentType: "monthly",
       $or: [],
     };
 
