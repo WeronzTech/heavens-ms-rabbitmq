@@ -23,7 +23,20 @@ const commissionSchema = new mongoose.Schema(
     paymentType: {
       type: String,
       required: true,
-      enum: ["Cash", "UPI", "Bank Transfer", "Razorpay"],
+      enum: ["Cash", "UPI", "Bank Transfer", "Razorpay", "Petty Cash"],
+    },
+    pettyCashType: {
+      type: String,
+      enum: ["inHand", "inAccount"],
+      required: function () {
+        return this.paymentType === "Petty Cash";
+      },
+    },
+    handledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: function () {
+        return this.paymentType === "Petty Cash";
+      },
     },
     transactionId: {
       type: String,

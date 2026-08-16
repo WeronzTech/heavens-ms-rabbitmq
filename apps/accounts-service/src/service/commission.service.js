@@ -13,7 +13,56 @@ export const addCommission = async (data) => {
   session.startTransaction();
   try {
     console.log(data);
-    const { amount, userIds } = data;
+    let { amount, userIds, paymentType, pettyCashType, handledBy, managerName } = data;
+
+    amount = Number(amount);
+
+    // ✅ Additional validation for petty cash type
+    if (paymentType === "Petty Cash" && !pettyCashType) {
+      return {
+        success: false,
+        status: 400,
+        message: "Petty cash type (inHand/inAccount) is required",
+      };
+    }
+
+    // ✅ Handle Petty Cash validation & balance check
+    if (paymentType === "Petty Cash") {
+      const pettyCashResponse = await sendRPCRequest(
+        CLIENT_PATTERN.PETTYCASH.GET_PETTYCASH_BY_MANAGER,
+        { managerId: handledBy },
+      );
+      if (!pettyCashResponse?.success || !pettyCashResponse.data) {
+        return {
+          success: false,
+          status: 400,
+          message: "No petty cash found for this manager",
+        };
+      }
+
+      const pettyCash = pettyCashResponse.data;
+      if (pettyCash?.managerName) {
+        managerName = pettyCash.managerName;
+      }
+
+      if (pettyCashType === "inHand" && pettyCash.inHandAmount < amount) {
+        return {
+          success: false,
+          status: 400,
+          message:
+            "In-hand petty cash balance too low to process this transaction",
+        };
+      }
+
+      if (pettyCashType === "inAccount" && pettyCash.inAccountAmount < amount) {
+        return {
+          success: false,
+          status: 400,
+          message:
+            "In-account petty cash balance too low to process this transaction",
+        };
+      }
+    }
 
     if (Array.isArray(userIds) && userIds.length > 0) {
       const amountPerUser = amount / userIds.length;
@@ -31,6 +80,15 @@ export const addCommission = async (data) => {
       console.warn("No userIds provided, skipping user update.");
     }
 
+    // Prepare clean data for Commission creation
+    if (paymentType === "Petty Cash") {
+      data.pettyCashType = pettyCashType;
+      data.handledBy = handledBy;
+    } else {
+      delete data.pettyCashType;
+      delete data.handledBy;
+    }
+
     const newCommission = (await Commission.create([data], { session }))[0];
     await createAccountLog({
       logType: "Commission",
@@ -43,9 +101,11 @@ export const addCommission = async (data) => {
     });
 
     const paymentAccount =
-      data.paymentType === "Cash"
-        ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
-        : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
+      paymentType === "Petty Cash"
+        ? ACCOUNT_SYSTEM_NAMES.ASSET_PETTY_CASH
+        : paymentType === "Cash"
+          ? ACCOUNT_SYSTEM_NAMES.ASSET_CORE_CASH
+          : ACCOUNT_SYSTEM_NAMES.ASSET_CORE_BANK;
 
     await createJournalEntry(
       {
@@ -65,6 +125,27 @@ export const addCommission = async (data) => {
       { session }
     ); // ✅ Pass session
     // ----- NEWLY ADDED END -----
+
+    // ✅ Deduct Petty Cash balance
+    if (paymentType === "Petty Cash") {
+      if (pettyCashType === "inHand") {
+        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+          manager: handledBy,
+          managerName,
+          pettyCashType,
+          inHandAmount: -amount,
+        });
+      }
+
+      if (pettyCashType === "inAccount") {
+        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
+          manager: handledBy,
+          managerName,
+          pettyCashType,
+          inAccountAmount: -amount,
+        });
+      }
+    }
 
     // ✅ MODIFIED: Commit transaction
     await session.commitTransaction();
