@@ -3705,7 +3705,7 @@ export const getUsersByAgencyService = async (data) => {
 
     // Fetch only required fields
     const users = await User.find(
-      { agent: agencyId },
+      { "referralInfo.referredBy": agencyId },
       {
         name: 1,
         contact: 1,

@@ -48,12 +48,14 @@ export const addPettyCash = async (data) => {
       }
     }
 
+    const finalManagerName = managerName || client.name || "Manager";
+
     let pettyCash = await PettyCash.findOne({manager});
 
     if (!pettyCash) {
       pettyCash = await PettyCash.create({
         manager,
-        managerName,
+        managerName: finalManagerName,
         inHandAmount: 0,
         inAccountAmount: 0,
       });
@@ -68,7 +70,7 @@ export const addPettyCash = async (data) => {
     await PettyCashTransaction.create({
       pettyCash: pettyCash._id,
       manager,
-      managerName,
+      managerName: finalManagerName,
       inHandAmount: Number(inHandAmount || 0),
       inAccountAmount: Number(inAccountAmount || 0),
       balanceAfter: {
@@ -118,7 +120,7 @@ export const addPettyCash = async (data) => {
       try {
         await sendRPCRequest(ACCOUNTS_PATTERN.ACCOUNTING.CREATE_JOURNAL_ENTRY, {
           date: new Date(),
-          description: `Petty cash top-up for ${managerName}`,
+          description: `Petty cash top-up for ${finalManagerName}`,
           // propertyId: property._id || property,
           transactions,
           referenceId: pettyCash._id,
