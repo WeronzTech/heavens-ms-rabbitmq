@@ -226,27 +226,6 @@ export const addExpense = async (data) => {
         });
     }
 
-    if (expense.status === "paid") {
-      if (
-        paymentMethod === "Petty Cash" &&
-        pettyCashType === "inHand" &&
-        !fromVoucher
-      ) {
-        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-          manager: handledBy,
-          pettyCashType,
-          inHandAmount: -amount,
-        });
-      }
-
-      if (pettyCashType === "inAccount") {
-        await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-          manager: handledBy,
-          pettyCashType,
-          inAccountAmount: -amount, // 👈 deduct instead of add
-        });
-      }
-    }
     await session.commitTransaction();
     return {
       success: true,
@@ -474,31 +453,6 @@ export const deleteExpense = async (data) => {
       } catch (err) {
         console.error("Failed to delete expense image from Firebase:", err);
         // Optional: decide whether to continue or fail
-      }
-    }
-
-    // ✅ Petty cash adjustment logic
-    if (existingExpense.paymentMethod === "Petty Cash") {
-      const oldAmount = Number(existingExpense.amount);
-      const newAmount = Number(amount);
-      const difference = oldAmount - newAmount; // +ve = refund, -ve = deduct more
-
-      if (difference !== 0) {
-        if (existingExpense.pettyCashType === "inHand") {
-          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-            manager: handledBy,
-            pettyCashType: "inHand",
-            inHandAmount: difference, // refund or deduct
-          });
-        }
-
-        if (existingExpense.pettyCashType === "inAccount") {
-          await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-            manager: handledBy,
-            pettyCashType: "inAccount",
-            inAccountAmount: difference, // refund or deduct
-          });
-        }
       }
     }
 
@@ -915,21 +869,6 @@ export const updateExpense = async (data) => {
                 "In-account petty cash balance too low to process this transaction",
             };
           }
-
-          // Deduct from petty cash
-          if (pettyCashType === "inHand") {
-            await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-              manager: handledBy,
-              pettyCashType,
-              inHandAmount: -amount,
-            });
-          } else if (pettyCashType === "inAccount") {
-            await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-              manager: handledBy,
-              pettyCashType,
-              inAccountAmount: -amount,
-            });
-          }
         }
 
         // Account logs & Journal entry for pending -> paid transition
@@ -981,31 +920,6 @@ export const updateExpense = async (data) => {
           },
           { session },
         );
-      } else {
-        // Status remains paid -> run adjustment difference logic
-        if (existingExpense.paymentMethod === "Petty Cash") {
-          const oldAmount = Number(existingExpense.amount);
-          const newAmount = Number(amount);
-          const difference = oldAmount - newAmount; // +ve = refund, -ve = deduct more
-
-          if (difference !== 0) {
-            if (existingExpense.pettyCashType === "inHand") {
-              await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-                manager: handledBy || existingExpense.handledBy,
-                pettyCashType: "inHand",
-                inHandAmount: difference,
-              });
-            }
-
-            if (existingExpense.pettyCashType === "inAccount") {
-              await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-                manager: handledBy || existingExpense.handledBy,
-                pettyCashType: "inAccount",
-                inAccountAmount: difference,
-              });
-            }
-          }
-        }
       }
     }
 
@@ -1290,26 +1204,6 @@ export const payExpense = async (data) => {
       },
       { session },
     );
-
-    if (
-      paymentMethod === "Petty Cash" &&
-      pettyCashType === "inHand" &&
-      !expense.fromVoucher
-    ) {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: expense.handledBy,
-        pettyCashType,
-        inHandAmount: -amount,
-      });
-    }
-
-    if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: expense.handledBy,
-        pettyCashType,
-        inAccountAmount: -amount,
-      });
-    }
 
     await expense.save({ session });
     await session.commitTransaction();
