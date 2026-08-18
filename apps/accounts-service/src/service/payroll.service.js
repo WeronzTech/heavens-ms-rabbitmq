@@ -196,22 +196,6 @@ export const processSalaryPayment = async (data) => {
     //   {session},
     // );
 
-    if (paymentMethod === "Petty Cash" && pettyCashType === "inHand") {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: managerId,
-        pettyCashType,
-        inHandAmount: -paymentAmount,
-      });
-    }
-
-    if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
-      await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-        manager: managerId,
-        pettyCashType,
-        inAccountAmount: -paymentAmount,
-      });
-    }
-
     await session.commitTransaction();
 
     return {
@@ -411,22 +395,6 @@ export const createSalaryAdvance = async (data) => {
 
     isAdvance: true,
   });
-
-  if (paymentMethod === "Petty Cash" && pettyCashType === "inHand") {
-    await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-      manager: managerId,
-      pettyCashType,
-      inHandAmount: -amount,
-    });
-  }
-
-  if (paymentMethod === "Petty Cash" && pettyCashType === "inAccount") {
-    await sendRPCRequest(CLIENT_PATTERN.PETTYCASH.ADD_PETTYCASH, {
-      manager: managerId,
-      pettyCashType,
-      inAccountAmount: -amount,
-    });
-  }
 
   return {
     success: true,
