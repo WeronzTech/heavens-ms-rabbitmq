@@ -458,22 +458,34 @@ export const handleRoomChange = async (user, newRoomId, newPropertyId) => {
 
 export const updateRoomNumberForOccupants = async (data) => {
   try {
-    const { roomId, newRoomNumber } = data;
-    if (!roomId || !newRoomNumber) {
+    const { roomId, newRoomNumber, newSharingType } = data;
+    if (!roomId) {
       return {
         status: 400,
         success: false,
-        message: "roomId and newRoomNumber are required",
+        message: "roomId is required",
+      };
+    }
+
+    const updateFields = {};
+    if (newRoomNumber) updateFields["stayDetails.roomNumber"] = newRoomNumber;
+    if (newSharingType) updateFields["stayDetails.sharingType"] = newSharingType;
+
+    if (Object.keys(updateFields).length === 0) {
+      return {
+        status: 200,
+        success: true,
+        data: { modifiedCount: 0 },
       };
     }
 
     const result = await User.updateMany(
       { "stayDetails.roomId": roomId },
-      { $set: { "stayDetails.roomNumber": newRoomNumber } },
+      { $set: updateFields },
     );
 
     console.log(
-      `Updated roomNumber to ${newRoomNumber} for ${result.modifiedCount} occupants.`,
+      `Updated occupants for room ${roomId}: ${JSON.stringify(updateFields)} (${result.modifiedCount} occupants).`,
     );
 
     return {
@@ -488,7 +500,7 @@ export const updateRoomNumberForOccupants = async (data) => {
       success: false,
       message:
         error.message ||
-        "Server error while updating room number for occupants",
+        "Server error while updating room details for occupants",
     };
   }
 };
