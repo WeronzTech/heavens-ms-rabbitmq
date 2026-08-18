@@ -406,7 +406,9 @@ export const updateRoom = async (data) => {
       return { status: 404, message: "Room not found" };
     }
 
-    const isRoomNoChanged = roomNo && roomNo !== room.roomNo;
+    const oldRoomNo = room.roomNo;
+    const oldSharingType = room.sharingType;
+    const isRoomNoChanged = roomNo && roomNo !== oldRoomNo;
 
     // ✅ Check for duplicate roomNo in the same property
     if (roomNo && roomNo !== room.roomNo) {
@@ -489,16 +491,22 @@ export const updateRoom = async (data) => {
       );
     }
 
-    // ✅ If room number changed, update occupants in user service
-    if (isRoomNoChanged) {
+    const isSharingTypeChanged = room.sharingType !== oldSharingType;
+
+    // ✅ If room number or sharing type changed, update occupants in user service
+    if (isRoomNoChanged || isSharingTypeChanged) {
       try {
         await sendRPCRequest(
           USER_PATTERN.USER.UPDATE_ROOM_NUMBER_FOR_OCCUPANTS,
-          { roomId: room._id.toString(), newRoomNumber: room.roomNo },
+          {
+            roomId: room._id.toString(),
+            newRoomNumber: room.roomNo,
+            newSharingType: room.sharingType,
+          },
         );
       } catch (rpcError) {
         console.error(
-          "❌ Failed to update room number for occupants via RPC:",
+          "❌ Failed to update room details for occupants via RPC:",
           rpcError,
         );
       }
@@ -633,13 +641,17 @@ export const deleteRoom = async (data) => {
 
 export const getRoomsByPropertyId = async (data) => {
   try {
-    const { propertyId } = data;
+    const { propertyId, sortOrder = "asc" } = data;
 
     if (!propertyId) {
       return { status: 400, message: "PropertyId is required" };
     }
 
-    const rooms = await Room.find({ propertyId });
+    const sortDirection = sortOrder === "desc" || sortOrder === -1 ? -1 : 1;
+
+    const rooms = await Room.find({ propertyId })
+      .sort({ roomNo: sortDirection })
+      .collation({ locale: "en", numericOrdering: true });
 
     if (!rooms || rooms.length === 0) {
       return {
@@ -731,7 +743,10 @@ export const getAvailableRoomsByProperty = async (data) => {
       vacantSlot: { $ne: 0 },
     };
 
-    let rooms = await Room.find(roomFilter);
+    const sortDirection = data.sortOrder === "desc" || data.sortOrder === -1 ? -1 : 1;
+    let rooms = await Room.find(roomFilter)
+      .sort({ roomNo: sortDirection })
+      .collation({ locale: "en", numericOrdering: true });
     // console.log("rooms", rooms);
 
     // If gender is provided, filter rooms by occupants' gender
@@ -837,7 +852,10 @@ export const getAllHeavensRooms = async (data) => {
       query.propertyId = data.propertyId;
     }
 
-    const rooms = await Room.find(query);
+    const sortDirection = data.sortOrder === "desc" || data.sortOrder === -1 ? -1 : 1;
+    const rooms = await Room.find(query)
+      .sort({ roomNo: sortDirection })
+      .collation({ locale: "en", numericOrdering: true });
     if (!rooms || rooms.length === 0) {
       return { status: 404, message: "No Heavens rooms found" };
     }
@@ -877,10 +895,11 @@ export const getRoomsByFloorId = async (data) => {
       };
     }
 
-    // ✅ Fetch rooms belonging to this floor
+    const sortDirection = data.sortOrder === "desc" || data.sortOrder === -1 ? -1 : 1;
     const rooms = await Room.find({ floorId })
       .populate("propertyId", "propertyName propertyId")
-      .sort({ roomNo: 1 }); // Sort by room number
+      .sort({ roomNo: sortDirection })
+      .collation({ locale: "en", numericOrdering: true });
 
     if (!rooms || rooms.length === 0) {
       return {
@@ -954,7 +973,10 @@ export const getAvailableRoomsForChange = async (data) => {
       roomFilter._id = { $ne: new mongoose.Types.ObjectId(currentRoomId) };
     }
 
-    let rooms = await Room.find(roomFilter);
+    const sortDirection = data.sortOrder === "desc" || data.sortOrder === -1 ? -1 : 1;
+    let rooms = await Room.find(roomFilter)
+      .sort({ roomNo: sortDirection })
+      .collation({ locale: "en", numericOrdering: true });
 
     // If gender is provided, filter rooms by occupants' gender
     if (gender) {

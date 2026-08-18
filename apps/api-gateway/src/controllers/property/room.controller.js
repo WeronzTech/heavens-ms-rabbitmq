@@ -139,11 +139,13 @@ export const deleteRoom = async (req, res) => {
 export const getRoomsByPropertyId = async (req, res) => {
   try {
     const { propertyId } = req.params;
+    const { sortOrder, order } = req.query;
 
     const response = await sendRPCRequest(
       PROPERTY_PATTERN.ROOM.GET_ROOMS_BY_PROPERTYID,
       {
         propertyId,
+        sortOrder: sortOrder || order || "asc",
       }
     );
 

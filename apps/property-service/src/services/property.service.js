@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Maintenance } from "../models/maintenance.model.js";
 import Property from "../models/property.model.js";
+import Room from "../models/room.model.js";
 import Staff from "../models/staff.model.js";
 import PropertyLog from "../models/propertyLog.model.js";
 import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
@@ -382,23 +383,28 @@ export const getClientProperties = async (data) => {
 
 export const calculateOccupancyRate = async (data) => {
   const { propertyId } = data;
-  const propertyFilter = propertyId ? { _id: propertyId } : {};
+  const matchFilter = propertyId
+    ? { propertyId: new mongoose.Types.ObjectId(propertyId) }
+    : {};
 
-  const properties = await Property.find(propertyFilter, {
-    totalBeds: 1,
-    occupiedBeds: 1,
-  });
-
-  const totals = properties.reduce(
-    (acc, property) => {
-      acc.totalBeds += property.totalBeds || 0;
-      acc.occupiedBeds += property.occupiedBeds || 0;
-      return acc;
+  const roomAgg = await Room.aggregate([
+    { $match: matchFilter },
+    {
+      $group: {
+        _id: null,
+        totalBeds: { $sum: "$roomCapacity" },
+        occupiedBeds: { $sum: "$occupant" },
+      },
     },
-    { totalBeds: 0, occupiedBeds: 0 },
-  );
+  ]);
 
-  const { totalBeds, occupiedBeds } = totals;
+  const totalBeds = roomAgg[0]?.totalBeds || 0;
+  const occupiedBeds = roomAgg[0]?.occupiedBeds || 0;
+
+  // Sync the Property document so property.occupiedBeds / totalBeds stays accurate
+  if (propertyId) {
+    await Property.findByIdAndUpdate(propertyId, { totalBeds, occupiedBeds });
+  }
 
   return {
     occupancyRate:
