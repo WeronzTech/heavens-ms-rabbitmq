@@ -1511,6 +1511,8 @@ export const getHeavensUserById = async (data) => {
 
 export const getUsersByRentType = async (data) => {
   try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const {
       // allowedPropertyIds,
       rentType,
@@ -1619,8 +1621,28 @@ export const getUsersByRentType = async (data) => {
         Workers: "worker",
       };
 
-      if (status === "Paid" || status === "Pending") {
-        queryConditions.paymentStatus = statusMapping[status];
+      if (status === "Paid") {
+        if (!queryConditions.$and) {
+          queryConditions.$and = [];
+        }
+        queryConditions.$and.push({
+          $or: [
+            { paymentStatus: "paid" },
+            { paymentStatus: "pending", "stayDetails.joinDate": { $gt: today } }
+          ]
+        });
+      } else if (status === "Pending") {
+        if (!queryConditions.$and) {
+          queryConditions.$and = [];
+        }
+        queryConditions.$and.push({ paymentStatus: "pending" });
+        queryConditions.$and.push({
+          $or: [
+            { "stayDetails.joinDate": { $lte: today } },
+            { "stayDetails.joinDate": { $exists: false } },
+            { "stayDetails.joinDate": null }
+          ]
+        });
       } else if (status === "On Leave" || status === "Checked Out") {
         queryConditions.currentStatus = statusMapping[status];
       } else if (status === "Incomplete Profile") {
@@ -1719,6 +1741,15 @@ export const getUsersByRentType = async (data) => {
         .filter((fine) => !fine.paid)
         .reduce((sum, fine) => sum + (fine.amount || 0), 0);
 
+      let isFutureJoinedDate = false;
+      if (user.stayDetails?.joinDate) {
+        const jDate = new Date(user.stayDetails.joinDate);
+        jDate.setHours(0, 0, 0, 0);
+        if (jDate > today) {
+          isFutureJoinedDate = true;
+        } 
+      }
+
       const formatted = {
         _id: user._id,
         name: user.name,
@@ -1729,18 +1760,18 @@ export const getUsersByRentType = async (data) => {
         isBlocked: user.isBlocked,
         profileCompletion: user.profileCompletion,
         currentStatus: user.currentStatus,
-        paymentStatus: user.paymentStatus,
+        paymentStatus: isFutureJoinedDate ? "paid" : user.paymentStatus,
         kitchenName: user.messDetails?.kitchenName,
         mealType: user.messDetails?.mealType,
         noOfDaysMess: user.messDetails?.noOfDays,
         totalAmount: user.financialDetails?.totalAmount,
-        pendingAmount: user.financialDetails?.pendingAmount,
+        pendingAmount: isFutureJoinedDate ? 0 : user.financialDetails?.pendingAmount,
         roomNumber: user.stayDetails?.roomNumber,
         propertyName: user.stayDetails?.propertyName,
         sharingType: user.stayDetails?.sharingType,
         rent: user.stayDetails?.dailyRent || user.messDetails?.rent,
         monthlyRent: user.financialDetails?.monthlyRent,
-        pendingRent: user.financialDetails?.pendingRent,
+        pendingRent: isFutureJoinedDate ? 0 : user.financialDetails?.pendingRent,
         nextDueDate: user.financialDetails?.nextDueDate,
         fines,
         outstandingFines,
@@ -1775,11 +1806,27 @@ export const getUsersByRentType = async (data) => {
         $facet: {
           totalResidents: [{ $count: "count" }],
           totalPaid: [
-            { $match: { paymentStatus: "paid" } },
+            {
+              $match: {
+                $or: [
+                  { paymentStatus: "paid" },
+                  { paymentStatus: "pending", "stayDetails.joinDate": { $gt: today } }
+                ]
+              }
+            },
             { $count: "count" },
           ],
           totalPending: [
-            { $match: { paymentStatus: "pending" } },
+            {
+              $match: {
+                paymentStatus: "pending",
+                $or: [
+                  { "stayDetails.joinDate": { $lte: today } },
+                  { "stayDetails.joinDate": { $exists: false } },
+                  { "stayDetails.joinDate": null }
+                ]
+              }
+            },
             { $count: "count" },
           ],
           totalCheckedIn: [
