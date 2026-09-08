@@ -136,6 +136,49 @@ export const getAllFeePaymentsController = async (req, res) => {
   }
 };
 
+export const downloadFeePaymentsCsv = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.DOWNLOAD_CSV,
+      req.query,
+    );
+
+    if (response?.success && typeof response.data === "string") {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        response.headers?.["Content-Disposition"] ||
+          'attachment; filename="paid_rent_transactions.csv"',
+      );
+      return res.status(200).send(Buffer.from(response.data, "utf-8"));
+    } else if (
+      response?.data &&
+      response.data.type === "Buffer" &&
+      Array.isArray(response.data.data)
+    ) {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        response.headers?.["Content-Disposition"] ||
+          'attachment; filename="paid_rent_transactions.csv"',
+      );
+      return res.status(200).send(Buffer.from(response.data.data));
+    } else {
+      return res.status(response?.status || 500).json({
+        success: false,
+        message: response?.message || "Failed to generate CSV download",
+      });
+    }
+  } catch (error) {
+    console.error("API Gateway Download Fee Payments CSV Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error in API Gateway",
+      error: error.message,
+    });
+  }
+};
+
 export const getMonthWiseRentCollectionController = async (req, res) => {
   try {
     const response = await sendRPCRequest(

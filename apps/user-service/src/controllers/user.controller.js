@@ -27,6 +27,7 @@ import {
   getUserByResetToken,
   updateUser,
   getAllPaymentPendingUsers,
+  downloadPendingPaymentsCsv,
   getResidentCounts,
   getUsersWithBirthdayToday,
   getUserStatisticsForAccountDashboard,
@@ -167,6 +168,13 @@ createResponder(
   USER_PATTERN.PAYMENT.GET_ALL_PAYMENT_PENDING_USERS,
   async (data) => {
     return await getAllPaymentPendingUsers(data);
+  },
+);
+
+createResponder(
+  USER_PATTERN.PAYMENT.DOWNLOAD_PENDING_PAYMENTS_CSV,
+  async (data) => {
+    return await downloadPendingPaymentsCsv(data);
   },
 );
 

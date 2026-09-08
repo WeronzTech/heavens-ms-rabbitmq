@@ -9,6 +9,7 @@ import {
   updateFeePayment,
   verifyAndRecordOnlinePayment,
   getAllFeePayments,
+  downloadFeePaymentsCsv,
   getMonthWiseRentCollection,
   getFinancialSummary,
   getNextDueDate,
@@ -59,6 +60,13 @@ createResponder(
   ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_ALL_FEE_PAYMENTS,
   async (data) => {
     return await getAllFeePayments(data);
+  },
+);
+
+createResponder(
+  ACCOUNTS_PATTERN.FEE_PAYMENTS.DOWNLOAD_CSV,
+  async (data) => {
+    return await downloadFeePaymentsCsv(data);
   },
 );
 

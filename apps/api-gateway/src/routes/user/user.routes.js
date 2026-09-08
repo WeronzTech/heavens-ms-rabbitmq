@@ -7,6 +7,7 @@ import {
   extendUserDays,
   getAllPendingDeposits,
   getAllPendingPayments,
+  downloadPendingPaymentsCsv,
   getCheckOutedUsersByRentType,
   getHeavensUserById,
   getPendingStatusRequests,
@@ -129,6 +130,7 @@ userRoutes.get(
   getUsersByRentType,
 );
 userRoutes.get("/pending-payments", getAllPendingPayments);
+userRoutes.get("/pending-payments/download-csv", downloadPendingPaymentsCsv);
 userRoutes.get("/pending-deposits", getAllPendingDeposits);
 userRoutes.get(
   "/offBoarding",
