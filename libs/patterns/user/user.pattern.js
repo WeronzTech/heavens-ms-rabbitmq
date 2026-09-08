@@ -68,6 +68,7 @@ export const USER_PATTERN = {
   PAYMENT: {
     GET_ALL_PAYMENT_PENDING_USERS: "get_all_payment_pending_users",
     GET_ALL_DEPOSIT_PENDING_USERS: "get_all_deposit_pending_users",
+    DOWNLOAD_PENDING_PAYMENTS_CSV: "download_pending_payments_csv",
   },
   DASHBOARD: {
     GET_USERS_COUNTS: "get_users_counts",

@@ -1,4 +1,5 @@
 import Payments from "../models/feePayments.model.js";
+import {Parser} from "json2csv";
 import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
 import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
 import {
@@ -2109,6 +2110,157 @@ export const getAllFeePayments = async (data) => {
       success: false,
       status: 500,
       message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const downloadFeePaymentsCsv = async (data) => {
+  try {
+    const {
+      propertyId,
+      rentType,
+      userType,
+      paymentMethod,
+      paymentMonth,
+      paymentYear,
+      paymentDate,
+      search,
+    } = data;
+    const filter = {
+      isWaveOff: {$ne: true},
+      paymentMethod: {$ne: "WaveOff Only"},
+    };
+    if (propertyId) {
+      filter["property.id"] = new mongoose.Types.ObjectId(propertyId);
+    }
+    if (rentType) {
+      filter.rentType = rentType.trim();
+    }
+    if (userType) {
+      filter.userType = userType.trim();
+    }
+    if (paymentMethod) {
+      filter.paymentMethod = paymentMethod.trim();
+    }
+    if (paymentMonth && paymentYear) {
+      const startDate = new Date(paymentYear, paymentMonth - 1, 1);
+      const endDate = new Date(paymentYear, paymentMonth, 0, 23, 59, 59, 999);
+      filter.paymentDate = {$gte: startDate, $lte: endDate};
+    }
+    if (paymentDate) {
+      const start = moment(`${paymentDate}T00:00:00+05:30`).utc().toDate();
+      const end = moment(`${paymentDate}T23:59:59.999+05:30`).utc().toDate();
+      filter.paymentDate = {
+        $gte: start,
+        $lte: end,
+      };
+    }
+    if (search) {
+      const regex = new RegExp(search.trim(), "i");
+      filter.$or = [{name: regex}, {transactionId: regex}];
+    }
+
+    const payments = await Payments.find(filter)
+      .sort({paymentDate: -1, createdAt: -1})
+      .lean();
+
+    // Fetch users for guardian contact if any student
+    const userIds = [
+      ...new Set(
+        payments.map((p) => p.userId?.toString()).filter(Boolean),
+      ),
+    ];
+    let usersMap = {};
+    if (userIds.length > 0) {
+      try {
+        const userRes = await sendRPCRequest(
+          USER_PATTERN.USER.GET_BULK_USER_BY_ID,
+          { userIds },
+        );
+        const usersList =
+          userRes?.body?.data || userRes?.data || [];
+        if (Array.isArray(usersList)) {
+          usersList.forEach((u) => {
+            usersMap[u._id.toString()] = u;
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to fetch user details for CSV export:", err.message);
+      }
+    }
+
+    const formattedPayments = payments.map((p, idx) => {
+      let paymentDateFormatted = "-";
+      if (p.paymentDate) {
+        paymentDateFormatted = moment(p.paymentDate).format("YYYY-MM-DD");
+      }
+
+      const userDoc = p.userId ? usersMap[p.userId.toString()] : null;
+      const isStudent =
+        (p.userType || userDoc?.userType || "").toLowerCase() === "student";
+      const guardianContact = isStudent
+        ? userDoc?.parentsDetails?.contact || "-"
+        : "-";
+
+      return {
+        sNo: idx + 1,
+        name: p.name || "-",
+        userType: p.userType || "-",
+        room: p.room || "-",
+        contact: p.contact || "-",
+        guardianContact,
+        rent: p.rent || 0,
+        paymentMethod: p.paymentMethod || "-",
+        paymentDate: paymentDateFormatted,
+        transactionDetails:
+          p.paymentMethod === "Cash"
+            ? p.collectedBy
+              ? `Collected by ${p.collectedBy}`
+              : "Cash"
+            : p.transactionId || "-",
+        collectedBy: p.collectedBy || "-",
+        receiptNumber: p.receiptNumber || "-",
+        amount: p.amount || 0,
+        remarks: p.remarks || "-",
+      };
+    });
+
+    const fields = [
+      {label: "S.No", value: "sNo"},
+      {label: "Tenant Name", value: "name"},
+      {label: "User Type", value: "userType"},
+      {label: "Room", value: "room"},
+      {label: "Contact", value: "contact"},
+      {label: "Guardian Contact", value: "guardianContact"},
+      {label: "Monthly Rent", value: "rent"},
+      {label: "Payment Method", value: "paymentMethod"},
+      {label: "Payment Date", value: "paymentDate"},
+      {label: "Transaction Details", value: "transactionDetails"},
+      {label: "Collected By", value: "collectedBy"},
+      {label: "Receipt No", value: "receiptNumber"},
+      {label: "Amount Paid", value: "amount"},
+      {label: "Remarks", value: "remarks"},
+    ];
+
+    const parser = new Parser({fields});
+    const csv = parser.parse(formattedPayments);
+
+    return {
+      success: true,
+      status: 200,
+      data: csv,
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="paid_rent_${Date.now()}.csv"`,
+      },
+    };
+  } catch (error) {
+    console.error("Download Fee Payments CSV Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error while generating CSV",
       error: error.message,
     };
   }

@@ -586,6 +586,49 @@ export const getAllPendingPayments = async (req, res) => {
   }
 };
 
+export const downloadPendingPaymentsCsv = async (req, res) => {
+  try {
+    const response = await sendRPCRequest(
+      USER_PATTERN.PAYMENT.DOWNLOAD_PENDING_PAYMENTS_CSV,
+      req.query,
+    );
+
+    if (response?.success && typeof response.data === "string") {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        response.headers?.["Content-Disposition"] ||
+          'attachment; filename="pending_rent_transactions.csv"',
+      );
+      return res.status(200).send(Buffer.from(response.data, "utf-8"));
+    } else if (
+      response?.data &&
+      response.data.type === "Buffer" &&
+      Array.isArray(response.data.data)
+    ) {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        response.headers?.["Content-Disposition"] ||
+          'attachment; filename="pending_rent_transactions.csv"',
+      );
+      return res.status(200).send(Buffer.from(response.data.data));
+    } else {
+      return res.status(response?.status || 500).json({
+        success: false,
+        message: response?.message || "Failed to generate CSV download",
+      });
+    }
+  } catch (error) {
+    console.error("API Gateway Download Pending Payments CSV Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error in API Gateway",
+      error: error.message,
+    });
+  }
+};
+
 export const getUsersByAgencyController = async (req, res) => {
   try {
     const {agent} = req.query;

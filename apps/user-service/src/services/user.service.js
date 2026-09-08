@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Parser } from "json2csv";
 import User from "../models/user.model.js";
 import {
   checkExistingUsers,
@@ -289,10 +290,10 @@ export const registerUser = async (data) => {
 
     const isColiving = stayDetails?.sharingType === "Coliving";
 
-    let verificationToken = null;
-    if (email) {
-      verificationToken = crypto.randomBytes(32).toString("hex");
-    }
+    // let verificationToken = null;
+    // if (email) {
+    //   verificationToken = crypto.randomBytes(32).toString("hex");
+    // }
 
     // 5. Build base user
     const userData = {
@@ -312,10 +313,10 @@ export const registerUser = async (data) => {
       referralInfo: { referredByCode: referredByCode || null },
       agent,
       clientId,
-      ...(verificationToken && {
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      }),
+      // ...(verificationToken && {
+      //   emailVerificationToken: verificationToken,
+      //   emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      // }),
     };
 
     // 6. Type-specific logic
@@ -367,15 +368,15 @@ export const registerUser = async (data) => {
     // 7. Save user
     const newUser = new User(userData);
     await newUser.save();
-    if (email && verificationToken) {
-      setImmediate(async () => {
-        try {
-          await emailService.sendApprovalEmail(newUser, verificationToken);
-        } catch (err) {
-          console.error("Registration verification email send error:", err);
-        }
-      });
-    }
+    // if (email && verificationToken) {
+    //   setImmediate(async () => {
+    //     try {
+    //       await emailService.sendApprovalEmail(newUser, verificationToken);
+    //     } catch (err) {
+    //       console.error("Registration verification email send error:", err);
+    //     }
+    //   });
+    // }
     if (userType === "messOnly") {
       await assignRoomToUser({
         userId: newUser._id,
@@ -1628,8 +1629,11 @@ export const getUsersByRentType = async (data) => {
         queryConditions.$and.push({
           $or: [
             { paymentStatus: "paid" },
-            { paymentStatus: "pending", "stayDetails.joinDate": { $gt: today } }
-          ]
+            {
+              paymentStatus: "pending",
+              "stayDetails.joinDate": { $gt: today },
+            },
+          ],
         });
       } else if (status === "Pending") {
         if (!queryConditions.$and) {
@@ -1640,8 +1644,8 @@ export const getUsersByRentType = async (data) => {
           $or: [
             { "stayDetails.joinDate": { $lte: today } },
             { "stayDetails.joinDate": { $exists: false } },
-            { "stayDetails.joinDate": null }
-          ]
+            { "stayDetails.joinDate": null },
+          ],
         });
       } else if (status === "On Leave" || status === "Checked Out") {
         queryConditions.currentStatus = statusMapping[status];
@@ -1747,7 +1751,7 @@ export const getUsersByRentType = async (data) => {
         jDate.setHours(0, 0, 0, 0);
         if (jDate > today) {
           isFutureJoinedDate = true;
-        } 
+        }
       }
 
       const formatted = {
@@ -1765,13 +1769,17 @@ export const getUsersByRentType = async (data) => {
         mealType: user.messDetails?.mealType,
         noOfDaysMess: user.messDetails?.noOfDays,
         totalAmount: user.financialDetails?.totalAmount,
-        pendingAmount: isFutureJoinedDate ? 0 : user.financialDetails?.pendingAmount,
+        pendingAmount: isFutureJoinedDate
+          ? 0
+          : user.financialDetails?.pendingAmount,
         roomNumber: user.stayDetails?.roomNumber,
         propertyName: user.stayDetails?.propertyName,
         sharingType: user.stayDetails?.sharingType,
         rent: user.stayDetails?.dailyRent || user.messDetails?.rent,
         monthlyRent: user.financialDetails?.monthlyRent,
-        pendingRent: isFutureJoinedDate ? 0 : user.financialDetails?.pendingRent,
+        pendingRent: isFutureJoinedDate
+          ? 0
+          : user.financialDetails?.pendingRent,
         nextDueDate: user.financialDetails?.nextDueDate,
         fines,
         outstandingFines,
@@ -1810,9 +1818,12 @@ export const getUsersByRentType = async (data) => {
               $match: {
                 $or: [
                   { paymentStatus: "paid" },
-                  { paymentStatus: "pending", "stayDetails.joinDate": { $gt: today } }
-                ]
-              }
+                  {
+                    paymentStatus: "pending",
+                    "stayDetails.joinDate": { $gt: today },
+                  },
+                ],
+              },
             },
             { $count: "count" },
           ],
@@ -1823,9 +1834,9 @@ export const getUsersByRentType = async (data) => {
                 $or: [
                   { "stayDetails.joinDate": { $lte: today } },
                   { "stayDetails.joinDate": { $exists: false } },
-                  { "stayDetails.joinDate": null }
-                ]
-              }
+                  { "stayDetails.joinDate": null },
+                ],
+              },
             },
             { $count: "count" },
           ],
@@ -3393,6 +3404,7 @@ export const getAllPaymentPendingUsers = async (data) => {
     let projection = {
       name: 1,
       contact: 1,
+      "parentsDetails.contact": 1,
       "stayDetails.roomNumber": 1,
     };
 
@@ -3508,6 +3520,8 @@ export const getAllPaymentPendingUsers = async (data) => {
         // merged from accounts service
         lastPaidDate: paymentInfo.lastPaidDate || null,
         lastPaidAmount: paymentInfo.amountPaid || null,
+        guardianContact:
+          u.userType === "student" ? u.parentsDetails?.contact || null : null,
       };
     });
 
@@ -3529,6 +3543,219 @@ export const getAllPaymentPendingUsers = async (data) => {
       success: false,
       status: 500,
       message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+};
+
+export const downloadPendingPaymentsCsv = async (data) => {
+  try {
+    const { propertyId, rentType = "monthly", userType, search } = data;
+
+    const query = {
+      paymentStatus: "pending",
+      isVacated: { $ne: true },
+    };
+
+    if (propertyId) {
+      query["stayDetails.propertyId"] = new mongoose.Types.ObjectId(propertyId);
+    }
+
+    if (rentType) {
+      query.rentType = rentType;
+    }
+
+    if (userType) {
+      query.userType = userType;
+    }
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query.$or = [{ name: regex }, { contact: regex }];
+    }
+
+    let projection = {
+      name: 1,
+      contact: 1,
+      "parentsDetails.contact": 1,
+      "stayDetails.roomNumber": 1,
+    };
+
+    if (rentType === "monthly") {
+      projection["userType"] = 1;
+      projection["stayDetails.joinDate"] = 1;
+      projection["financialDetails.monthlyRent"] = 1;
+      projection["financialDetails.pendingRent"] = 1;
+      projection["financialDetails.clearedTillMonth"] = 1;
+    } else if (rentType === "daily") {
+      projection["userType"] = 1;
+      projection["stayDetails.checkInDate"] = 1;
+      projection["stayDetails.checkOutDate"] = 1;
+      projection["financialDetails.totalAmount"] = 1;
+      projection["financialDetails.pendingAmount"] = 1;
+    } else if (rentType === "mess") {
+      projection["userType"] = 1;
+      projection["messDetails.messStartDate"] = 1;
+      projection["messDetails.messEndDate"] = 1;
+      projection["financialDetails.totalAmount"] = 1;
+      projection["financialDetails.pendingAmount"] = 1;
+    }
+
+    const users = await User.find(query).select(projection).lean();
+
+    if (!users.length) {
+      const emptyFields = [
+        { label: "S.No", value: "sNo" },
+        { label: "Tenant Name", value: "name" },
+        { label: "User Type", value: "userType" },
+        { label: "Contact", value: "contact" },
+        { label: "Guardian Contact", value: "guardianContact" },
+        { label: "Room", value: "roomNumber" },
+        {
+          label: rentType === "daily" ? "Total Amount" : "Monthly Rent",
+          value: "monthlyRent",
+        },
+        {
+          label: rentType === "daily" ? "Check-in Date" : "Join Date",
+          value: "joinDate",
+        },
+        { label: "Last Payment Date", value: "lastPaidDate" },
+        { label: "Last Paid Amount", value: "lastPaidAmount" },
+        { label: "Rent Cleared Till", value: "rentClearedMonth" },
+        { label: "Pending Amount", value: "pendingRent" },
+      ];
+      const parser = new Parser({ fields: emptyFields });
+      return {
+        success: true,
+        status: 200,
+        data: parser.parse([]),
+        headers: {
+          "Content-Type": "text/csv",
+          "Content-Disposition": `attachment; filename="pending_rent_${Date.now()}.csv"`,
+        },
+      };
+    }
+
+    // Collect userIds to get latest payments
+    const userIds = users.map((u) => u._id.toString());
+    const paymentsResponse = await sendRPCRequest(
+      ACCOUNTS_PATTERN.FEE_PAYMENTS.GET_LATEST_BY_USERS,
+      { userIds },
+    );
+
+    const paymentsMap = {};
+    if (paymentsResponse?.success && Array.isArray(paymentsResponse.data)) {
+      paymentsResponse.data.forEach((p) => {
+        paymentsMap[p.userId] = {
+          lastPaidDate: p.paymentDate,
+          amountPaid: p.amount,
+        };
+      });
+    }
+
+    const formattedUsers = users.map((u, idx) => {
+      const paymentInfo = paymentsMap[u._id.toString()] || {};
+      let joinOrCheckIn = "-";
+      if (rentType === "monthly" && u.stayDetails?.joinDate) {
+        joinOrCheckIn = dayjs(u.stayDetails.joinDate).isValid()
+          ? dayjs(u.stayDetails.joinDate).format("YYYY-MM-DD")
+          : "-";
+      } else if (rentType === "daily" && u.stayDetails?.checkInDate) {
+        joinOrCheckIn = dayjs(u.stayDetails.checkInDate).isValid()
+          ? dayjs(u.stayDetails.checkInDate).format("YYYY-MM-DD")
+          : "-";
+      }
+
+      let lastPaidDateFormatted = "-";
+      if (paymentInfo.lastPaidDate) {
+        lastPaidDateFormatted = dayjs(paymentInfo.lastPaidDate).isValid()
+          ? dayjs(paymentInfo.lastPaidDate).format("YYYY-MM-DD")
+          : "-";
+      }
+
+      let clearedTill = "-";
+      if (u.financialDetails?.clearedTillMonth) {
+        const [yr, mo] = u.financialDetails.clearedTillMonth.split("-");
+        if (yr && mo) {
+          const dt = dayjs(`${yr}-${mo}-01`);
+          clearedTill = dt.isValid()
+            ? dt.format("MMMM YYYY")
+            : u.financialDetails.clearedTillMonth;
+        } else {
+          clearedTill = u.financialDetails.clearedTillMonth;
+        }
+      }
+
+      const rentVal =
+        rentType === "daily"
+          ? u.financialDetails?.totalAmount || 0
+          : u.financialDetails?.monthlyRent || 0;
+
+      const pendingVal =
+        rentType === "daily"
+          ? u.financialDetails?.pendingAmount || 0
+          : u.financialDetails?.pendingRent || 0;
+
+      const isStudent = (u.userType || "").toLowerCase() === "student";
+      const guardianContact = isStudent
+        ? u.parentsDetails?.contact || "-"
+        : "-";
+
+      return {
+        sNo: idx + 1,
+        name: u.name || "-",
+        userType: u.userType || "-",
+        contact: u.contact || "-",
+        guardianContact,
+        roomNumber: u.stayDetails?.roomNumber || "-",
+        monthlyRent: rentVal,
+        joinDate: joinOrCheckIn,
+        lastPaidDate: lastPaidDateFormatted,
+        lastPaidAmount: paymentInfo.amountPaid || 0,
+        rentClearedMonth: clearedTill,
+        pendingRent: pendingVal,
+      };
+    });
+
+    const fields = [
+      { label: "S.No", value: "sNo" },
+      { label: "Tenant Name", value: "name" },
+      { label: "User Type", value: "userType" },
+      { label: "Contact", value: "contact" },
+      { label: "Guardian Contact", value: "guardianContact" },
+      { label: "Room", value: "roomNumber" },
+      {
+        label: rentType === "daily" ? "Total Amount" : "Monthly Rent",
+        value: "monthlyRent",
+      },
+      {
+        label: rentType === "daily" ? "Check-in Date" : "Join Date",
+        value: "joinDate",
+      },
+      { label: "Last Payment Date", value: "lastPaidDate" },
+      { label: "Last Paid Amount", value: "lastPaidAmount" },
+      { label: "Rent Cleared Till", value: "rentClearedMonth" },
+      { label: "Pending Amount", value: "pendingRent" },
+    ];
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(formattedUsers);
+
+    return {
+      success: true,
+      status: 200,
+      data: csv,
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="pending_rent_${Date.now()}.csv"`,
+      },
+    };
+  } catch (error) {
+    console.error("Download Pending Payments CSV Service Error:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal Server Error while generating Pending Payments CSV",
       error: error.message,
     };
   }

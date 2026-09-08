@@ -3,6 +3,7 @@ import {
   addFeePaymentController,
   getFeePaymentController,
   getAllFeePaymentsController,
+  downloadFeePaymentsCsv,
   initiateOnlinePayment,
   recordManualPayment,
   updateFeePaymentController,
@@ -72,6 +73,12 @@ feePaymentRoutes.get(
   "/",
   hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
   getAllFeePaymentsController,
+);
+
+feePaymentRoutes.get(
+  "/download-csv",
+  hasPermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  downloadFeePaymentsCsv,
 );
 
 feePaymentRoutes.get(
