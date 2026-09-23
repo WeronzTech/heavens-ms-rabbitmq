@@ -165,6 +165,7 @@ export const vacateUserById = async (userId, roleName) => {
       });
     }
     user.isVacated = true;
+    user.vacatedAt = new Date();
     user.stayDetails.roomId = null;
     await user.save({ session });
 
@@ -1647,6 +1648,29 @@ export const getUsersByRentType = async (data) => {
             { "stayDetails.joinDate": null },
           ],
         });
+      } else if (status === "Pending Deposit") {
+        if (!queryConditions.$and) {
+          queryConditions.$and = [];
+        }
+        queryConditions.$and.push({
+          "stayDetails.depositStatus": { $ne: "paid" },
+          $expr: {
+            $gt: [
+              {
+                $subtract: [
+                  {
+                    $add: [
+                      { $ifNull: ["$stayDetails.nonRefundableDeposit", 0] },
+                      { $ifNull: ["$stayDetails.refundableDeposit", 0] },
+                    ],
+                  },
+                  { $ifNull: ["$stayDetails.depositAmountPaid", 0] },
+                ],
+              },
+              0,
+            ],
+          },
+        });
       } else if (status === "On Leave" || status === "Checked Out") {
         queryConditions.currentStatus = statusMapping[status];
       } else if (status === "Incomplete Profile") {
@@ -1797,11 +1821,16 @@ export const getUsersByRentType = async (data) => {
       };
 
       if (rentType !== "daily" && rentType !== "mess") {
-        formatted.depositAmount =
-          (user.stayDetails?.nonRefundableDeposit || 0) +
-          (user.stayDetails?.refundableDeposit || 0);
-        formatted.depositPaid = user.stayDetails?.depositAmountPaid;
+        const nonRefundable = user.stayDetails?.nonRefundableDeposit || 0;
+        const refundable = user.stayDetails?.refundableDeposit || 0;
+        const depositPaid = user.stayDetails?.depositAmountPaid || 0;
+        const depositAmount = nonRefundable + refundable;
+        const pendingDeposit = Math.max(0, depositAmount - depositPaid);
+
+        formatted.depositAmount = depositAmount;
+        formatted.depositPaid = depositPaid;
         formatted.depositStatus = user.stayDetails?.depositStatus;
+        formatted.pendingDeposit = pendingDeposit;
       }
 
       return formatted;
@@ -1840,6 +1869,30 @@ export const getUsersByRentType = async (data) => {
             },
             { $count: "count" },
           ],
+          totalPendingDeposit: [
+            {
+              $match: {
+                "stayDetails.depositStatus": { $ne: "paid" },
+                $expr: {
+                  $gt: [
+                    {
+                      $subtract: [
+                        {
+                          $add: [
+                            { $ifNull: ["$stayDetails.nonRefundableDeposit", 0] },
+                            { $ifNull: ["$stayDetails.refundableDeposit", 0] },
+                          ],
+                        },
+                        { $ifNull: ["$stayDetails.depositAmountPaid", 0] },
+                      ],
+                    },
+                    0,
+                  ],
+                },
+              },
+            },
+            { $count: "count" },
+          ],
           totalCheckedIn: [
             { $match: { currentStatus: "checked_in" } },
             { $count: "count" },
@@ -1856,6 +1909,7 @@ export const getUsersByRentType = async (data) => {
       totalResidents: aggregates[0].totalResidents[0]?.count || 0,
       totalPaid: aggregates[0].totalPaid[0]?.count || 0,
       totalPending: aggregates[0].totalPending[0]?.count || 0,
+      totalPendingDeposit: aggregates[0].totalPendingDeposit[0]?.count || 0,
       totalCheckedIn: aggregates[0].totalCheckedIn[0]?.count || 0,
       totalOnLeave: aggregates[0].totalOnLeave[0]?.count || 0,
     };
@@ -2035,7 +2089,7 @@ export const getCheckOutedUsersByRentType = async (data) => {
     // Fetch Users
     const users = await User.find(queryConditions)
       .select(projection)
-      .sort({ createdAt: -1 })
+      .sort({ vacatedAt: -1, "stayDetails.checkOutDate": -1, updatedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(limitNumber)
       .lean();
@@ -2079,7 +2133,7 @@ export const getCheckOutedUsersByRentType = async (data) => {
         fines,
         outstandingFines,
         joinedDate: user.createdAt,
-        vacatedAt: user.vacatedAt,
+        vacatedAt: user.vacatedAt || user.stayDetails?.checkOutDate || user.updatedAt,
         statusRequests: user.statusRequests,
       };
     });
