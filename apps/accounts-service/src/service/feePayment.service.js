@@ -1,7 +1,7 @@
 import Payments from "../models/feePayments.model.js";
-import {Parser} from "json2csv";
-import {USER_PATTERN} from "../../../../libs/patterns/user/user.pattern.js";
-import {sendRPCRequest} from "../../../../libs/common/rabbitMq.js";
+import { Parser } from "json2csv";
+import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
+import { sendRPCRequest } from "../../../../libs/common/rabbitMq.js";
 import {
   initiateEasebuzzPayment,
   verifyEasebuzzPayment as verifyEasebuzzSignature,
@@ -10,18 +10,18 @@ import mongoose from "mongoose";
 import Expense from "../models/expense.model.js";
 import Commission from "../models/commission.model.js";
 import moment from "moment";
-import {createAccountLog} from "./accountsLog.service.js";
-import {SOCKET_PATTERN} from "../../../../libs/patterns/socket/socket.pattern.js";
+import { createAccountLog } from "./accountsLog.service.js";
+import { SOCKET_PATTERN } from "../../../../libs/patterns/socket/socket.pattern.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import Deposits from "../models/depositPayments.model.js";
 import Voucher from "../models/voucher.model.js";
 import emailService from "../../../../libs/email/email.service.js";
 import ReceiptCounter from "../models/receiptCounter.model.js";
-import {createJournalEntry} from "./accounting.service.js";
-import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
-import {PROPERTY_PATTERN} from "../../../../libs/patterns/property/property.pattern.js";
+import { createJournalEntry } from "./accounting.service.js";
+import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import dotenv from "dotenv";
-import {CLIENT_PATTERN} from "../../../../libs/patterns/client/client.pattern.js";
+import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
 
 dotenv.config();
 
@@ -249,8 +249,8 @@ export const updateFeePayment = async (paymentId, updateData) => {
     // ✅ Update payment
     const updatedPayment = await Payments.findByIdAndUpdate(
       paymentId,
-      {$set: updateFields},
-      {new: true, runValidators: true},
+      { $set: updateFields },
+      { new: true, runValidators: true },
     );
 
     return {
@@ -273,7 +273,7 @@ export const updateFeePayment = async (paymentId, updateData) => {
 export const getFeePaymentById = async (data) => {
   try {
     // Extract paymentId from data object
-    const {paymentId} = data;
+    const { paymentId } = data;
 
     // Validate paymentId exists
     if (!paymentId) {
@@ -333,9 +333,9 @@ export const getFeePaymentById = async (data) => {
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
   const counter = await ReceiptCounter.findOneAndUpdate(
-    {propertyId: property.propertyId, monthYear},
-    {$inc: {sequence: 1}},
-    {new: true, upsert: true, session},
+    { propertyId: property.propertyId, monthYear },
+    { $inc: { sequence: 1 } },
+    { new: true, upsert: true, session },
   );
 
   const seq = String(counter.sequence).padStart(4, "0");
@@ -998,7 +998,7 @@ const processAndRecordPayment = async ({
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
     if (!userResponse.body.success) {
       throw new Error(userResponse.message || "User not found.");
@@ -1194,7 +1194,7 @@ const processAndRecordPayment = async ({
       ...easebuzzDetails,
     });
 
-    await newPayment.save({session});
+    await newPayment.save({ session });
 
     const userIdsToNotify = ["688722e075ee06d71c8fdb02"];
     userIdsToNotify.push(user._id);
@@ -1239,13 +1239,13 @@ const processAndRecordPayment = async ({
         } for ${paymentForMonths.join(", ")}`,
         propertyId: newPayment.property.id,
         transactions: [
-          {systemName: paymentSystemName, debit: amount},
-          {systemName: incomeSystemName, credit: amount},
+          { systemName: paymentSystemName, debit: amount },
+          { systemName: incomeSystemName, credit: amount },
         ],
         referenceId: newPayment._id,
         referenceType: "Payments",
       },
-      {session},
+      { session },
     );
 
     const updateUserResponse = await sendRPCRequest(
@@ -1305,7 +1305,7 @@ const processAndRecordPayment = async ({
     console.log(error);
     await session.abortTransaction();
     console.error("Error during payment processing:", error);
-    return {success: false, status: 400, message: error.message};
+    return { success: false, status: 400, message: error.message };
   } finally {
     session.endSession();
   }
@@ -1328,7 +1328,7 @@ export const waveOffRent = async ({
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
 
     if (!userResponse.body.success) {
@@ -1492,7 +1492,7 @@ export const waveOffRent = async ({
       remarks,
     });
 
-    await transaction.save({session});
+    await transaction.save({ session });
 
     await createAccountLog({
       logType: "Rent Wave Off",
@@ -1541,7 +1541,7 @@ export const waveOffRent = async ({
 
 export const initiateOnlinePayment = async (data) => {
   try {
-    const {userId, paidBy, amount, useReferralBalance} = data;
+    const { userId, paidBy, amount, useReferralBalance } = data;
     let paymentAmount = Number(amount);
     let referralAmountUsed = Number(useReferralBalance) || 0;
 
@@ -1555,10 +1555,10 @@ export const initiateOnlinePayment = async (data) => {
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
     if (!userResponse.body.success) {
-      return {success: false, status: 404, message: "User not found."};
+      return { success: false, status: 404, message: "User not found." };
     }
     const user = userResponse.body.data;
 
@@ -1570,7 +1570,7 @@ export const initiateOnlinePayment = async (data) => {
     if (propertyId) {
       const propertyResponse = await sendRPCRequest(
         PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-        {id: propertyId},
+        { id: propertyId },
       );
       if (
         propertyResponse.success &&
@@ -1615,8 +1615,8 @@ export const initiateOnlinePayment = async (data) => {
     }
 
     // ✅ NEW: Validate payment amount before creating Razorpay order
-    const {rentType, financialDetails} = user;
-    const {pendingAmount, monthlyRent, accountBalance, pendingRent} =
+    const { rentType, financialDetails } = user;
+    const { pendingAmount, monthlyRent, accountBalance, pendingRent } =
       financialDetails;
 
     if (rentType === "daily" || rentType === "mess") {
@@ -1642,13 +1642,13 @@ export const initiateOnlinePayment = async (data) => {
         };
       }
 
-      if (currentPendingRent > 0 && totalAvailableAmount < currentPendingRent) {
-        return {
-          success: false,
-          status: 400,
-          message: `To clear your due, the pending rent amount of ₹${currentPendingRent} must be paid.`,
-        };
-      }
+      // if (currentPendingRent > 0 && totalAvailableAmount < currentPendingRent) {
+      //   return {
+      //     success: false,
+      //     status: 400,
+      //     message: `To clear your due, the pending rent amount of ₹${currentPendingRent} must be paid.`,
+      //   };
+      // }
     }
 
     if (paymentAmount > 0) {
@@ -1702,7 +1702,7 @@ export const initiateOnlinePayment = async (data) => {
     }
   } catch (error) {
     console.error("Error during payment initiation:", error);
-    return {success: false, status: 500, message: "Internal Server Error"};
+    return { success: false, status: 500, message: "Internal Server Error" };
   }
 };
 
@@ -1724,7 +1724,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
   try {
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
     if (userResponse.body.success) {
       const user = userResponse.body.data;
@@ -1732,7 +1732,7 @@ export const verifyAndRecordOnlinePayment = async (data) => {
       if (propertyId) {
         const propertyResponse = await sendRPCRequest(
           PROPERTY_PATTERN.PROPERTY.GET_PROPERTY_BY_ID,
-          {id: propertyId},
+          { id: propertyId },
         );
         if (
           propertyResponse.success &&
@@ -1847,7 +1847,7 @@ export const recordManualPayment = async (data) => {
   }
 
   if (transactionId) {
-    const existingTxn = await Payments.findOne({transactionId});
+    const existingTxn = await Payments.findOne({ transactionId });
 
     if (existingTxn) {
       return {
@@ -1897,8 +1897,8 @@ export const getAllFeePayments = async (data) => {
       search,
     } = data;
     const filter = {
-      isWaveOff: {$ne: true},
-      paymentMethod: {$ne: "WaveOff Only"},
+      isWaveOff: { $ne: true },
+      paymentMethod: { $ne: "WaveOff Only" },
     };
     // Filter by property
     if (propertyId) {
@@ -1923,7 +1923,7 @@ export const getAllFeePayments = async (data) => {
     if (paymentMonth && paymentYear) {
       const startDate = new Date(paymentYear, paymentMonth - 1, 1); // first day of month
       const endDate = new Date(paymentYear, paymentMonth, 0, 23, 59, 59, 999); // last day of month
-      filter.paymentDate = {$gte: startDate, $lte: endDate};
+      filter.paymentDate = { $gte: startDate, $lte: endDate };
     }
 
     // if (paymentDate) {
@@ -1950,16 +1950,16 @@ export const getAllFeePayments = async (data) => {
     // 🔹 Search by name or transactionId (case-insensitive)
     if (search) {
       const regex = new RegExp(search.trim(), "i");
-      filter.$or = [{name: regex}, {transactionId: regex}];
+      filter.$or = [{ name: regex }, { transactionId: regex }];
     }
 
     const skip = (page - 1) * limit;
 
     const aggregationPipeline = [
-      {$match: filter},
-      {$sort: {paymentDate: -1, createdAt: -1}},
-      {$skip: Number(skip)},
-      {$limit: Number(limit)},
+      { $match: filter },
+      { $sort: { paymentDate: -1, createdAt: -1 } },
+      { $skip: Number(skip) },
+      { $limit: Number(limit) },
       // Join with journalentries collection
       {
         $lookup: {
@@ -2064,8 +2064,8 @@ export const getAllFeePayments = async (data) => {
     // const total = await Payments.countDocuments(filter);
 
     const totalAgg = await Payments.aggregate([
-      {$match: filter},
-      {$group: {_id: null, totalReceived: {$sum: "$amount"}}},
+      { $match: filter },
+      { $group: { _id: null, totalReceived: { $sum: "$amount" } } },
     ]);
 
     const totalReceived = totalAgg.length > 0 ? totalAgg[0].totalReceived : 0;
@@ -2076,13 +2076,13 @@ export const getAllFeePayments = async (data) => {
     }
 
     const availableYears = await Payments.aggregate([
-      {$match: yearQuery},
+      { $match: yearQuery },
       {
         $group: {
-          _id: {$year: "$paymentDate"},
+          _id: { $year: "$paymentDate" },
         },
       },
-      {$sort: {_id: 1}},
+      { $sort: { _id: 1 } },
       {
         $project: {
           year: "$_id",
@@ -2128,8 +2128,8 @@ export const downloadFeePaymentsCsv = async (data) => {
       search,
     } = data;
     const filter = {
-      isWaveOff: {$ne: true},
-      paymentMethod: {$ne: "WaveOff Only"},
+      isWaveOff: { $ne: true },
+      paymentMethod: { $ne: "WaveOff Only" },
     };
     if (propertyId) {
       filter["property.id"] = new mongoose.Types.ObjectId(propertyId);
@@ -2146,7 +2146,7 @@ export const downloadFeePaymentsCsv = async (data) => {
     if (paymentMonth && paymentYear) {
       const startDate = new Date(paymentYear, paymentMonth - 1, 1);
       const endDate = new Date(paymentYear, paymentMonth, 0, 23, 59, 59, 999);
-      filter.paymentDate = {$gte: startDate, $lte: endDate};
+      filter.paymentDate = { $gte: startDate, $lte: endDate };
     }
     if (paymentDate) {
       const start = moment(`${paymentDate}T00:00:00+05:30`).utc().toDate();
@@ -2158,18 +2158,16 @@ export const downloadFeePaymentsCsv = async (data) => {
     }
     if (search) {
       const regex = new RegExp(search.trim(), "i");
-      filter.$or = [{name: regex}, {transactionId: regex}];
+      filter.$or = [{ name: regex }, { transactionId: regex }];
     }
 
     const payments = await Payments.find(filter)
-      .sort({paymentDate: -1, createdAt: -1})
+      .sort({ paymentDate: -1, createdAt: -1 })
       .lean();
 
     // Fetch users for guardian contact if any student
     const userIds = [
-      ...new Set(
-        payments.map((p) => p.userId?.toString()).filter(Boolean),
-      ),
+      ...new Set(payments.map((p) => p.userId?.toString()).filter(Boolean)),
     ];
     let usersMap = {};
     if (userIds.length > 0) {
@@ -2178,15 +2176,17 @@ export const downloadFeePaymentsCsv = async (data) => {
           USER_PATTERN.USER.GET_BULK_USER_BY_ID,
           { userIds },
         );
-        const usersList =
-          userRes?.body?.data || userRes?.data || [];
+        const usersList = userRes?.body?.data || userRes?.data || [];
         if (Array.isArray(usersList)) {
           usersList.forEach((u) => {
             usersMap[u._id.toString()] = u;
           });
         }
       } catch (err) {
-        console.warn("Failed to fetch user details for CSV export:", err.message);
+        console.warn(
+          "Failed to fetch user details for CSV export:",
+          err.message,
+        );
       }
     }
 
@@ -2227,23 +2227,23 @@ export const downloadFeePaymentsCsv = async (data) => {
     });
 
     const fields = [
-      {label: "S.No", value: "sNo"},
-      {label: "Tenant Name", value: "name"},
-      {label: "User Type", value: "userType"},
-      {label: "Room", value: "room"},
-      {label: "Contact", value: "contact"},
-      {label: "Guardian Contact", value: "guardianContact"},
-      {label: "Monthly Rent", value: "rent"},
-      {label: "Payment Method", value: "paymentMethod"},
-      {label: "Payment Date", value: "paymentDate"},
-      {label: "Transaction Details", value: "transactionDetails"},
-      {label: "Collected By", value: "collectedBy"},
-      {label: "Receipt No", value: "receiptNumber"},
-      {label: "Amount Paid", value: "amount"},
-      {label: "Remarks", value: "remarks"},
+      { label: "S.No", value: "sNo" },
+      { label: "Tenant Name", value: "name" },
+      { label: "User Type", value: "userType" },
+      { label: "Room", value: "room" },
+      { label: "Contact", value: "contact" },
+      { label: "Guardian Contact", value: "guardianContact" },
+      { label: "Monthly Rent", value: "rent" },
+      { label: "Payment Method", value: "paymentMethod" },
+      { label: "Payment Date", value: "paymentDate" },
+      { label: "Transaction Details", value: "transactionDetails" },
+      { label: "Collected By", value: "collectedBy" },
+      { label: "Receipt No", value: "receiptNumber" },
+      { label: "Amount Paid", value: "amount" },
+      { label: "Remarks", value: "remarks" },
     ];
 
-    const parser = new Parser({fields});
+    const parser = new Parser({ fields });
     const csv = parser.parse(formattedPayments);
 
     return {
@@ -2277,7 +2277,7 @@ export const getMonthWiseRentCollection = async () => {
       .find(
         {},
         {
-          projection: {paymentDate: 1, amount: 1},
+          projection: { paymentDate: 1, amount: 1 },
         },
       )
       .toArray();
@@ -2295,7 +2295,7 @@ export const getMonthWiseRentCollection = async () => {
         const key = `${year}-${month.toString().padStart(2, "0")}`;
 
         if (!monthlyData.has(key)) {
-          monthlyData.set(key, {year, month, totalCollection: 0, count: 0});
+          monthlyData.set(key, { year, month, totalCollection: 0, count: 0 });
         }
 
         const monthData = monthlyData.get(key);
@@ -2327,20 +2327,20 @@ export const getMonthWiseRentCollection = async () => {
   }
 };
 
-export const getLatestPaymentsByUsers = async ({userIds}) => {
+export const getLatestPaymentsByUsers = async ({ userIds }) => {
   try {
     const payments = await Payments.aggregate([
       {
         $match: {
-          userId: {$in: userIds.map((id) => new mongoose.Types.ObjectId(id))},
+          userId: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
         },
       },
-      {$sort: {createdAt: -1}}, // ensure latest first
+      { $sort: { createdAt: -1 } }, // ensure latest first
       {
         $group: {
           _id: "$userId",
-          paymentDate: {$first: "$paymentDate"},
-          amount: {$first: "$amount"},
+          paymentDate: { $first: "$paymentDate" },
+          amount: { $first: "$amount" },
         },
       },
       {
@@ -2353,9 +2353,9 @@ export const getLatestPaymentsByUsers = async ({userIds}) => {
       },
     ]);
 
-    return {success: true, status: 200, data: payments};
+    return { success: true, status: 200, data: payments };
   } catch (err) {
-    return {success: false, status: 500, message: err.message};
+    return { success: false, status: 500, message: err.message };
   }
 };
 
@@ -2372,7 +2372,7 @@ export const getFinancialSummary = async (data) => {
     }
 
     // Build match condition
-    const matchCondition = {status: "Paid"};
+    const matchCondition = { status: "Paid" };
     if (propertyId) {
       matchCondition.propertyId = new mongoose.Types.ObjectId(propertyId);
     }
@@ -2382,17 +2382,17 @@ export const getFinancialSummary = async (data) => {
 
     // Aggregate collected amounts per month (all years)
     const collected = await Payments.aggregate([
-      {$match: matchCondition},
+      { $match: matchCondition },
       {
         $group: {
           _id: {
-            year: {$year: "$paymentDate"},
-            month: {$month: "$paymentDate"},
+            year: { $year: "$paymentDate" },
+            month: { $month: "$paymentDate" },
           },
-          totalCollected: {$sum: "$amount"},
+          totalCollected: { $sum: "$amount" },
         },
       },
-      {$sort: {"_id.year": 1, "_id.month": 1}},
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
 
     const monthNames = [
@@ -2435,25 +2435,25 @@ export const getFinancialSummary = async (data) => {
 
 export const getNextDueDate = async (data) => {
   try {
-    const {userId} = data;
+    const { userId } = data;
 
     const userResponse = await sendRPCRequest(
       USER_PATTERN.USER.GET_USER_BY_ID,
-      {userId},
+      { userId },
     );
 
     if (!userResponse.body.success) {
-      return {success: false, status: 404, message: "User not found."};
+      return { success: false, status: 404, message: "User not found." };
     }
     const user = userResponse.body.data;
 
     console.log("user", user.financialDetails);
 
-    const {nextDueDate, pendingRent} = user.financialDetails;
+    const { nextDueDate, pendingRent } = user.financialDetails;
 
     // Get last payment details
-    const lastPayment = await Payments.findOne({userId})
-      .sort({paymentDate: -1})
+    const lastPayment = await Payments.findOne({ userId })
+      .sort({ paymentDate: -1 })
       .limit(1);
 
     const today = new Date();
@@ -2484,13 +2484,13 @@ export const getNextDueDate = async (data) => {
 
 export const getAllAccountsPayments = async (data) => {
   try {
-    const {propertyId} = data || {}; // get propertyId from data
-    const filter = propertyId ? {"property.id": propertyId} : {};
+    const { propertyId } = data || {}; // get propertyId from data
+    const filter = propertyId ? { "property.id": propertyId } : {};
 
-    const payments = await Payments.find(filter).sort({createdAt: -1}).lean();
-    const expenses = await Expense.find(filter).sort({createdAt: -1}).lean();
+    const payments = await Payments.find(filter).sort({ createdAt: -1 }).lean();
+    const expenses = await Expense.find(filter).sort({ createdAt: -1 }).lean();
     const commissions = await Commission.find(filter)
-      .sort({createdAt: -1})
+      .sort({ createdAt: -1 })
       .lean();
 
     return {
@@ -2557,7 +2557,7 @@ export const getAllAccountsPayments = async (data) => {
 
 export const getFeePaymentsByUserId = async (data) => {
   try {
-    const {userId} = data;
+    const { userId } = data;
 
     if (!userId) {
       return {
@@ -2568,7 +2568,7 @@ export const getFeePaymentsByUserId = async (data) => {
       };
     }
 
-    const payments = await Payments.find({userId}).lean();
+    const payments = await Payments.find({ userId }).lean();
 
     if (!payments || payments.length === 0) {
       return {
@@ -2631,12 +2631,12 @@ export const getFeePaymentsByUserId = async (data) => {
 
 export const getWaveOffedPayments = async (filters) => {
   try {
-    const {propertyId, userType, paymentMethod, month, year, search} =
+    const { propertyId, userType, paymentMethod, month, year, search } =
       filters || {};
     console.log("filters");
     console.log(filters);
 
-    const query = {waveOffAmount: {$gt: 0}};
+    const query = { waveOffAmount: { $gt: 0 } };
 
     // Property filter (nested field)
     if (propertyId) query["property.id"] = propertyId;
@@ -2650,8 +2650,8 @@ export const getWaveOffedPayments = async (filters) => {
     // Search filter for name or transactionId
     if (search) {
       query.$or = [
-        {name: {$regex: search, $options: "i"}},
-        {transactionId: {$regex: search, $options: "i"}},
+        { name: { $regex: search, $options: "i" } },
+        { transactionId: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -2666,12 +2666,12 @@ export const getWaveOffedPayments = async (filters) => {
         ? new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999)
         : new Date(filterYear, 11, 31, 23, 59, 59, 999);
 
-      query.paymentDate = {$gte: start, $lte: end};
+      query.paymentDate = { $gte: start, $lte: end };
     }
 
     // Fetch data
     const waveOffedPayments = await Payments.find(query)
-      .sort({paymentDate: -1, createdAt: -1})
+      .sort({ paymentDate: -1, createdAt: -1 })
       .lean();
 
     // Total wave-off amount
@@ -2707,32 +2707,32 @@ export const getAllCashPayments = async ({}) => {
     // Fetch all cash payments
     const CashPayments = await Payments.find({
       paymentMethod: "Cash",
-      paymentDate: {$gte: startDate},
-    }).sort({paymentDate: -1});
+      paymentDate: { $gte: startDate },
+    }).sort({ paymentDate: -1 });
 
     // Fetch all deposit cash payments
     const DepositPayments = await Deposits.find({
       paymentMethod: "Cash",
-      paymentDate: {$gte: startDate},
-    }).sort({paymentDate: -1});
+      paymentDate: { $gte: startDate },
+    }).sort({ paymentDate: -1 });
 
     // Fetch all cash expenses from Expense collection
     const Expenses = await Expense.find({
       paymentMethod: "Cash",
-      date: {$gte: startDate},
-    }).sort({date: -1});
+      date: { $gte: startDate },
+    }).sort({ date: -1 });
 
     // Fetch all cash commissions
     const Commissions = await Commission.find({
       paymentType: "Cash",
-      paymentDate: {$gte: startDate},
-    }).sort({paymentDate: -1});
+      paymentDate: { $gte: startDate },
+    }).sort({ paymentDate: -1 });
 
     // Fetch all cash staff salary payments
     const StaffSalaries = await StaffSalaryHistory.find({
       paymentMethod: "Cash",
-      date: {$gte: startDate},
-    }).sort({date: -1});
+      date: { $gte: startDate },
+    }).sort({ date: -1 });
 
     const PendingVouchers = await Voucher.find({
       status: "Pending",
@@ -2804,7 +2804,7 @@ export const getAllCashPayments = async ({}) => {
 
 export const getLatestFeePaymentByUserId = async (data) => {
   try {
-    const {userId} = data;
+    const { userId } = data;
 
     if (!userId) {
       return {
@@ -2815,8 +2815,8 @@ export const getLatestFeePaymentByUserId = async (data) => {
       };
     }
 
-    const latestPayment = await Payments.findOne({userId})
-      .sort({createdAt: -1})
+    const latestPayment = await Payments.findOne({ userId })
+      .sort({ createdAt: -1 })
       .lean();
 
     if (!latestPayment) {
@@ -2847,7 +2847,7 @@ export const getLatestFeePaymentByUserId = async (data) => {
 
 export const getFeePaymentsAnalytics = async (data) => {
   try {
-    const {propertyId, rentType, year} = data;
+    const { propertyId, rentType, year } = data;
 
     // Default to current year if not provided
     const targetYear = year || new Date().getFullYear();
@@ -2870,14 +2870,14 @@ export const getFeePaymentsAnalytics = async (data) => {
 
     // Aggregate payments by month
     const analytics = await Payments.aggregate([
-      {$match: match},
+      { $match: match },
       {
         $group: {
-          _id: {month: {$month: "$paymentDate"}},
-          totalReceived: {$sum: "$amount"},
+          _id: { month: { $month: "$paymentDate" } },
+          totalReceived: { $sum: "$amount" },
         },
       },
-      {$sort: {"_id.month": 1}},
+      { $sort: { "_id.month": 1 } },
     ]);
 
     // Format output: ["January 2025", "February 2025", ...]
@@ -2912,7 +2912,7 @@ export const getFeePaymentsAnalytics = async (data) => {
 
 export const getTransactionHistoryByUserId = async (data) => {
   try {
-    const {userId} = data;
+    const { userId } = data;
 
     if (!userId) {
       return {
@@ -2923,8 +2923,8 @@ export const getTransactionHistoryByUserId = async (data) => {
       };
     }
 
-    const payments = await Payments.find({userId})
-      .sort({paymentDate: -1}) // latest first
+    const payments = await Payments.find({ userId })
+      .sort({ paymentDate: -1 }) // latest first
       .lean();
 
     if (!payments || payments.length === 0) {
@@ -2955,7 +2955,7 @@ export const getTransactionHistoryByUserId = async (data) => {
 
 export const getSponsoredPayments = async (data) => {
   try {
-    const {paidBy} = data;
+    const { paidBy } = data;
 
     if (!paidBy) {
       return {
@@ -2966,7 +2966,7 @@ export const getSponsoredPayments = async (data) => {
       };
     }
 
-    const payments = await Payments.find({paidBy}).lean();
+    const payments = await Payments.find({ paidBy }).lean();
 
     if (!payments || payments.length === 0) {
       return {
@@ -2996,7 +2996,7 @@ export const getSponsoredPayments = async (data) => {
 
 export const getUserPaidAndPendingMonths = async (data) => {
   try {
-    const {userId} = data;
+    const { userId } = data;
     if (!userId) {
       return {
         success: false,
@@ -3021,7 +3021,7 @@ export const getUserPaidAndPendingMonths = async (data) => {
     }
 
     // Fetch all payment documents
-    const payments = await Payments.find({userId}).lean();
+    const payments = await Payments.find({ userId }).lean();
 
     // If no payments found
     if (!payments || payments.length === 0) {
