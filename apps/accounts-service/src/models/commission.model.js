@@ -67,5 +67,7 @@ const commissionSchema = new mongoose.Schema(
   }
 );
 
+commissionSchema.index({ transactionId: 1 }, { sparse: true });
+
 const Commission = mongoose.model("Commission", commissionSchema);
 export default Commission;

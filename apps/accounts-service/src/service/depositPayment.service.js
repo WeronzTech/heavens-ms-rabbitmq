@@ -14,6 +14,7 @@ import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pa
 import moment from "moment";
 import emailService from "../../../../libs/email/email.service.js";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -492,6 +493,18 @@ export const processAndRecordRefundPayment = async ({
     user.stayDetails.depositStatus = "refunded";
     const status = "Refunded";
 
+    if (transactionId) {
+      const duplicateCheck = await checkDuplicateTransactionId(transactionId);
+      if (duplicateCheck.isDuplicate) {
+        await session.abortTransaction();
+        return {
+          success: false,
+          status: 400,
+          message: duplicateCheck.message,
+        };
+      }
+    }
+
     // Create the Payment Record
     const newDeposit = new Deposits({
       name: user.name,
@@ -579,7 +592,9 @@ export const processAndRecordRefundPayment = async ({
       data: newDeposit,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Error during refund processing:", error);
     return { success: false, status: 400, message: error.message };
   } finally {
@@ -779,13 +794,13 @@ export const recordManualDepositPayment = async (data) => {
   }
 
   if (transactionId) {
-    const existingTxn = await Deposits.findOne({ transactionId });
+    const duplicateCheck = await checkDuplicateTransactionId(transactionId);
 
-    if (existingTxn) {
+    if (duplicateCheck.isDuplicate) {
       return {
         success: false,
         status: 400,
-        message: "This transaction ID already exists.",
+        message: duplicateCheck.message,
       };
     }
   }

@@ -60,6 +60,8 @@ const expenseSchema = new mongoose.Schema(
   {timestamps: true},
 );
 
+expenseSchema.index({ transactionId: 1 }, { sparse: true });
+
 const Expense = mongoose.model("Expense", expenseSchema);
 
 export default Expense;

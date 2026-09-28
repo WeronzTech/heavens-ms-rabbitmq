@@ -12,11 +12,11 @@ import Voucher from "../models/voucher.model.js";
 import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 
 export const addExpense = async (data) => {
   console.log("[ACCOUNTS] addExpense data:", data);
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let session = null;
   try {
     let {
       transactionId,
@@ -60,12 +60,12 @@ export const addExpense = async (data) => {
     }
 
     if (transactionId) {
-      const existingExpense = await Expense.findOne({ transactionId });
-      if (existingExpense) {
+      const duplicateCheck = await checkDuplicateTransactionId(transactionId);
+      if (duplicateCheck.isDuplicate) {
         return {
           success: false,
           status: 400,
-          message: `Transaction ID "${transactionId}" already exists`,
+          message: duplicateCheck.message,
         };
       }
     }
@@ -135,6 +135,10 @@ export const addExpense = async (data) => {
         };
       }
     }
+
+    // ✅ Start transaction only for write operations
+    session = await mongoose.startSession();
+    session.startTransaction();
 
     // ✅ Create expense in DB
     const expense = new Expense({
@@ -212,7 +216,7 @@ export const addExpense = async (data) => {
           voucher.status = "Pending";
         }
 
-        await voucher.save();
+        await voucher.save({ session });
       }
     }
 
@@ -234,7 +238,9 @@ export const addExpense = async (data) => {
       data: expense,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session && session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     console.error("[ACCOUNTS] Error in addExpense:", error);
     return {
@@ -244,7 +250,9 @@ export const addExpense = async (data) => {
       error: error.message,
     };
   } finally {
-    session.endSession();
+    if (session) {
+      session.endSession();
+    }
   }
 };
 
@@ -773,16 +781,16 @@ export const updateExpense = async (data) => {
 
     // If transaction ID is changed and is already taken
     if (transactionId && transactionId !== existingExpense.transactionId) {
-      const duplicateExpense = await Expense.findOne({ transactionId }).session(
-        session,
-      );
-      if (duplicateExpense) {
+      const duplicateCheck = await checkDuplicateTransactionId(transactionId, {
+        excludeModelName: "Expense",
+        excludeId: expenseId,
+      });
+      if (duplicateCheck.isDuplicate) {
         await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           status: 400,
-          message: `Transaction ID "${transactionId}" already exists`,
+          message: duplicateCheck.message,
         };
       }
     }
@@ -960,7 +968,9 @@ export const updateExpense = async (data) => {
       data: existingExpense,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("[ACCOUNTS] Error in updateExpense:", error);
     return {
       success: false,
@@ -1082,7 +1092,26 @@ export const payExpense = async (data) => {
     // Update payment details if provided
     if (newPaymentMethod) expense.paymentMethod = newPaymentMethod;
     if (newPettyCashType) expense.pettyCashType = newPettyCashType;
-    if (newTransactionId) expense.transactionId = newTransactionId;
+    if (newTransactionId) {
+      if (newTransactionId !== expense.transactionId) {
+        const duplicateCheck = await checkDuplicateTransactionId(
+          newTransactionId,
+          {
+            excludeModelName: "Expense",
+            excludeId: expenseId,
+          },
+        );
+        if (duplicateCheck.isDuplicate) {
+          await session.abortTransaction();
+          return {
+            success: false,
+            status: 400,
+            message: duplicateCheck.message,
+          };
+        }
+      }
+      expense.transactionId = newTransactionId;
+    }
 
     if (!expense.paymentMethod) {
       return {
@@ -1215,7 +1244,9 @@ export const payExpense = async (data) => {
       data: expense,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("[ACCOUNTS] Error in payExpense:", error);
     return {
       success: false,
