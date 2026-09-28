@@ -7,15 +7,28 @@ import { USER_PATTERN } from "../../../../libs/patterns/user/user.pattern.js";
 import { createAccountLog } from "./accountsLog.service.js";
 import { createJournalEntry } from "./accounting.service.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 
 export const addCommission = async (data) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let session = null;
   try {
     console.log(data);
     let { amount, userIds, paymentType, pettyCashType, handledBy, managerName } = data;
 
     amount = Number(amount);
+
+    if (data.transactionId) {
+      const duplicateCheck = await checkDuplicateTransactionId(
+        data.transactionId
+      );
+      if (duplicateCheck.isDuplicate) {
+        return {
+          success: false,
+          status: 400,
+          message: duplicateCheck.message,
+        };
+      }
+    }
 
     // ✅ Additional validation for petty cash type
     if (paymentType === "Petty Cash" && !pettyCashType) {
@@ -89,6 +102,9 @@ export const addCommission = async (data) => {
       delete data.handledBy;
     }
 
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     const newCommission = (await Commission.create([data], { session }))[0];
     await createAccountLog({
       logType: "Commission",
@@ -157,7 +173,9 @@ export const addCommission = async (data) => {
       data: newCommission,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session && session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Add Commission Service Error:", error);
     return {
       success: false,
@@ -165,6 +183,10 @@ export const addCommission = async (data) => {
       message: "Internal Server Error",
       error: error.message,
     };
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 };
 
@@ -389,6 +411,23 @@ export const getCommissionById = async (data) => {
 export const editCommission = async (data) => {
   try {
     const { commissionId, ...updateData } = data;
+
+    if (updateData.transactionId) {
+      const duplicateCheck = await checkDuplicateTransactionId(
+        updateData.transactionId,
+        {
+          excludeModelName: "Commission",
+          excludeId: commissionId,
+        }
+      );
+      if (duplicateCheck.isDuplicate) {
+        return {
+          success: false,
+          status: 400,
+          message: duplicateCheck.message,
+        };
+      }
+    }
 
     if (updateData.userIds && updateData.userIds.length > 0) {
       const existingCommission = await Commission.findOne({

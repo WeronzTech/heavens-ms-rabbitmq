@@ -14,6 +14,7 @@ import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pa
 import moment from "moment";
 import emailService from "../../../../libs/email/email.service.js";
 import BusPayments from "../models/busPayments.model.js";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 
 const generateReceiptNumber = async (property, session) => {
   const monthYear = moment().format("YYYY-MM");
@@ -385,13 +386,13 @@ export const recordManualBusPayment = async (data) => {
   }
 
   if (transactionId) {
-    const existingTxn = await Deposits.findOne({ transactionId });
+    const duplicateCheck = await checkDuplicateTransactionId(transactionId);
 
-    if (existingTxn) {
+    if (duplicateCheck.isDuplicate) {
       return {
         success: false,
         status: 400,
-        message: "This transaction ID already exists.",
+        message: duplicateCheck.message,
       };
     }
   }

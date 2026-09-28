@@ -6,6 +6,7 @@ import {createAccountLog} from "./accountsLog.service.js";
 import {createJournalEntry} from "./accounting.service.js";
 import {ACCOUNT_SYSTEM_NAMES} from "../config/accountMapping.config.js";
 import mongoose from "mongoose";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 
 export const manualAddSalary = async (data) => {
   const session = await mongoose.startSession();
@@ -25,6 +26,18 @@ export const manualAddSalary = async (data) => {
       remarkType,
     } = data;
     console.log(data);
+
+    if (transactionId) {
+      const duplicateCheck = await checkDuplicateTransactionId(transactionId);
+      if (duplicateCheck.isDuplicate) {
+        await session.abortTransaction();
+        return {
+          success: false,
+          status: 400,
+          message: duplicateCheck.message,
+        };
+      }
+    }
     if (remarkType === "ADVANCE_PAYMENT" && advanceSalary > 0) {
       const newSalaryRecord = (
         await StaffSalaryHistory.create(
@@ -141,7 +154,9 @@ export const manualAddSalary = async (data) => {
     }
   } catch (error) {
     console.log(error);
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Manual Add Salary Service Error:", error);
     return {
       success: false,
@@ -309,6 +324,23 @@ export const updateSalaryStatus = async (data) => {
 
       // Only set transactionId if provided (optional)
       if (transactionId) {
+        if (transactionId !== salaryRecord.transactionId) {
+          const duplicateCheck = await checkDuplicateTransactionId(
+            transactionId,
+            {
+              excludeModelName: "StaffSalaryHistory",
+              excludeId: salaryId,
+            },
+          );
+          if (duplicateCheck.isDuplicate) {
+            await session.abortTransaction();
+            return {
+              success: false,
+              status: 400,
+              message: duplicateCheck.message,
+            };
+          }
+        }
         updateData.transactionId = transactionId;
       }
 
@@ -383,7 +415,9 @@ export const updateSalaryStatus = async (data) => {
       data: updatedRecord,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Update Salary Status Service Error:", error);
     return {
       success: false,

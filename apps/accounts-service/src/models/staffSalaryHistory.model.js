@@ -54,6 +54,8 @@ const staffSalaryHistorySchema = new mongoose.Schema({
   clientId: mongoose.Schema.Types.ObjectId,
 });
 
+staffSalaryHistorySchema.index({ transactionId: 1 }, { sparse: true });
+
 const StaffSalaryHistory = mongoose.model(
   "StaffSalaryHistory",
   staffSalaryHistorySchema,

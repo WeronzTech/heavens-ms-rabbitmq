@@ -22,6 +22,7 @@ import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
 import { PROPERTY_PATTERN } from "../../../../libs/patterns/property/property.pattern.js";
 import dotenv from "dotenv";
 import { CLIENT_PATTERN } from "../../../../libs/patterns/client/client.pattern.js";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 
 dotenv.config();
 
@@ -91,6 +92,17 @@ export const addFeePayment = async (data) => {
         message:
           "Transaction ID is required for UPI and Bank Transfer payments",
       };
+    }
+
+    if (transactionId) {
+      const duplicateCheck = await checkDuplicateTransactionId(transactionId);
+      if (duplicateCheck.isDuplicate) {
+        return {
+          success: false,
+          status: 400,
+          message: duplicateCheck.message,
+        };
+      }
     }
 
     // ✅ Prepare payment data with proper formatting
@@ -244,6 +256,23 @@ export const updateFeePayment = async (paymentId, updateData) => {
         message:
           "Transaction ID is required for UPI and Bank Transfer payments",
       };
+    }
+
+    if (updateFields.transactionId) {
+      const duplicateCheck = await checkDuplicateTransactionId(
+        updateFields.transactionId,
+        {
+          excludeModelName: "Payments",
+          excludeId: paymentId,
+        }
+      );
+      if (duplicateCheck.isDuplicate) {
+        return {
+          success: false,
+          status: 400,
+          message: duplicateCheck.message,
+        };
+      }
     }
 
     // ✅ Update payment
@@ -1847,13 +1876,13 @@ export const recordManualPayment = async (data) => {
   }
 
   if (transactionId) {
-    const existingTxn = await Payments.findOne({ transactionId });
+    const duplicateCheck = await checkDuplicateTransactionId(transactionId);
 
-    if (existingTxn) {
+    if (duplicateCheck.isDuplicate) {
       return {
         success: false,
         status: 400,
-        message: "This transaction ID already exists.",
+        message: duplicateCheck.message,
       };
     }
   }

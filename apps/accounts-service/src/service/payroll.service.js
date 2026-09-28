@@ -6,6 +6,7 @@ import Payroll from "../models/payroll.model.js";
 import { createJournalEntry } from "./accounting.service.js";
 import StaffSalaryHistory from "../models/staffSalaryHistory.model.js";
 import { ACCOUNT_SYSTEM_NAMES } from "../config/accountMapping.config.js";
+import { checkDuplicateTransactionId } from "../utils/transactionValidator.js";
 export const processSalaryPayment = async (data) => {
   const {
     payrollId,
@@ -49,15 +50,14 @@ export const processSalaryPayment = async (data) => {
     ------------------------------ */
 
     if (transactionId) {
-      const existingTransaction = await StaffSalaryHistory.findOne({
-        transactionId,
-      }).session(session);
+      const duplicateCheck = await checkDuplicateTransactionId(transactionId);
 
-      if (existingTransaction) {
+      if (duplicateCheck.isDuplicate) {
         await session.abortTransaction();
         return {
           success: false,
-          message: "Transaction ID already exists!",
+          status: 400,
+          message: duplicateCheck.message,
         };
       }
     }
@@ -204,7 +204,9 @@ export const processSalaryPayment = async (data) => {
       data: payroll,
     };
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     return {
       success: false,
@@ -268,14 +270,13 @@ export const createSalaryAdvance = async (data) => {
 ------------------------------ */
 
   if (transactionId) {
-    const existingTransaction = await StaffSalaryHistory.findOne({
-      transactionId,
-    });
+    const duplicateCheck = await checkDuplicateTransactionId(transactionId);
 
-    if (existingTransaction) {
+    if (duplicateCheck.isDuplicate) {
       return {
         success: false,
-        message: "Transaction ID already exists!",
+        status: 400,
+        message: duplicateCheck.message,
       };
     }
   }
