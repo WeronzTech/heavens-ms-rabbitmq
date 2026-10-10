@@ -152,16 +152,16 @@ export const registerAdmin = async (data) => {
       };
     }
 
-    const adminRole = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_BY_ID, {
-      id: "6969e40cfacc0b02c47f7cc7",
+    const adminRole = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_NAME, {
+      name: "Admin",
     });
-    // if (!adminRole || adminRole?.data?.roleName !== "admin") {
-    //   return {
-    //     success: false,
-    //     status: 400,
-    //     message: "Admin role not found or invalid",
-    //   };
-    // }
+    if (!adminRole || adminRole?.body?.roleName !== "Admin") {
+      return {
+        success: false,
+        status: 400,
+        message: "Admin role not found or invalid",
+      };
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -170,7 +170,7 @@ export const registerAdmin = async (data) => {
       email,
       password: hashedPassword,
       contact,
-      role: adminRole?.data?._id,
+      role: adminRole?.body?._id,
       isVerified: true,
       loginEnabled: true,
       companyName: "Heavens Admin",

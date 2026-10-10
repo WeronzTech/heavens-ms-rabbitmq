@@ -20,17 +20,20 @@ export const getRoleName = async (data) => {
   try {
     // console.log(data)
 
-    const { roleId } = data;
+    const { name } = data;
     // console.log(roleId)
 
-    if (!roleId) {
+    if (!name) {
       return {
         status: 400,
-        body: { error: "id is required" },
+        body: { error: "Name is required" },
       };
     }
 
-    const role = await Role.findById(roleId).populate("reportTo", "roleName");
+    const role = await Role.findOne({ roleName: name }).populate(
+      "reportTo",
+      "roleName",
+    );
 
     if (!role) {
       return {
