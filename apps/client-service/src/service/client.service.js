@@ -90,7 +90,7 @@ export const validateClientCredentials = async (data) => {
     }
 
     const client = await Client.findOne({ email, isDeleted: false }).select(
-      "+password"
+      "+password",
     );
 
     if (!client) {
@@ -152,16 +152,16 @@ export const registerAdmin = async (data) => {
       };
     }
 
-    const adminRole = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_BY_NAME, {
-      name: "admin",
+    const adminRole = await sendRPCRequest(AUTH_PATTERN.ROLE.GET_ROLE_BY_ID, {
+      id: "6969e40cfacc0b02c47f7cc7",
     });
-    if (!adminRole || adminRole?.data?.roleName !== "admin") {
-      return {
-        success: false,
-        status: 400,
-        message: "Admin role not found or invalid",
-      };
-    }
+    // if (!adminRole || adminRole?.data?.roleName !== "admin") {
+    //   return {
+    //     success: false,
+    //     status: 400,
+    //     message: "Admin role not found or invalid",
+    //   };
+    // }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -214,7 +214,7 @@ export const registerClient = async (data) => {
       AUTH_PATTERN.ROLE.GET_ROLE_BY_NAME,
       {
         name: "client",
-      }
+      },
     );
     if (!clientRole) {
       return {
@@ -252,7 +252,7 @@ export const registerClient = async (data) => {
         const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
         const templatePath = path.join(
           __dirname,
-          "../templates/emailVerification.hbs"
+          "../templates/emailVerification.hbs",
         );
         const source = fs.readFileSync(templatePath, "utf-8").toString();
         const template = handlebars.compile(source);
